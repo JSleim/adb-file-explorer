@@ -338,7 +338,7 @@ class ADBFileExplorer(QMainWindow):
             try:
                 if self.clipboard['operation'] == 'copy':
                     success = self.adb_handler.copy_on_device(src_path, dest_path)
-                else:  # cut
+                else:
                     success = self.adb_handler.move_on_device(src_path, dest_path)
                     
                 if success:
@@ -493,6 +493,7 @@ class ADBFileExplorer(QMainWindow):
         if len(self.path_history) > 1:
             self.path_history.pop()
             self.current_path = self.path_history[-1] 
+            self.clear_search_on_navigation()
             self.update_path_display()
             self.refresh_files()
     
@@ -523,6 +524,7 @@ class ADBFileExplorer(QMainWindow):
             if new_path != self.current_path:
                 self.current_path = new_path
                 self.path_history.append(self.current_path)
+                self.clear_search_on_navigation()
                 self.update_path_display()
                 print(f"Refreshing files for path: {self.current_path}")
                 self.refresh_files()
@@ -569,12 +571,25 @@ class ADBFileExplorer(QMainWindow):
         self.show_status_message(f"Found {len(self.all_files)} items")
         self.apply_search_filter()
 
+    def clear_search_on_navigation(self):
+        if self.search_bar.text():
+            self.search_bar.blockSignals(True)
+            self.search_bar.setText("")
+            self.search_bar.blockSignals(False)
+        self.apply_search_filter()
+
     def apply_search_filter(self):
+        if not hasattr(self, 'all_files') or self.all_files is None:
+            return
         search_text = self.search_bar.text().lower()
+        filtered = [f for f in self.all_files if search_text in f.name.lower()]
+        self.populate_view(filtered)
+
+    def populate_view(self, files):
         self.tree_model.clear()
         self.tree_model.setHorizontalHeaderLabels(['Name', 'Type', 'Size', 'Permissions', 'Modified'])
         
-        if not hasattr(self, 'all_files') or self.all_files is None:
+        if files is None:
             return
 
         current_normalized = "/" if self.current_path == "/" else self.current_path.rstrip("/")
@@ -584,10 +599,8 @@ class ADBFileExplorer(QMainWindow):
             self.tree_model.appendRow([parent_item, type_item, 
                                      QStandardItem(""), QStandardItem(""), QStandardItem("")])
 
-        filtered = [f for f in self.all_files if search_text in f.name.lower()]
-
-        dirs = sorted([f for f in filtered if f.is_dir], key=lambda x: x.name.lower())
-        regular_files = sorted([f for f in filtered if not f.is_dir], key=lambda x: x.name.lower())
+        dirs = sorted([f for f in files if f.is_dir], key=lambda x: x.name.lower())
+        regular_files = sorted([f for f in files if not f.is_dir], key=lambda x: x.name.lower())
         sorted_files = dirs + regular_files
         for file_item in sorted_files:
             name_item = QStandardItem(file_item.name)
