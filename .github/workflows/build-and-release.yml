@@ -34,11 +34,18 @@ jobs:
         run: |
           pyinstaller --noconfirm --onefile --windowed --name "ADB Explorer" --hidden-import="PyQt6.QtWidgets" --hidden-import="PyQt6.QtCore" --hidden-import="PyQt6.QtGui" --hidden-import="logging.handlers" --clean --noconsole --log-level=ERROR main.py
 
-      - name: Upload EXE as release artifact
+      - name: Upload EXE as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ADB-Explorer-${{ github.sha }}
+          path: "dist/ADB Explorer.exe"
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.PUSH_TOKEN }}
-          file: dist/ADB Explorer.exe
+          file: "dist/ADB Explorer.exe"
           asset_name: ADB-Explorer-${{ github.ref_name }}.exe
           tag: ${{ github.ref }}
           overwrite: true
