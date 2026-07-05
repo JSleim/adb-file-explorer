@@ -144,6 +144,11 @@ class ADBFileExplorer(QMainWindow):
         self.paste_action = self.toolbar.addAction("Paste")
         self.paste_action.triggered.connect(self.paste_items)
 
+        self.install_apk_action = self.toolbar.addAction("Install APK")
+        self.install_apk_action.triggered.connect(self.install_apk_dialog)
+        self.install_xapk_action = self.toolbar.addAction("Install XAPK")
+        self.install_xapk_action.triggered.connect(self.install_xapk_dialog)
+
         self.clipboard = {
             'items': [],
             'operation': None
@@ -912,6 +917,42 @@ class ADBFileExplorer(QMainWindow):
             "Uploading file", 'push', file_path, remote_path,
             f"File uploaded to: {remote_path}",
             f"Failed to upload file: {filename}",
+        )
+
+    def install_apk_dialog(self):
+        if not self.adb_handler.device_connected:
+            self.show_error_message("Connection Error", "No ADB device connected")
+            return
+
+        path, _ = QFileDialog.getOpenFileName(self, "Select APK file", "", "APK (*.apk)")
+        if not path:
+            return
+        self._run_modal(
+            "Install APK", self.adb_handler.install_apk, path,
+            on_done=lambda ok: self.show_success_message("APK installed successfully") if ok else
+                self.show_error_message("Install Error", "APK installation failed"),
+            on_error=lambda: self.show_error_message(
+                "Install Error",
+                self.adb_handler.last_error or "APK installation failed",
+            ),
+        )
+
+    def install_xapk_dialog(self):
+        if not self.adb_handler.device_connected:
+            self.show_error_message("Connection Error", "No ADB device connected")
+            return
+
+        path, _ = QFileDialog.getOpenFileName(self, "Select XAPK file", "", "XAPK (*.xapk)")
+        if not path:
+            return
+        self._run_modal(
+            "Install XAPK", self.adb_handler.install_xapk, path,
+            on_done=lambda cnt: self.show_success_message(f"Installed {cnt} APKs") if cnt and cnt > 0 else
+                self.show_error_message("Install Error", "XAPK installation failed"),
+            on_error=lambda: self.show_error_message(
+                "Install Error",
+                self.adb_handler.last_error or "XAPK installation failed",
+            ),
         )
 
     def dragEnterEvent(self, event):

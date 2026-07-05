@@ -3,6 +3,10 @@ from dataclasses import dataclass
 from typing import List
 import re
 import time
+import zipfile
+import os
+import tempfile
+import json
 
 @dataclass
 class FileItem:
@@ -69,7 +73,7 @@ class ADBHandler:
         path = path.replace('"', '\\"').replace("'", "\\'")
         return f'"{path}"'
     
-    def _run_adb_command(self, command: list, use_shell=False) -> subprocess.CompletedProcess:
+    def _run_adb_command(self, command: list, use_shell=False, timeout=30) -> subprocess.CompletedProcess:
         startupinfo = None
         if hasattr(subprocess, 'STARTUPINFO'):
             startupinfo = subprocess.STARTUPINFO()
@@ -86,7 +90,7 @@ class ADBHandler:
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=timeout,
                 shell=use_shell,
                 startupinfo=startupinfo,
                 creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
@@ -412,4 +416,104 @@ class ADBHandler:
         except Exception as e:
             self.logger.error(f"Error checking path existence: {e}")
             return False
-                
+
+    def install_apk(self, apk_path: str) -> bool:
+        """Install a single APK. Returns True on success."""
+        if not self.device_connected:
+            raise ConnectionError("No ADB device connected")
+        result = self._run_adb_command(["install", "-r", apk_path], timeout=120)
+        output = (result.stdout or "") + (result.stderr or "")
+        self.last_error = None if result.returncode == 0 else output.strip()
+        return result.returncode == 0 and "Success" in output
+
+    def install_xapk(self, xapk_path: str, callback=None) -> int:
+        """Install APK files from an XAPK archive.
+
+        Split APK packages must be installed atomically with install-multiple.
+        Returns the number of APK files installed.
+        """
+        if not self.device_connected:
+            raise ConnectionError("No ADB device connected")
+
+        self.last_error = None
+        try:
+            with tempfile.TemporaryDirectory(prefix="xapk_") as tmp:
+                with zipfile.ZipFile(xapk_path, 'r') as zf:
+                    self._extract_zip_safely(zf, tmp)
+
+                apks = self._find_files(tmp, ".apk")
+                if not apks:
+                    raise ValueError("No APK files found in XAPK archive")
+
+                for apk in apks:
+                    if callback:
+                        callback(os.path.basename(apk))
+
+                if len(apks) == 1:
+                    command = ["install", "-r", apks[0]]
+                else:
+                    command = ["install-multiple", "-r", *apks]
+
+                result = self._run_adb_command(command, timeout=max(300, 90 * len(apks)))
+                output = (result.stdout or "") + (result.stderr or "")
+                if result.returncode != 0 or "Success" not in output:
+                    self.last_error = output.strip()
+                    raise RuntimeError(self.last_error or "XAPK installation failed")
+
+                self._install_xapk_obb_files(tmp, callback=callback)
+                self.last_error = None
+                return len(apks)
+        except Exception as e:
+            if not self.last_error:
+                self.last_error = str(e)
+            raise
+
+    def _extract_zip_safely(self, zf: zipfile.ZipFile, target_dir: str):
+        target_dir = os.path.abspath(target_dir)
+        for member in zf.infolist():
+            target_path = os.path.abspath(os.path.join(target_dir, member.filename))
+            if target_path != target_dir and not target_path.startswith(target_dir + os.sep):
+                raise ValueError(f"Unsafe path in archive: {member.filename}")
+            zf.extract(member, target_dir)
+
+    def _find_files(self, root: str, suffix: str):
+        matches = []
+        suffix = suffix.lower()
+        for current, dirs, files in os.walk(root):
+            dirs[:] = [d for d in dirs if d != "__MACOSX"]
+            for filename in files:
+                if filename.lower().endswith(suffix):
+                    matches.append(os.path.join(current, filename))
+        return sorted(matches, key=lambda p: (os.path.basename(p).lower() != "base.apk", p.lower()))
+
+    def _install_xapk_obb_files(self, extracted_dir: str, callback=None):
+        obbs = self._find_files(extracted_dir, ".obb")
+        if not obbs:
+            return
+
+        package_name = self._read_xapk_package_name(extracted_dir)
+        if not package_name:
+            self.logger.warning("XAPK contains OBB files but no package_name was found in manifest.json")
+            return
+
+        remote_dir = f"/sdcard/Android/obb/{package_name}"
+        self.create_folder(remote_dir)
+        for obb in obbs:
+            if callback:
+                callback(os.path.basename(obb))
+            remote_path = f"{remote_dir}/{os.path.basename(obb)}"
+            if not self.push_file(obb, remote_path):
+                raise RuntimeError(f"Failed to push OBB file: {os.path.basename(obb)}")
+
+    def _read_xapk_package_name(self, extracted_dir: str):
+        manifest_path = os.path.join(extracted_dir, "manifest.json")
+        if not os.path.exists(manifest_path):
+            return None
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                manifest = json.load(f)
+            return manifest.get("package_name") or manifest.get("package")
+        except Exception as e:
+            self.logger.warning(f"Could not read XAPK manifest: {e}")
+            return None
+
