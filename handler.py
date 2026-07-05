@@ -1,7 +1,6 @@
 import subprocess
-import shlex
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 import re
 import time
 
@@ -142,10 +141,11 @@ class ADBHandler:
                     ['shell', f'ls -la {escaped_path} 2>/dev/null || echo "error"']
                 )
 
-            if result.returncode != 0:
-                self.logger.error(f"ADB Error: {result.stderr}")
+            stdout = (result.stdout or "").strip()
+            if result.returncode != 0 or stdout == "error" or stdout.startswith("error\n"):
+                self.logger.error(f"ADB Error: {result.stderr or result.stdout}")
                 self.last_error = (result.stderr or result.stdout or "").strip()
-                return []
+                return None
 
             items = []
             lines = result.stdout.split('\n')
@@ -192,14 +192,72 @@ class ADBHandler:
             return False
 
         try:
-            result = self._run_adb_command(['pull', remote_path, local_path])
-            return result.returncode == 0
-        except subprocess.TimeoutExpired:
-            self.logger.error(f"Timeout pulling file: {remote_path}")
-            return False
+            cmd = ['adb']
+            if self.device_serial:
+                cmd.extend(['-s', self.device_serial])
+            cmd.extend(['pull', remote_path, local_path])
+            startupinfo = None
+            if hasattr(subprocess, 'STARTUPINFO'):
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_HIDE
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                startupinfo=startupinfo,
+                creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+            )
+            self._active_process = process
+            stdout, stderr = process.communicate()
+            self._active_process = None
+            return process.returncode == 0
         except Exception as e:
             self.logger.error(f"Error pulling file/folder: {e}")
             return False
+
+    def _run_transfer_streaming(self, command, progress_callback=None, line_callback=None):
+        """Run adb pull/push, streaming output line by line."""
+        if not self.device_connected:
+            return False
+
+        cmd = ['adb']
+        if self.device_serial:
+            cmd.extend(['-s', self.device_serial])
+        cmd.extend(command)
+
+        startupinfo = None
+        if hasattr(subprocess, 'STARTUPINFO'):
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+
+        try:
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                startupinfo=startupinfo,
+                creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+            )
+            self._active_process = process
+
+            for raw_line in iter(process.stdout.readline, b''):
+                line = raw_line.decode('utf-8', errors='replace').rstrip('\r\n')
+                if line_callback:
+                    line_callback(line)
+
+            process.wait()
+            return process.returncode == 0
+        except Exception as e:
+            self.logger.error(f"Error during streaming transfer: {e}")
+            return False
+
+    def pull_file_streaming(self, remote_path, local_path, line_callback=None):
+        return self._run_transfer_streaming(['pull', remote_path, local_path], line_callback=line_callback)
+
+    def push_file_streaming(self, local_path, remote_path, line_callback=None):
+        return self._run_transfer_streaming(['push', local_path, remote_path], line_callback=line_callback)
 
     def rename_item(self, old_path: str, new_path: str) -> bool:
         if not self.device_connected:
@@ -276,11 +334,26 @@ class ADBHandler:
             return False
 
         try:
-            result = self._run_adb_command(['push', local_path, remote_path])
-            return result.returncode == 0
-        except subprocess.TimeoutExpired:
-            self.logger.error(f"Timeout pushing file: {local_path}")
-            return False
+            cmd = ['adb']
+            if self.device_serial:
+                cmd.extend(['-s', self.device_serial])
+            cmd.extend(['push', local_path, remote_path])
+            startupinfo = None
+            if hasattr(subprocess, 'STARTUPINFO'):
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_HIDE
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                startupinfo=startupinfo,
+                creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+            )
+            self._active_process = process
+            stdout, stderr = process.communicate()
+            self._active_process = None
+            return process.returncode == 0
         except Exception as e:
             self.logger.error(f"Error pushing file: {e}")
             return False
@@ -328,4 +401,15 @@ class ADBHandler:
         except Exception as e:
             print(f"Error moving: {e}")
             return False
-            
+        
+    def path_exists(self, path: str) -> bool:
+        if not self.device_connected:
+            return False
+        try:
+            escaped_path = self._escape_path(path)
+            result = self._run_adb_command(['shell', f'test -e {escaped_path} && echo "yes" || echo "no"'])
+            return result.returncode == 0 and "yes" in (result.stdout or "")
+        except Exception as e:
+            self.logger.error(f"Error checking path existence: {e}")
+            return False
+                

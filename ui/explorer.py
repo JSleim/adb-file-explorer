@@ -4,16 +4,17 @@ import tempfile
 import subprocess
 
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QTreeView, QVBoxLayout, QHBoxLayout, QWidget, QPushButton,
-    QMessageBox, QLineEdit, QMenu, QFileDialog, QProgressDialog,
-    QStatusBar, QLabel, QDialog, QCheckBox, QFileIconProvider,
+    QMainWindow, QTreeView, QVBoxLayout, QHBoxLayout, QWidget, QPushButton,
+    QMessageBox, QLineEdit, QMenu, QFileDialog, QInputDialog,
+    QStatusBar, QLabel, QDialog, QCheckBox, QFileIconProvider, QProgressBar,
 )
 from PyQt6.QtGui import QStandardItemModel, QStandardItem, QKeySequence, QShortcut
-from PyQt6.QtCore import Qt, QTimer, QSize, QFileInfo
+from PyQt6.QtCore import Qt, QTimer, QFileInfo
 
 from handler import ADBHandler
 from device_chooser import DeviceChooser
 from ui.widgets import DropTreeView
+from ui.task_manager import BackgroundTaskManager, WorkerThread
 
 
 class ADBFileExplorer(QMainWindow):
@@ -60,6 +61,9 @@ class ADBFileExplorer(QMainWindow):
             'operation': None
         }
         self.use_root = False
+        self._loading = False
+        self._refresh_pending = False
+        self._refresh_task = None
 
         self._icon_provider = QFileIconProvider()
         self._folder_icon = self._icon_provider.icon(QFileIconProvider.IconType.Folder)
@@ -117,12 +121,15 @@ class ADBFileExplorer(QMainWindow):
         self.tree_model.setHorizontalHeaderLabels(['Name', 'Type', 'Size', 'Permissions', 'Modified'])
         self.tree_view.setModel(self.tree_model)
         self.tree_view.setSelectionMode(QTreeView.SelectionMode.ExtendedSelection)
-        self.tree_view.setColumnHidden(4, True)  # hide Modified by default
+        self.tree_view.setColumnHidden(4, True)
         header = self.tree_view.header()
         header.setStretchLastSection(False)
-        header.setSectionResizeMode(0, header.ResizeMode.Stretch)  # Name stretches
+        header.setSectionResizeMode(0, header.ResizeMode.Stretch)
         for col in (1, 2, 3, 4):
             header.setSectionResizeMode(col, header.ResizeMode.ResizeToContents)
+
+        self.task_manager = BackgroundTaskManager(main_widget)
+        self._position_task_manager()
 
         self.tree_view.doubleClicked.connect(self.handle_double_click)
 
@@ -169,6 +176,32 @@ class ADBFileExplorer(QMainWindow):
         self.connection_timer = QTimer()
         self.connection_timer.timeout.connect(self.check_connection_periodically)
         self.connection_timer.start(10000)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, 'task_manager') and self.task_manager.isVisible():
+            self._position_task_manager()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if hasattr(self, 'task_manager'):
+            self._position_task_manager()
+
+    def closeEvent(self, event):
+        if hasattr(self, 'task_manager'):
+            self.task_manager.setParent(None)
+        event.accept()
+
+    def _position_task_manager(self):
+        if not hasattr(self, 'task_manager'):
+            return
+        mgr = self.task_manager
+        parent = mgr.parentWidget() or self
+        margin = 15
+        x = max(margin, parent.width() - mgr.width() - margin)
+        y = max(margin, parent.height() - mgr.height() - margin)
+        mgr.move(x, y)
+        mgr.raise_()
 
     def _normalize_root_path(self, path: str) -> str:
         return "/" if path == "/" else path.rstrip("/")
@@ -267,7 +300,6 @@ class ADBFileExplorer(QMainWindow):
         return f"{bytes_size:.1f} TB"
 
     def get_selected_items(self):
-        """Get a list of selected file/directory items"""
         selected_items = []
         for index in self.tree_view.selectionModel().selectedRows():
             name = self.tree_model.itemFromIndex(index.siblingAtColumn(0)).text()
@@ -280,7 +312,6 @@ class ADBFileExplorer(QMainWindow):
         return selected_items
 
     def copy_selected(self):
-        """Copy selected items to clipboard"""
         selected_items = self.get_selected_items()
         if not selected_items:
             return
@@ -292,7 +323,6 @@ class ADBFileExplorer(QMainWindow):
         self.status_label.setText(f"Copied {len(selected_items)} item(s) to clipboard")
 
     def cut_selected(self):
-        """Cut selected items to clipboard"""
         selected_items = self.get_selected_items()
         if not selected_items:
             return
@@ -304,56 +334,62 @@ class ADBFileExplorer(QMainWindow):
         self.status_label.setText(f"Cut {len(selected_items)} item(s)")
 
     def paste_items(self):
-        """Paste items from clipboard to current directory"""
         if not self.clipboard or not self.clipboard['items']:
             self.status_label.setText("Clipboard is empty")
             return
 
         dest_dir = self.current_path
-        success_count = 0
-        total = len(self.clipboard['items'])
 
-        progress = QProgressDialog("Processing items...", "Cancel", 0, total, self)
-        progress.setWindowTitle("Pasting" if self.clipboard['operation'] == 'copy' else "Moving")
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        
+        conflicts = []
+        for item in self.clipboard['items']:
+            dest_path = f"{dest_dir}/{os.path.basename(item['path'])}"
+            if self.adb_handler.path_exists(dest_path):
+                conflicts.append(os.path.basename(item['path']))
 
-        for i, item in enumerate(self.clipboard['items']):
-            if progress.wasCanceled():
-                break
-
-            src_path = item['path']
-            dest_path = f"{dest_dir}/{os.path.basename(src_path)}"
-
-            progress.setLabelText(f"Processing {os.path.basename(src_path)}...")
-            progress.setValue(i)
-
-            try:
-                if self.clipboard['operation'] == 'copy':
-                    success = self.adb_handler.copy_on_device(src_path, dest_path)
-                else:
-                    success = self.adb_handler.move_on_device(src_path, dest_path)
-
-                if success:
-                    success_count += 1
-
-            except Exception as e:
-                print(f"Error during paste operation: {e}")
-
-            progress.setValue(i + 1)
-
-        progress.close()
-
-        if success_count > 0:
-            self.refresh_files()
-            self.status_label.setText(
-                f"Successfully {'pasted' if self.clipboard['operation'] == 'copy' else 'moved'} {success_count} item(s)"
+        if conflicts:
+            names = "\n".join(conflicts[:10])
+            more = f"\n...and {len(conflicts) - 10} more" if len(conflicts) > 10 else ""
+            reply = QMessageBox.question(
+                self, "Item(s) Already Exist",
+                f"The following already exist in the destination:\n\n{names}{more}\n\n"
+                f"Overwrite them?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
+            if reply == QMessageBox.StandardButton.No:
+                self.status_label.setText("Paste canceled")
+                return
 
-            if self.clipboard['operation'] == 'cut':
-                self.clipboard = {'items': [], 'operation': None}
-        else:
-            self.status_label.setText("Paste operation failed or was canceled")
+        operation = self.clipboard['operation']
+        cut_mode = operation == 'cut'
 
+        def run_paste():
+            success_count = 0
+            for item in self.clipboard['items']:
+                src_path = item['path']
+                dest_path = f"{dest_dir}/{os.path.basename(src_path)}"
+
+                if operation == 'copy':
+                    ok = self.adb_handler.copy_on_device(src_path, dest_path)
+                else:
+                    ok = self.adb_handler.move_on_device(src_path, dest_path)
+                if ok:
+                    success_count += 1
+            return success_count
+
+        def on_paste_done(count):
+            if count > 0:
+                if cut_mode:
+                    self.clipboard = {'items': [], 'operation': None}
+                self.show_success_message(f"Successfully {operation}ed {count} item(s)")
+                self.refresh_files()
+            else:
+                self.show_error_message(f"Paste Error", f"Failed to {operation} items")
+
+        self._run_modal(f"{operation.title()} {len(self.clipboard['items'])} items",
+                        run_paste, on_done=on_paste_done)
+
+    
     def show_context_menu(self, position):
         index = self.tree_view.indexAt(position)
         if not index.isValid():
@@ -368,34 +404,30 @@ class ADBFileExplorer(QMainWindow):
             paste_action.triggered.connect(self.paste_items)
             menu.addSeparator()
 
+        def _lam(name_fn):
+            name_fn()
+
         if not indexes:
             new_file_action = menu.addAction("New File")
             new_file_action.triggered.connect(self.create_new_file)
             new_folder_action = menu.addAction("New Folder")
             new_folder_action.triggered.connect(self.create_new_folder)
-            upload_file_action = menu.addAction("Upload File")
+            upload_file_action = menu.addAction("Upload to Device")
             upload_file_action.triggered.connect(self.upload_file_to_device)
         elif len(indexes) > 1:
             copy_action = menu.addAction("Copy")
             copy_action.triggered.connect(self.copy_selected)
-
             cut_action = menu.addAction("Cut")
             cut_action.triggered.connect(self.cut_selected)
-
             menu.addSeparator()
-
             delete_action = menu.addAction("Delete Selected")
             delete_action.triggered.connect(self.delete_selected_items)
-
-            download_action = menu.addAction("Download Selected")
+            download_action = menu.addAction("Download to PC")
             download_action.triggered.connect(self.download_selected_items)
-
-            copy_to_action = menu.addAction("Copy Selected To...")
+            copy_to_action = menu.addAction("Copy to Device Folder...")
             copy_to_action.triggered.connect(self.copy_selected_to)
-
             batch_rename_action = menu.addAction("Batch Rename...")
             batch_rename_action.triggered.connect(self.batch_rename_selected)
-
             total_size = sum(
                 self.get_file_size_from_row(index.row())
                 for index in indexes
@@ -405,82 +437,181 @@ class ADBFileExplorer(QMainWindow):
             size_label = menu.addAction(f"Total Size: {self.format_size(total_size)}")
             size_label.setEnabled(False)
         else:
-            index = indexes[0]
-            name_index = self.tree_model.index(index.row(), 0)
-            type_index = self.tree_model.index(index.row(), 1)
+            idx = indexes[0]
+            name_index = self.tree_model.index(idx.row(), 0)
+            type_index = self.tree_model.index(idx.row(), 1)
             item_name = self.tree_model.data(name_index)
             item_type = self.tree_model.data(type_index)
 
             copy_action = menu.addAction("Copy")
             copy_action.triggered.connect(self.copy_selected)
-
             cut_action = menu.addAction("Cut")
             cut_action.triggered.connect(self.cut_selected)
-
             menu.addSeparator()
 
             if item_type == "File":
                 open_action = menu.addAction("Open")
-                open_action.triggered.connect(lambda: self.open_file_on_host(item_name))
-
-                copy_to_action = menu.addAction("Copy to...")
-                copy_to_action.triggered.connect(lambda: self.copy_file_to(item_name))
-
+                open_action.triggered.connect(lambda checked, n=item_name: self.open_file_on_host(n))
+                save_action = menu.addAction("Save to PC...")
+                save_action.triggered.connect(lambda checked, n=item_name: self.copy_file_to(n))
                 menu.addSeparator()
-
                 rename_action = menu.addAction("Rename")
-                rename_action.triggered.connect(lambda: self.rename_item(item_name))
-
+                rename_action.triggered.connect(lambda checked, n=item_name: self.rename_item(n))
                 delete_action = menu.addAction("Delete")
-                delete_action.triggered.connect(lambda: self.delete_item(item_name, is_dir=False))
-
+                delete_action.triggered.connect(lambda checked, n=item_name: self.delete_item(n, is_dir=False))
             elif item_type == "Directory":
-                copy_to_action = menu.addAction("Copy to...")
-                copy_to_action.triggered.connect(lambda: self.copy_folder_to(item_name))
-
+                save_action = menu.addAction("Save to PC...")
+                save_action.triggered.connect(lambda checked, n=item_name: self.copy_folder_to(n))
                 menu.addSeparator()
-
                 rename_action = menu.addAction("Rename")
-                rename_action.triggered.connect(lambda: self.rename_item(item_name))
-
+                rename_action.triggered.connect(lambda checked, n=item_name: self.rename_item(n))
                 delete_action = menu.addAction("Delete")
-                delete_action.triggered.connect(lambda: self.delete_item(item_name, is_dir=True))
+                delete_action.triggered.connect(lambda checked, n=item_name: self.delete_item(n, is_dir=True))
         menu.exec(self.tree_view.viewport().mapToGlobal(position))
+
+    
+
+    def _run_background(self, name, fn, *args, on_done=None, on_error=None, refresh=False):
+        task = self.task_manager.submit(name, fn, *args)
+
+        def handle_result(val):
+            is_ok = bool(val) if val is not None else False
+            if is_ok:
+                if on_done:
+                    on_done(val)
+                if refresh:
+                    self.refresh_files()
+            else:
+                if on_error:
+                    on_error()
+
+        task.finished_signal.connect(handle_result)
+        task.error_signal.connect(lambda msg: (on_error() if on_error else None))
+        self._position_task_manager()
+        return task
+
+    def _run_modal(self, title, fn, *args, on_done=None, on_error=None, refresh=False):
+        task = WorkerThread(title, fn, *args)
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(title)
+        dlg.setWindowModality(Qt.WindowModality.WindowModal)
+        dlg.setFixedSize(360, 130)
+        layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(16, 16, 16, 16)
+
+        label = QLabel(f"{title}...")
+        layout.addWidget(label)
+
+        bar = QProgressBar()
+        bar.setRange(0, 0)
+        layout.addWidget(bar)
+
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        bg_btn = QPushButton("Background")
+        cancel_btn = QPushButton("Cancel")
+        btn_row.addWidget(bg_btn)
+        btn_row.addWidget(cancel_btn)
+        layout.addLayout(btn_row)
+
+        sent_to_background = [False]
+        completed = [False]
+        failed = [False]
+
+        def reopen_dialog():
+            if completed[0]:
+                return
+            dlg.show()
+            dlg.raise_()
+            dlg.activateWindow()
+
+        def send_to_background():
+            if sent_to_background[0]:
+                dlg.hide()
+                return
+            sent_to_background[0] = True
+            dlg.hide()
+            self.task_manager.add_task(task, name=title, on_reopen=reopen_dialog)
+            self._position_task_manager()
+
+        bg_btn.clicked.connect(send_to_background)
+
+        def cancel_task():
+            task.cancel()
+            dlg.close()
+
+        cancel_btn.clicked.connect(cancel_task)
+
+        def handle_finished(val):
+            completed[0] = True
+            if dlg.isVisible():
+                dlg.close()
+            if failed[0]:
+                return
+            is_ok = not failed[0] and (bool(val) if val is not None else False)
+            if is_ok:
+                if on_done:
+                    on_done(val)
+                if refresh:
+                    self.refresh_files()
+            elif not sent_to_background[0]:
+                if on_error:
+                    on_error()
+                else:
+                    self.show_error_message("Error", f"{title} failed")
+
+        def handle_error(msg):
+            failed[0] = True
+            if dlg.isVisible():
+                dlg.close()
+            if on_error:
+                on_error()
+
+        task.finished_signal.connect(handle_finished)
+        task.error_signal.connect(handle_error)
+        dlg.show()
+        task.start()
+        return task
+
+    def _run_transfer(self, title, mode, src, dst, success_msg, error_msg):
+        fn = self.adb_handler.pull_file if mode == 'pull' else self.adb_handler.push_file
+        self._run_modal(
+            title, fn, src, dst,
+            on_done=lambda _: self.show_success_message(success_msg),
+            on_error=lambda: self.show_error_message("Error", error_msg),
+        )
+
+    
 
     def copy_file_to(self, filename):
         if not self.adb_handler.device_connected:
             self.show_error_message("Connection Error", "No ADB device connected")
             return
-
         remote_path = f"{self.current_path.rstrip('/')}/{filename}"
         save_path, _ = QFileDialog.getSaveFileName(self, "Save File As", filename)
         if not save_path:
             return
-
-        self.show_status_message(f"Copying {filename}...")
-        success = self.adb_handler.pull_file(remote_path, save_path)
-        if not success:
-            self.show_error_message("Copy Error", f"Failed to copy file: {filename}")
-        else:
-            self.show_success_message(f"File copied to: {save_path}")
+        self._run_transfer(
+            "Copying file", 'pull', remote_path, save_path,
+            f"File copied to: {save_path}",
+            f"Failed to copy file: {filename}",
+        )
 
     def copy_folder_to(self, foldername):
         if not self.adb_handler.device_connected:
             self.show_error_message("Connection Error", "No ADB device connected")
             return
-
         remote_path = f"{self.current_path.rstrip('/')}/{foldername}"
         save_dir = QFileDialog.getExistingDirectory(self, "Select Destination Folder")
         if not save_dir:
             return
         local_path = os.path.join(save_dir, foldername)
-
-        self.show_status_message(f"Copying folder {foldername}...")
-        success = self.adb_handler.pull_file(remote_path, local_path)
-        if not success:
-            self.show_error_message("Copy Error", f"Failed to copy folder: {foldername}")
-        else:
-            self.show_success_message(f"Folder copied to: {local_path}")
+        self._run_transfer(
+            "Copying folder", 'pull', remote_path, local_path,
+            f"Folder copied to: {local_path}",
+            f"Failed to copy folder: {foldername}",
+        )
 
     def update_path_display(self):
         self.path_display.setText(self.current_path)
@@ -537,36 +668,73 @@ class ADBFileExplorer(QMainWindow):
         temp_dir = tempfile.gettempdir()
         local_path = os.path.join(temp_dir, filename)
 
-        self.show_status_message(f"Opening {filename}...")
-        success = self.adb_handler.pull_file(remote_path, local_path)
-        if not success:
-            self.show_error_message("Open Error", f"Failed to pull file: {filename}")
-            return
-        try:
-            if sys.platform.startswith('win'):
-                os.startfile(local_path)
-            elif sys.platform.startswith('darwin'):
-                subprocess.run(['open', local_path])
-            else:
-                subprocess.run(['xdg-open', local_path])
-            self.show_success_message(f"Opened {filename}")
-        except Exception as e:
-            self.show_error_message("Open Error", f"Failed to open file: {e}")
+        def run_pull():
+            return self.adb_handler.pull_file(remote_path, local_path)
+
+        def on_pulled(ok):
+            if not ok:
+                self.show_error_message("Open Error", f"Failed to pull file: {filename}")
+                return
+            try:
+                if sys.platform.startswith('win'):
+                    os.startfile(local_path)
+                elif sys.platform.startswith('darwin'):
+                    subprocess.run(['open', local_path])
+                else:
+                    subprocess.run(['xdg-open', local_path])
+                self.show_success_message(f"Opened {filename}")
+            except Exception as e:
+                self.show_error_message("Open Error", f"Failed to open file: {e}")
+
+        self._run_modal("Downloading file", run_pull, on_done=on_pulled)
+
+    
 
     def refresh_files(self):
         if not self.adb_handler.device_connected:
             self.status_label.setText("No ADB device connected")
             return
 
-        self.show_status_message(f"Refreshing {self.current_path}...")
-        self.all_files = self.adb_handler.list_directory(self.current_path, use_root=self.use_root)
-
-        if self.all_files is None:
-            self.show_error_message("Refresh Error", "Failed to list directory contents")
+        
+        if self._loading:
+            self._refresh_pending = True
             return
 
-        self.show_status_message(f"Found {len(self.all_files)} items")
-        self.apply_search_filter()
+        self._loading = True
+        txt = f"Loading {self.current_path}..."
+        self.status_label.setText(txt)
+        self.tree_model.clear()
+        self.tree_model.setHorizontalHeaderLabels(['Name', 'Type', 'Size', 'Permissions', 'Modified'])
+        loading_item = QStandardItem("Loading...")
+        loading_item.setEnabled(False)
+        self.tree_model.appendRow([loading_item])
+
+        def on_files(files):
+            self._loading = False
+            if files is not None:
+                self.all_files = files
+                self.apply_search_filter()
+                self.show_status_message(f"Found {len(self.all_files)} items")
+            else:
+                self.show_error_message("Refresh Error", "Failed to list directory contents")
+
+            if self._refresh_pending:
+                self._refresh_pending = False
+                self.refresh_files()
+
+        task = WorkerThread(
+            f"List {os.path.basename(self.current_path.rstrip('/')) or '/'}",
+            self.adb_handler.list_directory, self.current_path, self.use_root,
+        )
+        self._refresh_task = task
+
+        def clear_refresh_task(_=None):
+            if getattr(self, '_refresh_task', None) is task:
+                self._refresh_task = None
+
+        task.finished_signal.connect(on_files)
+        task.finished_signal.connect(clear_refresh_task)
+        task.start()
 
     def clear_search_on_navigation(self):
         if self.search_bar.text():
@@ -593,14 +761,12 @@ class ADBFileExplorer(QMainWindow):
         if current_normalized != self.root_path:
             parent_item = QStandardItem("..")
             parent_item.setIcon(self._folder_icon)
-            type_item = QStandardItem("Directory")
-            self.tree_model.appendRow([parent_item, type_item,
+            self.tree_model.appendRow([parent_item, QStandardItem("Directory"),
                                      QStandardItem(""), QStandardItem(""), QStandardItem("")])
 
         dirs = sorted([f for f in files if f.is_dir], key=lambda x: x.name.lower())
         regular_files = sorted([f for f in files if not f.is_dir], key=lambda x: x.name.lower())
-        sorted_files = dirs + regular_files
-        for file_item in sorted_files:
+        for file_item in dirs + regular_files:
             name_item = QStandardItem(file_item.name)
             if file_item.is_dir:
                 name_item.setIcon(self._folder_icon)
@@ -610,13 +776,13 @@ class ADBFileExplorer(QMainWindow):
                     icon = self._icon_provider.icon(QFileInfo(f"x{ext}"))
                     self._icon_cache[ext] = icon if not icon.isNull() else self._file_icon
                 name_item.setIcon(self._icon_cache[ext])
-            type_item = QStandardItem("Directory" if file_item.is_dir else "File")
-            size = str(file_item.size) if not file_item.is_dir else ""
-            size_item = QStandardItem(size)
-            perm_item = QStandardItem(file_item.permissions)
-            date_item = QStandardItem(file_item.date_modified)
-            row = [name_item, type_item, size_item, perm_item, date_item]
-            self.tree_model.appendRow(row)
+            self.tree_model.appendRow([
+                name_item,
+                QStandardItem("Directory" if file_item.is_dir else "File"),
+                QStandardItem(str(file_item.size) if not file_item.is_dir else ""),
+                QStandardItem(file_item.permissions),
+                QStandardItem(file_item.date_modified),
+            ])
         for i in range(5):
             self.tree_view.resizeColumnToContents(i)
 
@@ -625,7 +791,6 @@ class ADBFileExplorer(QMainWindow):
             self.show_error_message("Connection Error", "No ADB device connected")
             return
 
-        from PyQt6.QtWidgets import QInputDialog
         new_name, ok = QInputDialog.getText(self, "Rename", f"Enter new name for '{old_name}':")
         if ok and new_name and new_name != old_name:
             old_path = f"{self.current_path.rstrip('/')}/{old_name}"
@@ -651,7 +816,6 @@ class ADBFileExplorer(QMainWindow):
         )
         if reply == QMessageBox.StandardButton.Yes:
             path = f"{self.current_path.rstrip('/')}/{name}"
-
             self.show_status_message(f"Deleting {name}...")
             success = self.adb_handler.delete_item(path, is_dir)
             if not success:
@@ -684,28 +848,31 @@ class ADBFileExplorer(QMainWindow):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if reply == QMessageBox.StandardButton.Yes:
-            self.show_status_message(f"Deleting {len(names_types)} items...")
-            success_count = 0
-            for name, is_dir in names_types:
-                path = f"{self.current_path.rstrip('/')}/{name}"
-                if self.adb_handler.delete_item(path, is_dir):
-                    success_count += 1
-            if success_count == len(names_types):
-                self.show_success_message(f"Successfully deleted {success_count} items")
-            else:
-                self.show_error_message("Delete Warning", f"Deleted {success_count}/{len(names_types)} items")
-            self.refresh_files()
+            def run_delete():
+                success_count = 0
+                for name, is_dir in names_types:
+                    path = f"{self.current_path.rstrip('/')}/{name}"
+                    if self.adb_handler.delete_item(path, is_dir):
+                        success_count += 1
+                return success_count
+
+            def on_done(count):
+                if count == len(names_types):
+                    self.show_success_message(f"Successfully deleted {count} items")
+                else:
+                    self.show_error_message("Delete Warning", f"Deleted {count}/{len(names_types)} items")
+                self.refresh_files()
+
+            self._run_modal(f"Deleting {len(names_types)} items", run_delete, on_done=on_done)
 
     def create_new_file(self):
         if not self.adb_handler.device_connected:
             self.show_error_message("Connection Error", "No ADB device connected")
             return
 
-        from PyQt6.QtWidgets import QInputDialog
         name, ok = QInputDialog.getText(self, "New File", "Enter new file name:")
         if ok and name:
             remote_path = f"{self.current_path.rstrip('/')}/{name}"
-
             self.show_status_message(f"Creating file {name}...")
             success = self.adb_handler.create_file(remote_path)
             if not success:
@@ -719,11 +886,9 @@ class ADBFileExplorer(QMainWindow):
             self.show_error_message("Connection Error", "No ADB device connected")
             return
 
-        from PyQt6.QtWidgets import QInputDialog
         name, ok = QInputDialog.getText(self, "New Folder", "Enter new folder name:")
         if ok and name:
             remote_path = f"{self.current_path.rstrip('/')}/{name}"
-
             self.show_status_message(f"Creating folder {name}...")
             success = self.adb_handler.create_folder(remote_path)
             if not success:
@@ -743,13 +908,11 @@ class ADBFileExplorer(QMainWindow):
         filename = os.path.basename(file_path)
         remote_path = f"{self.current_path.rstrip('/')}/{filename}"
 
-        self.show_status_message(f"Uploading {filename}...")
-        success = self.adb_handler.push_file(file_path, remote_path)
-        if not success:
-            self.show_error_message("Upload Error", f"Failed to upload file: {filename}")
-        else:
-            self.show_success_message(f"File uploaded to: {remote_path}")
-            self.refresh_files()
+        self._run_transfer(
+            "Uploading file", 'push', file_path, remote_path,
+            f"File uploaded to: {remote_path}",
+            f"Failed to upload file: {filename}",
+        )
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -774,51 +937,45 @@ class ADBFileExplorer(QMainWindow):
                         files_to_upload.append((abs_file, rel_dir))
             else:
                 files_to_upload.append((path, ""))
-        self.upload_files_and_folders_with_progress(files_to_upload, base_folder=paths[0] if os.path.isdir(paths[0]) else None)
+        self.upload_files_and_folders_with_progress(files_to_upload)
 
     def upload_files_and_folders_with_progress(self, files, base_folder=None):
         if not self.adb_handler.device_connected:
             self.show_error_message("Connection Error", "No ADB device connected")
             return
 
+        base_folder = base_folder or files[0][0] if files else None
         total = len(files)
-        progress = QProgressDialog("Uploading files...", "Cancel", 0, total, self)
-        progress.setWindowTitle("Upload Progress")
-        progress.setWindowModality(Qt.WindowModality.ApplicationModal)
-        progress.show()
 
-        success_count = 0
-        for i, (file_path, rel_dir) in enumerate(files, 1):
-            if progress.wasCanceled():
-                break
-            filename = os.path.basename(file_path)
-
-            if base_folder and rel_dir != ".":
-                remote_dir = f"{self.current_path.rstrip('/')}/{os.path.basename(base_folder)}/{rel_dir}".replace("\\", "/")
-            elif base_folder:
-                remote_dir = f"{self.current_path.rstrip('/')}/{os.path.basename(base_folder)}".replace("\\", "/")
-            else:
-                remote_dir = self.current_path.rstrip("/")
-
-            if rel_dir:
-                self.adb_handler.create_folder(remote_dir)
-            remote_path = f"{remote_dir}/{filename}".replace("\\", "/")
-            progress.setLabelText(f"Uploading {filename} ({i}/{total})")
-            progress.setValue(i - 1)
-            QApplication.processEvents()
-            success = self.adb_handler.push_file(file_path, remote_path)
-            if success:
+        def run_upload():
+            success_count = 0
+            for file_path, rel_dir in files:
+                filename = os.path.basename(file_path)
+                if base_folder and rel_dir and rel_dir != ".":
+                    remote_dir = f"{self.current_path.rstrip('/')}/{os.path.basename(base_folder)}/{rel_dir}".replace("\\", "/")
+                elif base_folder:
+                    remote_dir = f"{self.current_path.rstrip('/')}/{os.path.basename(base_folder)}".replace("\\", "/")
+                else:
+                    remote_dir = self.current_path.rstrip("/")
+                if rel_dir:
+                    self.adb_handler.create_folder(remote_dir)
+                remote_path = f"{remote_dir}/{filename}".replace("\\", "/")
+                ok = self.adb_handler.push_file(file_path, remote_path)
+                if not ok:
+                    raise Exception(f"Failed to upload {filename}")
                 success_count += 1
-            else:
-                self.show_error_message("Upload Error", f"Failed to upload file: {filename}")
-                break
-        progress.close()
+            return success_count
 
-        if success_count == total:
-            self.show_success_message(f"Successfully uploaded {success_count} files")
-        else:
-            self.show_error_message("Upload Warning", f"Uploaded {success_count}/{total} files")
-        self.refresh_files()
+        def on_done(count):
+            if count == total:
+                self.show_success_message(f"Successfully uploaded {count} files")
+            else:
+                self.show_error_message("Upload Warning", f"Uploaded {count}/{total} files")
+            self.refresh_files()
+
+        self._run_modal(f"Uploading {total} files", run_upload,
+                        on_done=on_done,
+                        on_error=lambda: self.show_error_message("Upload Error", "Upload failed"))
 
     def download_files_with_progress(self, files):
         if not self.adb_handler.device_connected:
@@ -826,31 +983,25 @@ class ADBFileExplorer(QMainWindow):
             return
 
         total = len(files)
-        progress = QProgressDialog("Downloading files...", "Cancel", 0, total, self)
-        progress.setWindowTitle("Download Progress")
-        progress.setWindowModality(Qt.WindowModality.ApplicationModal)
-        progress.show()
 
-        success_count = 0
-        for i, (remote_path, local_path) in enumerate(files, 1):
-            if progress.wasCanceled():
-                break
-            filename = os.path.basename(remote_path)
-            progress.setLabelText(f"Downloading {filename} ({i}/{total})")
-            progress.setValue(i - 1)
-            QApplication.processEvents()
-            success = self.adb_handler.pull_file(remote_path, local_path)
-            if success:
+        def run_download():
+            success_count = 0
+            for remote_path, local_path in files:
+                ok = self.adb_handler.pull_file(remote_path, local_path)
+                if not ok:
+                    raise Exception(f"Failed to download {os.path.basename(remote_path)}")
                 success_count += 1
-            else:
-                self.show_error_message("Download Error", f"Failed to download file: {filename}")
-                break
-        progress.close()
+            return success_count
 
-        if success_count == total:
-            self.show_success_message(f"Successfully downloaded {success_count} files")
-        else:
-            self.show_error_message("Download Warning", f"Downloaded {success_count}/{total} files")
+        def on_done(count):
+            if count == total:
+                self.show_success_message(f"Successfully downloaded {count} files")
+            else:
+                self.show_error_message("Download Warning", f"Downloaded {count}/{total} files")
+
+        self._run_modal(f"Downloading {total} files", run_download,
+                        on_done=on_done,
+                        on_error=lambda: self.show_error_message("Download Error", "Download failed"))
 
     def download_selected_items(self):
         if not self.adb_handler.device_connected:
@@ -871,13 +1022,10 @@ class ADBFileExplorer(QMainWindow):
             type_index = self.tree_model.index(index.row(), 1)
             item_name = self.tree_model.data(name_index)
             item_type = self.tree_model.data(type_index)
-
             if not item_name or item_name == "..":
                 continue
-
             remote_path = f"{self.current_path.rstrip('/')}/{item_name}"
             local_path = os.path.join(save_dir, item_name)
-
             files_to_download.append((remote_path, local_path))
 
         if not files_to_download:
@@ -895,16 +1043,16 @@ class ADBFileExplorer(QMainWindow):
         if not indexes:
             return
 
-        names_types = []
+        names = []
         for index in indexes:
             name_index = self.tree_model.index(index.row(), 0)
             type_index = self.tree_model.index(index.row(), 1)
             item_name = self.tree_model.data(name_index)
             is_dir = self.tree_model.data(type_index) == "Directory"
             if item_name and item_name != "..":
-                names_types.append((item_name, is_dir))
+                names.append((item_name, is_dir))
 
-        if not names_types:
+        if not names:
             return
 
         from select_directory_dialog import SelectDirectoryDialog
@@ -916,69 +1064,34 @@ class ADBFileExplorer(QMainWindow):
 
             reply = QMessageBox.question(
                 self, "Copy Items",
-                f"Copy {len(names_types)} item(s) to '{target_path}'?",
+                f"Copy {len(names)} item(s) to '{target_path}'?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             if reply == QMessageBox.StandardButton.No:
                 return
 
-            self.copy_items_to_path(names_types, target_path)
+            def run_copy():
+                success_count = 0
+                for name, is_dir in names:
+                    source = f"{self.current_path.rstrip('/')}/{name}"
+                    dest = f"{target_path.rstrip('/')}/{name}"
+                    try:
+                        if self.adb_handler.path_exists(dest):
+                            self.adb_handler.delete_item(dest, is_dir)
+                        if self.adb_handler.copy_on_device(source, dest):
+                            success_count += 1
+                    except Exception:
+                        pass
+                return success_count
 
-    def copy_items_to_path(self, items, target_path):
-        if not self.adb_handler.device_connected:
-            self.show_error_message("Connection Error", "No ADB device connected")
-            return
+            def on_done(count):
+                if count == len(names):
+                    self.show_success_message(f"Successfully copied {count} items")
+                else:
+                    self.show_error_message("Copy Warning", f"Copied {count}/{len(names)} items")
+                self.refresh_files()
 
-        progress = QProgressDialog("Copying items...", "Cancel", 0, len(items), self)
-        progress.setWindowTitle("Copy Progress")
-        progress.setWindowModality(Qt.WindowModality.ApplicationModal)
-        progress.show()
-
-        success_count = 0
-        for i, (name, is_dir) in enumerate(items):
-            if progress.wasCanceled():
-                break
-            source = f"{self.current_path.rstrip('/')}/{name}"
-            dest = f"{target_path.rstrip('/')}/{name}"
-
-            if is_dir:
-                try:
-                    self.adb_handler.create_folder(dest)
-                    cmd = f"cp -r '{source}' '{dest}'"
-                    result = self.adb_handler._run_adb_command(['shell', cmd])
-                    success = result.returncode == 0
-                except Exception as e:
-                    print(f"Error copying directory {name}: {e}")
-                    success = False
-            else:
-                try:
-                    temp_dir = tempfile.gettempdir()
-                    temp_file = os.path.join(temp_dir, name)
-                    if self.adb_handler.pull_file(source, temp_file):
-                        success = self.adb_handler.push_file(temp_file, dest)
-                        try:
-                            os.remove(temp_file)
-                        except:
-                            pass
-                    else:
-                        success = False
-                except Exception as e:
-                    print(f"Error copying file {name}: {e}")
-                    success = False
-
-            if success:
-                success_count += 1
-
-            progress.setLabelText(f"Copying {name} ({i+1}/{len(items)})")
-            progress.setValue(i+1)
-            QApplication.processEvents()
-
-        progress.close()
-        if success_count == len(items):
-            self.show_success_message(f"Successfully copied {success_count} items")
-        else:
-            self.show_error_message("Copy Warning", f"Copied {success_count}/{len(items)} items")
-        self.refresh_files()
+            self._run_modal(f"Copying {len(names)} items", run_copy, on_done=on_done)
 
     def batch_rename_selected(self):
         if not self.adb_handler.device_connected:
@@ -990,44 +1103,29 @@ class ADBFileExplorer(QMainWindow):
             QMessageBox.information(self, "Info", "Select 2 or more items to batch rename.")
             return
 
-        from PyQt6.QtWidgets import QInputDialog, QLineEdit
-        base_name, ok = QInputDialog.getText(
-            self, "Batch Rename",
-            "Enter base name:",
-            QLineEdit.EchoMode.Normal,
-            ""
-        )
+        base_name, ok = QInputDialog.getText(self, "Batch Rename", "Enter base name:")
         if not ok or not base_name:
             return
 
         padding = len(str(len(indexes)))
 
-        progress = QProgressDialog("Renaming items...", "Cancel", 0, len(indexes), self)
-        progress.setWindowTitle("Batch Rename")
-        progress.setWindowModality(Qt.WindowModality.ApplicationModal)
-        progress.show()
+        def run_rename():
+            success_count = 0
+            for i, index in enumerate(indexes):
+                old_name_index = self.tree_model.index(index.row(), 0)
+                old_name = self.tree_model.data(old_name_index)
+                new_name = f"{base_name}{str(i+1).zfill(padding)}"
+                old_path = f"{self.current_path.rstrip('/')}/{old_name}"
+                new_path = f"{self.current_path.rstrip('/')}/{new_name}"
+                if self.adb_handler.rename_item(old_path, new_path):
+                    success_count += 1
+            return success_count
 
-        success_count = 0
-        for i, index in enumerate(indexes):
-            if progress.wasCanceled():
-                break
+        def on_done(count):
+            if count == len(indexes):
+                self.show_success_message(f"Successfully renamed {count} items")
+            else:
+                self.show_error_message("Rename Warning", f"Renamed {count}/{len(indexes)} items")
+            self.refresh_files()
 
-            old_name_index = self.tree_model.index(index.row(), 0)
-            old_name = self.tree_model.data(old_name_index)
-            new_name = f"{base_name}{str(i+1).zfill(padding)}"
-            old_path = f"{self.current_path.rstrip('/')}/{old_name}"
-            new_path = f"{self.current_path.rstrip('/')}/{new_name}"
-
-            if self.adb_handler.rename_item(old_path, new_name):
-                success_count += 1
-
-            progress.setLabelText(f"Renaming {old_name} → {new_name}")
-            progress.setValue(i+1)
-            QApplication.processEvents()
-
-        progress.close()
-        if success_count == len(indexes):
-            self.show_success_message(f"Successfully renamed {success_count} items")
-        else:
-            self.show_error_message("Rename Warning", f"Renamed {success_count}/{len(indexes)} items")
-        self.refresh_files()
+        self._run_modal(f"Renaming {len(indexes)} items", run_rename, on_done=on_done)
