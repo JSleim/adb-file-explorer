@@ -20,11 +20,15 @@ class FileItem:
     date_modified: str
 
 class ADBHandler:
-    _active_streams = {}  
+    _active_streams = {}
+
+    _WIN_FLAGS: int = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
 
     def __init__(self, device_serial=None):
         import logging
         self.logger = logging.getLogger('ADBHandler')
+
+        self._ensure_server_started()
 
         self.device_serial = device_serial
         self.devices = self.get_connected_devices()
@@ -60,10 +64,25 @@ class ADBHandler:
         try:
             subprocess.run(
                 ['adb', '-s', serial, 'exec-out', 'mkdir', '-p', remote_dir],
-                capture_output=True, timeout=10
+                capture_output=True, timeout=10,
+                startupinfo=ADBHandler._make_startupinfo(),
+                creationflags=ADBHandler._WIN_FLAGS,
             )
         except Exception:
             pass
+
+    def _ensure_server_started(self):
+        try:
+            subprocess.run(
+                ['adb', 'start-server'],
+                capture_output=True,
+                timeout=15,
+                startupinfo=self._make_startupinfo(),
+                creationflags=self._WIN_FLAGS,
+            )
+        except Exception:
+            pass
+
     def get_connected_devices(self):
         try:
             result = self._run_adb_command(['devices', '-l'])
@@ -85,7 +104,7 @@ class ADBHandler:
         except Exception as e:
             self.logger.error(f"Error listing devices: {e}")
             return {}
-    
+
     def check_adb_connection(self) -> bool:
         try:
             result = self._run_adb_command(['devices'])
@@ -98,19 +117,12 @@ class ADBHandler:
         except Exception as e:
             self.logger.error(f"ADB Connection error: {e}")
             return False
-    
-    def _escape_path(self, path: str) -> str:
 
+    def _escape_path(self, path: str) -> str:
         path = path.replace('"', '\\"').replace("'", "\\'")
         return f'"{path}"'
-    
-    def _run_adb_command(self, command: list, use_shell=False, timeout=30) -> subprocess.CompletedProcess:
-        startupinfo = None
-        if hasattr(subprocess, 'STARTUPINFO'):
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            startupinfo.wShowWindow = subprocess.SW_HIDE
 
+    def _run_adb_command(self, command: list, use_shell=False, timeout=30) -> subprocess.CompletedProcess:
         cmd = ['adb']
         if self.device_serial:
             cmd.extend(['-s', self.device_serial])
@@ -123,8 +135,8 @@ class ADBHandler:
                 text=True,
                 timeout=timeout,
                 shell=use_shell,
-                startupinfo=startupinfo,
-                creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+                startupinfo=self._make_startupinfo(),
+                creationflags=self._WIN_FLAGS,
             )
         except subprocess.TimeoutExpired:
             self.logger.error(f"Command timed out: {' '.join(cmd)}")
@@ -163,7 +175,7 @@ class ADBHandler:
             sock.settimeout(None)
 
             path_b = dst_path.rstrip('/').encode()
-            mode_str = b'644'  
+            mode_str = b'644'
             send_data = path_b + b',' + mode_str
             while len(send_data) % 4 != 0:
                 send_data += b'\x00'
@@ -197,14 +209,13 @@ class ADBHandler:
         if si_dir:
             ADBHandler._exec_mkdir(dst_serial, si_dir)
 
-        flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
-        si = ADBHandler._make_startupinfo()
         src_proc = None
         try:
             src_proc = subprocess.Popen(
                 ['adb', '-s', src_serial, 'exec-out', 'cat', src_path],
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                startupinfo=si, creationflags=flags
+                startupinfo=self._make_startupinfo(),
+                creationflags=self._WIN_FLAGS,
             )
             self._active_process = src_proc
             stream_id = id(src_proc)
@@ -263,7 +274,9 @@ class ADBHandler:
         try:
             r = subprocess.run(
                 ['adb', '-s', src_serial, 'exec-out', 'find', src_path, '-type', 'f'],
-                capture_output=True, timeout=30
+                capture_output=True, timeout=30,
+                startupinfo=self._make_startupinfo(),
+                creationflags=self._WIN_FLAGS,
             )
             if r.returncode != 0:
                 return False
@@ -315,7 +328,7 @@ class ADBHandler:
 
         self.root_mode = None
         return False
-            
+
     def list_directory(self, path: str, use_root: bool = False) -> List[FileItem]:
         if not self.device_connected:
             self.logger.error("No ADB device connected")
@@ -384,21 +397,13 @@ class ADBHandler:
             return False
 
         try:
-            cmd = ['adb']
-            if self.device_serial:
-                cmd.extend(['-s', self.device_serial])
-            cmd.extend(['pull', remote_path, local_path])
-            startupinfo = None
-            if hasattr(subprocess, 'STARTUPINFO'):
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                startupinfo.wShowWindow = subprocess.SW_HIDE
+            cmd = self._build_adb_cmd(['pull', remote_path, local_path])
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                startupinfo=startupinfo,
-                creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+                startupinfo=self._make_startupinfo(),
+                creationflags=self._WIN_FLAGS,
             )
             self._active_process = process
             stdout, stderr = process.communicate()
@@ -412,24 +417,15 @@ class ADBHandler:
         if not self.device_connected:
             return False
 
-        cmd = ['adb']
-        if self.device_serial:
-            cmd.extend(['-s', self.device_serial])
-        cmd.extend(command)
-
-        startupinfo = None
-        if hasattr(subprocess, 'STARTUPINFO'):
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            startupinfo.wShowWindow = subprocess.SW_HIDE
+        cmd = self._build_adb_cmd(command)
 
         try:
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                startupinfo=startupinfo,
-                creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+                startupinfo=self._make_startupinfo(),
+                creationflags=self._WIN_FLAGS,
             )
             self._active_process = process
 
@@ -474,10 +470,7 @@ class ADBHandler:
 
         try:
             escaped_path = self._escape_path(path)
-            if is_dir:
-                cmd = f'rm -r {escaped_path}'
-            else:
-                cmd = f'rm {escaped_path}'
+            cmd = f'rm -r {escaped_path}' if is_dir else f'rm {escaped_path}'
             result = self._run_adb_command(['shell', cmd])
             return result.returncode == 0
         except subprocess.TimeoutExpired:
@@ -525,21 +518,13 @@ class ADBHandler:
             return False
 
         try:
-            cmd = ['adb']
-            if self.device_serial:
-                cmd.extend(['-s', self.device_serial])
-            cmd.extend(['push', local_path, remote_path])
-            startupinfo = None
-            if hasattr(subprocess, 'STARTUPINFO'):
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                startupinfo.wShowWindow = subprocess.SW_HIDE
+            cmd = self._build_adb_cmd(['push', local_path, remote_path])
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                startupinfo=startupinfo,
-                creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+                startupinfo=self._make_startupinfo(),
+                creationflags=self._WIN_FLAGS,
             )
             self._active_process = process
             stdout, stderr = process.communicate()
@@ -548,7 +533,7 @@ class ADBHandler:
         except Exception as e:
             self.logger.error(f"Error pushing file: {e}")
             return False
-            
+
     def copy_on_device(self, src_path: str, dest_path: str) -> bool:
         if not self.device_connected:
             self.logger.error("No ADB device connected")
@@ -570,7 +555,7 @@ class ADBHandler:
         except Exception as e:
             print(f"Error copying: {e}")
             return False
-            
+
     def move_on_device(self, src_path: str, dest_path: str) -> bool:
         if not self.device_connected:
             self.logger.error("No ADB device connected")
@@ -592,7 +577,7 @@ class ADBHandler:
         except Exception as e:
             print(f"Error moving: {e}")
             return False
-        
+
     def path_exists(self, path: str) -> bool:
         if not self.device_connected:
             return False

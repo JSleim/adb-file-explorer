@@ -1,28 +1,21 @@
 import sys
-import sys
 import os
 import subprocess
 
-
 def suppress_console():
-    if sys.platform == 'win32':
-        import ctypes
-        kernel32 = ctypes.WinDLL('kernel32')
-        user32 = ctypes.WinDLL('user32')
+    if sys.platform != 'win32':
+        return
 
-        hwnd = kernel32.GetConsoleWindow()
-        if hwnd:
-            user32.ShowWindow(hwnd, 0)
+    CREATE_NO_WINDOW = 0x08000000
+    _original_popen_init = subprocess.Popen.__init__
 
-    devnull = open(os.devnull, 'w')
-    sys.stdout = devnull
-    sys.stderr = devnull
+    def _patched_popen_init(self, args, **kwargs):
+        kwargs['creationflags'] = kwargs.get('creationflags', 0) | CREATE_NO_WINDOW
+        if 'startupinfo' not in kwargs or kwargs['startupinfo'] is None:
+            si = subprocess.STARTUPINFO()
+            si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            si.wShowWindow = subprocess.SW_HIDE
+            kwargs['startupinfo'] = si
+        _original_popen_init(self, args, **kwargs)
 
-    subprocess.STARTUPINFO = subprocess.STARTUPINFO()
-    subprocess.STARTUPINFO.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    subprocess.STARTUPINFO.wShowWindow = subprocess.STARTF_USESHOWWINDOW
-
-    os.environ['PYTHONUNBUFFERED'] = '1'
-    if 'PYTHONIOENCODING' not in os.environ:
-        os.environ['PYTHONIOENCODING'] = 'utf-8'
-    os.environ['PYTHONUNBUFFERED'] = '1'
+    subprocess.Popen.__init__ = _patched_popen_init

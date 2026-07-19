@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('logging_config.py', '.')],
+    datas=[],
     hiddenimports=['PyQt6.QtWidgets', 'PyQt6.QtCore', 'PyQt6.QtGui', 'logging.handlers'],
     hookspath=[],
     hooksconfig={},

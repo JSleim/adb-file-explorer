@@ -1,5 +1,8 @@
 import sys
 
+from suppress_console import suppress_console
+suppress_console()
+
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from logging_config import setup_logging
