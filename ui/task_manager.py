@@ -4,7 +4,6 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread
 
 
 class WorkerThread(QThread):
-    """Single thread class used by both modal and background task flows."""
     finished_signal = pyqtSignal(object)
     error_signal = pyqtSignal(str)
     status_changed = pyqtSignal(str)
@@ -36,14 +35,25 @@ class WorkerThread(QThread):
 
     def cancel(self):
         self.requestInterruption()
+        
         fn_self = getattr(self._fn, '__self__', None)
         if fn_self and hasattr(fn_self, '_active_process'):
             proc = fn_self._active_process
             if proc:
                 try:
                     proc.kill()
+                    return
                 except Exception:
                     pass
+
+        
+        from handler import ADBHandler
+        for stream_id, (src, dst) in list(ADBHandler._active_streams.items()):
+            try: src.kill()
+            except Exception: pass
+            try: dst.kill()
+            except Exception: pass
+        ADBHandler._active_streams.clear()
 
 
 class TaskRow(QFrame):
@@ -74,17 +84,17 @@ class TaskRow(QFrame):
         layout.setSpacing(8)
 
         spinner = QLabel("●")
-        spinner.setStyleSheet("color: #4a8fe0; font-size: 14px;")
+        spinner.setObjectName("task_spinner")
         self._spinner = spinner
         layout.addWidget(spinner)
 
         info = QVBoxLayout()
         info.setSpacing(0)
         title = QLabel(self.name)
-        title.setStyleSheet("font-weight: 600; font-size: 11px; color: #333;")
+        title.setObjectName("task_title")
         title.setTextFormat(Qt.TextFormat.PlainText)
         self.status_label = QLabel("Running...")
-        self.status_label.setStyleSheet("font-size: 10px; color: #888;")
+        self.status_label.setObjectName("task_status")
         info.addWidget(title)
         info.addWidget(self.status_label)
         layout.addLayout(info, 1)
@@ -146,7 +156,6 @@ class TaskRow(QFrame):
 
 
 class BackgroundTaskManager(QFrame):
-    """Collapsible floating panel showing active background tasks."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -157,20 +166,6 @@ class BackgroundTaskManager(QFrame):
 
     def _setup_ui(self):
         self.setObjectName("task_manager")
-        self.setStyleSheet("""
-            #task_manager {
-                background: #ffffff;
-                border: 1px solid #d8d8d8;
-                border-radius: 8px;
-            }
-            #task_manager QLabel {
-                color: #333333;
-            }
-            #task_manager QPushButton {
-                background: transparent;
-                color: #555555;
-            }
-        """)
         self.setFixedWidth(360)
 
         layout = QVBoxLayout(self)
@@ -178,19 +173,19 @@ class BackgroundTaskManager(QFrame):
         layout.setSpacing(0)
 
         header = QWidget()
-        header.setStyleSheet("background: #f8f9fa; border-bottom: 1px solid #e8e8e8; border-radius: 8px 8px 0 0;")
+        header.setObjectName("task_header")
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(10, 6, 10, 6)
         title = QLabel("Background Tasks")
-        title.setStyleSheet("font-weight: 600; font-size: 11px; color: #555;")
+        title.setObjectName("task_header_title")
         header_layout.addWidget(title)
         header_layout.addStretch()
         self.count_label = QLabel("0")
-        self.count_label.setStyleSheet("font-size: 10px; color: #888;")
+        self.count_label.setObjectName("task_count")
         header_layout.addWidget(self.count_label)
         self.toggle_btn = QPushButton("−")
         self.toggle_btn.setFixedSize(18, 18)
-        self.toggle_btn.setStyleSheet("border: 1px solid #ccc; border-radius: 3px; font-size: 10px;")
+        self.toggle_btn.setObjectName("task_toggle")
         self.toggle_btn.clicked.connect(self._toggle)
         header_layout.addWidget(self.toggle_btn)
         layout.addWidget(header)
@@ -198,17 +193,14 @@ class BackgroundTaskManager(QFrame):
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll.setStyleSheet(
-            "QScrollArea { border: none; background: transparent; }"
-            " QScrollBar:vertical { width: 6px; background: transparent; }"
-        )
+        self.scroll.setObjectName("task_scroll")
         self._task_container = QWidget()
-        self._task_container.setStyleSheet("background: #ffffff;")
+        self._task_container.setObjectName("task_container")
         self._task_layout = QVBoxLayout(self._task_container)
         self._task_layout.setContentsMargins(4, 4, 4, 4)
         self._task_layout.setSpacing(6)
         self._no_tasks_label = QLabel("No background tasks")
-        self._no_tasks_label.setStyleSheet("color: #888; margin: 8px;")
+        self._no_tasks_label.setObjectName("task_none")
         self._task_layout.addWidget(self._no_tasks_label)
         self._task_layout.addStretch()
         self.scroll.setWidget(self._task_container)
@@ -218,14 +210,12 @@ class BackgroundTaskManager(QFrame):
         layout.addWidget(self.scroll)
 
     def submit(self, name, fn, *args, on_reopen=None):
-        """Create thread, add task row, start, return task. Non-blocking."""
         task = WorkerThread(name, fn, *args)
         self.add_task(task, name=name, on_reopen=on_reopen)
         task.start()
         return task
 
     def add_task(self, task, name=None, on_reopen=None):
-        """Add an already-created task to the panel."""
         self._expanded = True
         row = TaskRow(task, name=name, on_reopen=on_reopen)
         row.removed.connect(self._remove_row)

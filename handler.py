@@ -1,4 +1,6 @@
 import subprocess
+import socket
+import struct
 from dataclasses import dataclass
 from typing import List
 import re
@@ -18,6 +20,8 @@ class FileItem:
     date_modified: str
 
 class ADBHandler:
+    _active_streams = {}  
+
     def __init__(self, device_serial=None):
         import logging
         self.logger = logging.getLogger('ADBHandler')
@@ -27,12 +31,39 @@ class ADBHandler:
         self.device_connected = bool(self.devices)
         self.root_mode = None
         self.last_error = None
+        self._active_process = None
 
         if not self.device_connected:
             self.logger.warning("No ADB device connected")
         elif not device_serial and len(self.devices) == 1:
             self.device_serial = next(iter(self.devices.keys()))
-        
+
+    def _build_adb_cmd(self, command: list, device_serial: str = None) -> list:
+        cmd = ['adb']
+        serial = device_serial or self.device_serial
+        if serial:
+            cmd.extend(['-s', serial])
+        cmd.extend(command)
+        return cmd
+
+    @staticmethod
+    def _make_startupinfo():
+        startupinfo = None
+        if hasattr(subprocess, 'STARTUPINFO'):
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = subprocess.SW_HIDE
+        return startupinfo
+
+    @staticmethod
+    def _exec_mkdir(serial, remote_dir):
+        try:
+            subprocess.run(
+                ['adb', '-s', serial, 'exec-out', 'mkdir', '-p', remote_dir],
+                capture_output=True, timeout=10
+            )
+        except Exception:
+            pass
     def get_connected_devices(self):
         try:
             result = self._run_adb_command(['devices', '-l'])
@@ -98,6 +129,163 @@ class ADBHandler:
         except subprocess.TimeoutExpired:
             self.logger.error(f"Command timed out: {' '.join(cmd)}")
             raise
+
+    def _adb_push_sync(self, dst_serial, dst_path, data_iter, cancel_check=None):
+        sock = None
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(30)
+            sock.connect(('127.0.0.1', 5037))
+
+            def sexact(d):
+                t = 0
+                while t < len(d):
+                    n = sock.send(d[t:])
+                    if n == 0: raise ConnectionError("ADB disconnected")
+                    t += n
+
+            def rexact(n):
+                buf = b''
+                while len(buf) < n:
+                    c = sock.recv(n - len(buf))
+                    if not c: raise ConnectionError("ADB disconnected")
+                    buf += c
+                return buf
+
+            def adb_cmd(c):
+                sexact(b'%04x' % len(c) + c)
+                r = rexact(4)
+                if r != b'OKAY':
+                    raise RuntimeError(f"ADB cmd failed: {r!r}")
+
+            adb_cmd(b'host:transport:' + dst_serial.encode())
+            adb_cmd(b'sync:')
+            sock.settimeout(None)
+
+            path_b = dst_path.rstrip('/').encode()
+            mode_str = b'644'  
+            send_data = path_b + b',' + mode_str
+            while len(send_data) % 4 != 0:
+                send_data += b'\x00'
+            sexact(b'SEND' + struct.pack('<I', len(send_data)) + send_data)
+
+            for chunk in data_iter:
+                if cancel_check and cancel_check():
+                    return False, "cancelled"
+                sexact(b'DATA' + struct.pack('<I', len(chunk)) + chunk)
+
+            sexact(b'DONE' + struct.pack('<I', int(time.time())))
+
+            resp = rexact(4)
+            if resp == b'OKAY':
+                return True, ""
+            elif resp == b'FAIL':
+                elen = struct.unpack('<I', rexact(4))[0]
+                return False, rexact(elen).decode('utf-8', errors='replace')
+            else:
+                return False, f"unexpected sync response: {resp!r}"
+        except Exception as e:
+            return False, str(e)
+        finally:
+            if sock:
+                try: sock.close()
+                except Exception: pass
+
+    def stream_file(self, src_serial: str, src_path: str, dst_serial: str, dst_path: str,
+                    chunk_callback=None, cancel_check=None) -> bool:
+        si_dir = '/'.join(dst_path.rstrip('/').split('/')[:-1])
+        if si_dir:
+            ADBHandler._exec_mkdir(dst_serial, si_dir)
+
+        flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0
+        si = ADBHandler._make_startupinfo()
+        src_proc = None
+        try:
+            src_proc = subprocess.Popen(
+                ['adb', '-s', src_serial, 'exec-out', 'cat', src_path],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                startupinfo=si, creationflags=flags
+            )
+            self._active_process = src_proc
+            stream_id = id(src_proc)
+            ADBHandler._active_streams[stream_id] = (src_proc, None)
+
+            def data_iter():
+                buf = 262144
+                while True:
+                    if cancel_check and cancel_check():
+                        return
+                    chunk = src_proc.stdout.read(buf)
+                    if not chunk:
+                        break
+                    if chunk_callback:
+                        chunk_callback(len(chunk))
+                    yield chunk
+
+            ok, err = self._adb_push_sync(dst_serial, dst_path, data_iter(), cancel_check=cancel_check)
+            src_proc.wait()
+
+            src_err = (src_proc.stderr.read() or b'').decode('utf-8', errors='replace').strip()
+            if src_err:
+                self.logger.error(f"Stream src stderr: {src_err[:300]}")
+
+            ADBHandler._active_streams.pop(stream_id, None)
+            self._active_process = None
+
+            if not ok:
+                self.logger.error(f"Stream push failed: {err}")
+                self.last_error = err
+                return False
+            if src_proc.returncode != 0:
+                self.last_error = f"source cat exited {src_proc.returncode}"
+                return False
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Stream file error: {e}")
+            self.last_error = str(e)
+            return False
+        finally:
+            if src_proc:
+                ADBHandler._active_streams.pop(id(src_proc), None)
+                if src_proc.returncode is None:
+                    try: src_proc.kill()
+                    except Exception: pass
+            self._active_process = None
+
+    def stream_directory(self, src_serial: str, src_path: str, dst_serial: str, dst_path: str,
+                         line_callback=None, cancel_check=None) -> bool:
+        parent = '/'.join(dst_path.rstrip('/').split('/')[:-1])
+        base_name = src_path.rstrip('/').split('/')[-1]
+        target = f"{parent}/{base_name}" if parent else base_name
+        ADBHandler._exec_mkdir(dst_serial, parent)
+
+        try:
+            r = subprocess.run(
+                ['adb', '-s', src_serial, 'exec-out', 'find', src_path, '-type', 'f'],
+                capture_output=True, timeout=30
+            )
+            if r.returncode != 0:
+                return False
+            files = [f.strip() for f in r.stdout.decode('utf-8', errors='replace').split('\n') if f.strip()]
+            if not files:
+                return True
+            for fpath in files:
+                if cancel_check and cancel_check():
+                    return False
+                rel = fpath[len(src_path.rstrip('/')):].lstrip('/')
+                dest = f"{target}/{rel}" if rel else target
+                si_dir = '/'.join(dest.rstrip('/').split('/')[:-1])
+                ADBHandler._exec_mkdir(dst_serial, si_dir)
+                if line_callback:
+                    line_callback(f"Streaming {fpath}")
+                ok = self.stream_file(src_serial, fpath, dst_serial, dest, cancel_check=cancel_check)
+                if not ok:
+                    return False
+            return True
+        except Exception as e:
+            self.logger.error(f"Directory streaming error: {e}")
+            return False
 
     def enable_root(self) -> bool:
         self.last_error = None
@@ -221,7 +409,6 @@ class ADBHandler:
             return False
 
     def _run_transfer_streaming(self, command, progress_callback=None, line_callback=None):
-        """Run adb pull/push, streaming output line by line."""
         if not self.device_connected:
             return False
 
@@ -418,7 +605,6 @@ class ADBHandler:
             return False
 
     def install_apk(self, apk_path: str) -> bool:
-        """Install a single APK. Returns True on success."""
         if not self.device_connected:
             raise ConnectionError("No ADB device connected")
         result = self._run_adb_command(["install", "-r", apk_path], timeout=120)
@@ -427,11 +613,6 @@ class ADBHandler:
         return result.returncode == 0 and "Success" in output
 
     def install_xapk(self, xapk_path: str, callback=None) -> int:
-        """Install APK files from an XAPK archive.
-
-        Split APK packages must be installed atomically with install-multiple.
-        Returns the number of APK files installed.
-        """
         if not self.device_connected:
             raise ConnectionError("No ADB device connected")
 
@@ -516,4 +697,3 @@ class ADBHandler:
         except Exception as e:
             self.logger.warning(f"Could not read XAPK manifest: {e}")
             return None
-

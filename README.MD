@@ -2,22 +2,24 @@
 # ADB Explorer
 A graphical file manager for Android devices connected via ADB (Android Debug Bridge). Provides an intuitive interface for managing files on Android devices without needing to use command-line ADB commands or navigate through the device's UI.
 ## Features
-- **Multi-device support** - Select from multiple connected Android devices
+- **Multi-device support** - Select multiple connected Android devices
+- **Device-to-device transfers** - Copy files from one android device to another efficiently
+- **Multi-Panel viewer** - Side-by-side panel view
 - **Full file operations** - Push, pull, delete, rename, and copy/paste files
-- **GUI interface** - Clean, intuitive file explorer built with PyQt6
-- **Two-way sync** - Transfer files between computer and device easily
-- **Fast navigation** - Browse device storage like a desktop file manager
+- **Two-way file transfer** - Transfer files between computer and device easily
+- **Familiar file explorer navigation** - Browse device storage like a desktop file manager
 - **File search** - Quickly find files on your device
 - **Batch operations** - Perform actions on multiple files at once
 - **Drag-and-drop support** - Intuitive file transfers
-- **Progress indicators** - Visual feedback for large file transfers
+- **App Installer** - Install APK or XAPK files
 - **Wireless ADB** - Connect to devices over network (no USB required)
+
 ## Installation
 ### Option 1: Download Executable (Windows)
 Download the latest release from the [Releases](../../releases) page and run the `.exe` file.
 ### Option 2: Run from Source
 **Requirements:**
-- Python 3.7+
+- Python 3.10+
 - PyQt6
 - ADB installed and in system PATH
 **Install dependencies:**

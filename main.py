@@ -3,8 +3,8 @@ import sys
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from logging_config import setup_logging
-from ui.theme import STYLESHEET
-from ui.explorer import ADBFileExplorer
+from ui.theme import LIGHT
+from ui.multi_device_window import MultiDeviceWindow
 
 
 def main():
@@ -18,9 +18,9 @@ def main():
         app.setApplicationVersion("1.0.0")
         app.setQuitOnLastWindowClosed(True)
 
-        app.setStyleSheet(STYLESHEET)
+        app.setStyleSheet(LIGHT)
 
-        window = ADBFileExplorer()
+        window = MultiDeviceWindow()
         window.show()
 
         return app.exec()
