@@ -605,8 +605,11 @@ class DevicePanel(QWidget):
         temp_dir = tempfile.gettempdir()
         local_path = os.path.join(temp_dir, filename)
 
-        def run_pull():
-            return self.adb_handler.pull_file(remote_path, local_path)
+        def work(progress_cb, cancel_check):
+            return self.adb_handler.pull_with_progress(
+                remote_path, local_path,
+                progress_callback=progress_cb, cancel_check=cancel_check,
+            )
 
         def on_pulled(ok):
             if not ok:
@@ -623,7 +626,10 @@ class DevicePanel(QWidget):
             except Exception:
                 self.status_label.setText(f"Failed to open file")
 
-        self._run_modal("Downloading file", run_pull, on_done=on_pulled)
+        self._run_progress_modal(
+            "Downloading file", work, on_done=on_pulled,
+            on_error=lambda: self.status_label.setText(f"Failed to open {filename}"),
+        )
 
     def copy_file_to(self, filename):
         if not self.adb_handler.device_connected:
@@ -647,9 +653,14 @@ class DevicePanel(QWidget):
                            f"Folder copied: {local_path}", f"Failed to copy {foldername}")
 
     def _run_transfer(self, title, src, dst, success_msg, error_msg):
-        fn = self.adb_handler.pull_file
-        self._run_modal(
-            title, fn, src, dst,
+        def work(progress_cb, cancel_check):
+            return self.adb_handler.pull_with_progress(
+                src, dst,
+                progress_callback=progress_cb, cancel_check=cancel_check,
+            )
+
+        self._run_progress_modal(
+            title, work,
             on_done=lambda _: self.status_label.setText(success_msg),
             on_error=lambda: self.status_label.setText(error_msg),
         )
@@ -812,19 +823,68 @@ class DevicePanel(QWidget):
                 continue
             remote = f"{self.current_path.rstrip('/')}/{name}"
             local = os.path.join(save_dir, name)
-            pairs.append((remote, local))
+            is_dir = (typ == "Directory")
+            size_hint = self.get_file_size_from_row(index.row()) if not is_dir else 0
+            pairs.append((remote, local, is_dir, size_hint, name))
 
-        def run_dl():
+        if not pairs:
+            return
+
+        def work(progress_cb, cancel_check):
+            # Compute overall total inside the worker so the UI stays responsive.
+            totals = []
+            total = 0
+            for remote, _local, is_dir, hint, _name in pairs:
+                if cancel_check and cancel_check():
+                    return 0
+                if is_dir:
+                    sz = self.adb_handler.get_remote_dir_size(remote)
+                else:
+                    sz = hint or self.adb_handler.get_remote_file_size(remote)
+                if sz is None:
+                    sz = 0
+                totals.append(int(sz))
+                total += int(sz)
+            try:
+                progress_cb(0, total, f"0/{len(pairs)} files")
+            except Exception:
+                pass
+            done_base = 0
             count = 0
-            for remote, local in pairs:
-                if self.adb_handler.pull_file(remote, local):
+            for idx, (remote, local, _is_dir, _hint, name) in enumerate(pairs):
+                if cancel_check and cancel_check():
+                    break
+                item_total = totals[idx]
+
+                def item_cb(trans, tot, text="", _base=done_base, _total=total):
+                    try:
+                        progress_cb(_base + trans, _total, text or name)
+                    except Exception:
+                        pass
+
+                ok = self.adb_handler.pull_with_progress(
+                    remote, local,
+                    progress_callback=item_cb, cancel_check=cancel_check,
+                )
+                if ok:
                     count += 1
+                else:
+                    if cancel_check and cancel_check():
+                        break
+                done_base += item_total
+                try:
+                    progress_cb(done_base, total, f"{count}/{len(pairs)} files — {name}")
+                except Exception:
+                    pass
             return count
 
         def on_done(count):
-            self.status_label.setText(f"Downloaded {count} files")
+            self.status_label.setText(f"Downloaded {count}/{len(pairs)} item(s)")
 
-        self._run_modal(f"Download {len(pairs)} files", run_dl, on_done=on_done)
+        self._run_progress_modal(
+            f"Download {len(pairs)} item(s)", work, on_done=on_done,
+            on_error=lambda: self.status_label.setText("Download failed"),
+        )
 
     def copy_selected_to(self):
         if not self.adb_handler.device_connected:
@@ -931,16 +991,56 @@ class DevicePanel(QWidget):
         dlg = QDialog(self)
         dlg.setWindowTitle(title)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
-        dlg.setFixedSize(360, 130)
+        dlg.setFixedSize(400, 160)
         layout = QVBoxLayout(dlg)
         layout.setContentsMargins(16, 16, 16, 16)
 
         label = QLabel(f"{title}...")
         layout.addWidget(label)
 
+        detail_label = QLabel("")
+        detail_label.setStyleSheet("font-size: 10px; color: #666;")
+        detail_label.setWordWrap(True)
+        layout.addWidget(detail_label)
+
         bar = QProgressBar()
         bar.setRange(0, 0)
+        bar.setTextVisible(True)
+        bar.setFormat("%p%")
         layout.addWidget(bar)
+
+        def on_progress(transferred, total, text=""):
+            try:
+                if total and total > 0:
+                    pct = int(transferred * 100 / total)
+                    pct = max(0, min(100, pct))
+                    if bar.maximum() == 0:
+                        bar.setRange(0, 100)
+                    bar.setValue(pct)
+                    bar.setFormat(f"{pct}%")
+                    sizes = f"{self.format_size(transferred)} / {self.format_size(total)}"
+                    detail_label.setText(f"{sizes} — {text}" if text else sizes)
+                    label.setText(f"{title}... {pct}%")
+                else:
+                    if bar.maximum() != 0:
+                        bar.setRange(0, 0)
+                        bar.setFormat("%p%")
+                    if text:
+                        if transferred > 0:
+                            detail_label.setText(
+                                f"{self.format_size(transferred)} — {text}"
+                            )
+                        else:
+                            detail_label.setText(text)
+                    elif transferred > 0:
+                        detail_label.setText(self.format_size(transferred))
+            except Exception:
+                pass
+
+        try:
+            task.progress_signal.connect(on_progress)
+        except Exception:
+            pass
 
         btn_row = QHBoxLayout()
         btn_row.addStretch()
@@ -955,6 +1055,133 @@ class DevicePanel(QWidget):
         def cancel_task():
             task.cancel()
             dlg.close()
+
+        cancel_btn.clicked.connect(cancel_task)
+
+        def handle_finished(val):
+            completed[0] = True
+            if dlg.isVisible():
+                dlg.close()
+            is_ok = bool(val) if val is not None else False
+            if is_ok:
+                if on_done:
+                    on_done(val)
+                if refresh:
+                    self.refresh_files()
+            else:
+                if on_error:
+                    on_error()
+
+        def handle_error(msg):
+            failed[0] = True
+            if dlg.isVisible():
+                dlg.close()
+            if on_error:
+                on_error()
+
+        task.finished_signal.connect(handle_finished)
+        task.error_signal.connect(handle_error)
+        dlg.show()
+        task.start()
+        return task
+
+    def _run_progress_modal(self, title, work_fn, on_done=None, on_error=None, refresh=False):
+        """Run a download with percentage progress.
+
+        work_fn(progress_callback, cancel_check) is executed in a worker
+        thread. progress_callback(transferred, total, name) may be called
+        from the worker thread; total==0 means unknown size.
+        """
+        holder = {}
+
+        def run_wrapper():
+            task = holder.get("task")
+            if task is None:
+                return work_fn(None, None)
+
+            def progress_callback(transferred, total, text=""):
+                try:
+                    task.progress_signal.emit(
+                        int(transferred or 0), int(total or 0), str(text or "")
+                    )
+                except Exception:
+                    pass
+
+            def cancel_check():
+                try:
+                    return task.isInterruptionRequested()
+                except Exception:
+                    return False
+
+            return work_fn(progress_callback, cancel_check)
+
+        task = WorkerThread(title, run_wrapper)
+        holder["task"] = task
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle(title)
+        dlg.setWindowModality(Qt.WindowModality.WindowModal)
+        dlg.setFixedSize(400, 160)
+        layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(16, 16, 16, 16)
+
+        label = QLabel(f"{title}...")
+        layout.addWidget(label)
+
+        detail_label = QLabel("Preparing...")
+        detail_label.setStyleSheet("font-size: 10px; color: #666;")
+        detail_label.setWordWrap(True)
+        layout.addWidget(detail_label)
+
+        bar = QProgressBar()
+        bar.setRange(0, 0)
+        bar.setTextVisible(True)
+        bar.setFormat("%p%")
+        layout.addWidget(bar)
+
+        def on_progress(transferred, total, text=""):
+            try:
+                if total and total > 0:
+                    pct = int(transferred * 100 / total)
+                    pct = max(0, min(100, pct))
+                    if bar.maximum() == 0:
+                        bar.setRange(0, 100)
+                    bar.setValue(pct)
+                    bar.setFormat(f"{pct}%")
+                    sizes = f"{self.format_size(transferred)} / {self.format_size(total)}"
+                    detail_label.setText(f"{sizes} — {text}" if text else sizes)
+                    label.setText(f"{title}... {pct}%")
+                else:
+                    if bar.maximum() != 0:
+                        bar.setRange(0, 0)
+                        bar.setFormat("%p%")
+                    if text:
+                        if transferred > 0:
+                            detail_label.setText(
+                                f"{self.format_size(transferred)} — {text}"
+                            )
+                        else:
+                            detail_label.setText(text)
+                    elif transferred > 0:
+                        detail_label.setText(self.format_size(transferred))
+            except Exception:
+                pass
+
+        task.progress_signal.connect(on_progress)
+
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        cancel_btn = QPushButton("Cancel")
+        btn_row.addWidget(cancel_btn)
+        layout.addLayout(btn_row)
+
+        completed = [False]
+        failed = [False]
+
+        def cancel_task():
+            task.cancel()
+            detail_label.setText("Cancelling...")
+            cancel_btn.setEnabled(False)
 
         cancel_btn.clicked.connect(cancel_task)
 

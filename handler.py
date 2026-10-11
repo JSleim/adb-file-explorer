@@ -423,6 +423,323 @@ class ADBHandler:
             self.logger.error(f"Error listing directory: {e}")
             return []
 
+    def is_remote_dir(self, path: str) -> bool:
+        if not self.device_connected:
+            return False
+        try:
+            escaped_path = self._escape_path(path)
+            result = self._run_adb_command(['shell', f'test -d {escaped_path}'])
+            return result.returncode == 0
+        except Exception:
+            return False
+
+    def get_remote_file_size(self, remote_path: str):
+        """Return size in bytes of a remote file, or None if unknown."""
+        if not self.device_connected:
+            return None
+        try:
+            escaped_path = self._escape_path(remote_path)
+            result = self._run_adb_command(['shell', f'stat -c %s {escaped_path}'])
+            out = (result.stdout or "").strip().split()
+            if result.returncode == 0 and out and out[0].isdigit():
+                return int(out[0])
+        except Exception:
+            pass
+        try:
+            escaped_path = self._escape_path(remote_path)
+            result = self._run_adb_command(['shell', f'wc -c < {escaped_path}'])
+            out = (result.stdout or "").strip().split()
+            if result.returncode == 0 and out and out[0].isdigit():
+                return int(out[0])
+        except Exception:
+            pass
+        return None
+
+    def get_remote_dir_size(self, remote_path: str):
+        """Return recursive size in bytes of a remote directory, or None if unknown."""
+        if not self.device_connected:
+            return None
+        try:
+            escaped_path = self._escape_path(remote_path)
+            result = self._run_adb_command(['shell', f'du -sb {escaped_path}'])
+            out = (result.stdout or "").strip().split()
+            if result.returncode == 0 and out and out[0].isdigit():
+                return int(out[0])
+        except Exception:
+            pass
+        try:
+            escaped_path = self._escape_path(remote_path)
+            result = self._run_adb_command(['shell', f'du -sk {escaped_path}'])
+            out = (result.stdout or "").strip().split()
+            if result.returncode == 0 and out and out[0].isdigit():
+                return int(out[0]) * 1024
+        except Exception:
+            pass
+        return None
+
+    def list_remote_files(self, remote_dir: str):
+        """List all files under remote_dir recursively."""
+        if not self.device_connected:
+            return []
+        try:
+            escaped_path = self._escape_path(remote_dir.rstrip('/') or '/')
+            result = self._run_adb_command(['shell', f'find {escaped_path} -type f'])
+            if result.returncode != 0:
+                return []
+            files = [
+                line.strip()
+                for line in (result.stdout or "").splitlines()
+                if line.strip()
+            ]
+            return files
+        except Exception as e:
+            self.logger.error(f"Error listing remote files: {e}")
+            return []
+
+    def list_remote_dirs(self, remote_dir: str):
+        """List all directories under remote_dir recursively (including itself)."""
+        if not self.device_connected:
+            return []
+        try:
+            escaped_path = self._escape_path(remote_dir.rstrip('/') or '/')
+            result = self._run_adb_command(['shell', f'find {escaped_path} -type d'])
+            if result.returncode != 0:
+                return []
+            dirs = [
+                line.strip()
+                for line in (result.stdout or "").splitlines()
+                if line.strip()
+            ]
+            return dirs
+        except Exception as e:
+            self.logger.error(f"Error listing remote dirs: {e}")
+            return []
+
+    def _stream_single_remote_file(self, remote_path: str, local_path: str,
+                                   on_chunk=None, cancel_check=None):
+        """Stream one remote file to local path via `adb exec-out cat`.
+
+        Returns (success: bool, bytes_written: int).
+        """
+        cmd = self._build_adb_cmd(['exec-out', 'cat', remote_path])
+        proc = None
+        bytes_written = 0
+        cancelled = False
+        try:
+            parent = os.path.dirname(local_path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                startupinfo=self._make_startupinfo(),
+                creationflags=self._WIN_FLAGS,
+            )
+            self._active_process = proc
+            with open(local_path, 'wb') as f:
+                while True:
+                    if cancel_check and cancel_check():
+                        cancelled = True
+                        try:
+                            proc.kill()
+                        except Exception:
+                            pass
+                        break
+                    try:
+                        chunk = proc.stdout.read(262144)
+                    except Exception:
+                        if cancel_check and cancel_check():
+                            cancelled = True
+                        break
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    bytes_written += len(chunk)
+                    if on_chunk:
+                        try:
+                            on_chunk(len(chunk))
+                        except Exception:
+                            pass
+            if cancelled:
+                try:
+                    os.remove(local_path)
+                except Exception:
+                    pass
+                return False, bytes_written
+            proc.wait()
+            if proc.returncode != 0:
+                try:
+                    err = (proc.stderr.read() or b'').decode('utf-8', errors='replace').strip()
+                except Exception:
+                    err = ""
+                if err:
+                    self.logger.error(f"Pull src stderr: {err[:300]}")
+                    self.last_error = err[:500]
+                else:
+                    self.last_error = f"cat exited {proc.returncode}"
+                try:
+                    os.remove(local_path)
+                except Exception:
+                    pass
+                return False, bytes_written
+            return True, bytes_written
+        except Exception as e:
+            self.logger.error(f"Error streaming remote file: {e}")
+            self.last_error = str(e)
+            try:
+                if proc and proc.poll() is None:
+                    proc.kill()
+            except Exception:
+                pass
+            try:
+                os.remove(local_path)
+            except Exception:
+                pass
+            return False, bytes_written
+        finally:
+            self._active_process = None
+            if proc and proc.poll() is None:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+
+    def pull_file_with_progress(self, remote_path: str, local_path: str,
+                                progress_callback=None, cancel_check=None) -> bool:
+        """Pull a single remote file with percentage progress.
+
+        progress_callback(transferred: int, total: int, name: str) is invoked
+        from the worker thread; total is 0 when the size is unknown.
+        """
+        if not self.device_connected:
+            self.logger.error("No ADB device connected")
+            return False
+        total = self.get_remote_file_size(remote_path)
+        if total is None:
+            total = 0
+        name = remote_path.rstrip('/').split('/')[-1] or remote_path
+        if progress_callback:
+            try:
+                progress_callback(0, total, name)
+            except Exception:
+                pass
+        transferred = [0]
+
+        def on_chunk(n):
+            transferred[0] += n
+            if progress_callback:
+                try:
+                    progress_callback(transferred[0], total, name)
+                except Exception:
+                    pass
+
+        ok, _ = self._stream_single_remote_file(
+            remote_path, local_path, on_chunk=on_chunk, cancel_check=cancel_check
+        )
+        if ok and progress_callback and total > 0:
+            try:
+                progress_callback(total, total, name)
+            except Exception:
+                pass
+        return ok
+
+    def pull_dir_with_progress(self, remote_path: str, local_path: str,
+                               progress_callback=None, cancel_check=None) -> bool:
+        """Pull a remote directory recursively with overall percentage progress."""
+        if not self.device_connected:
+            self.logger.error("No ADB device connected")
+            return False
+        remote_dir = remote_path.rstrip('/') or '/'
+        base = remote_dir.split('/')[-1] or "folder"
+        total = self.get_remote_dir_size(remote_dir)
+        if total is None:
+            total = 0
+        if progress_callback:
+            try:
+                progress_callback(0, total, base)
+            except Exception:
+                pass
+        files = self.list_remote_files(remote_dir)
+        dirs = self.list_remote_dirs(remote_dir)
+        try:
+            os.makedirs(local_path, exist_ok=True)
+        except Exception as e:
+            self.logger.error(f"Cannot create local dir: {e}")
+            return False
+        for d in dirs:
+            if cancel_check and cancel_check():
+                return False
+            rel = d[len(remote_dir):].lstrip('/')
+            if not rel:
+                continue
+            try:
+                os.makedirs(os.path.join(local_path, rel), exist_ok=True)
+            except Exception:
+                pass
+        if not files:
+            if progress_callback and total > 0:
+                try:
+                    progress_callback(total, total, base)
+                except Exception:
+                    pass
+            return True
+        transferred = [0]
+
+        for remote_file in files:
+            if cancel_check and cancel_check():
+                return False
+            rel = remote_file[len(remote_dir):].lstrip('/')
+            if not rel:
+                continue
+            local_file = os.path.join(local_path, rel)
+            fname = remote_file.split('/')[-1]
+
+            def on_chunk(n, _fname=fname):
+                transferred[0] += n
+                if progress_callback:
+                    try:
+                        progress_callback(transferred[0], total, _fname)
+                    except Exception:
+                        pass
+
+            ok, _ = self._stream_single_remote_file(
+                remote_file, local_file, on_chunk=on_chunk, cancel_check=cancel_check
+            )
+            if not ok:
+                return False
+        if progress_callback and total > 0:
+            try:
+                progress_callback(total, total, base)
+            except Exception:
+                pass
+        elif progress_callback:
+            try:
+                progress_callback(transferred[0], 0, base)
+            except Exception:
+                pass
+        return True
+
+    def pull_with_progress(self, remote_path: str, local_path: str,
+                           progress_callback=None, cancel_check=None) -> bool:
+        """Pull a remote file or folder with percentage progress."""
+        if not self.device_connected:
+            return False
+        try:
+            if self.is_remote_dir(remote_path):
+                return self.pull_dir_with_progress(
+                    remote_path, local_path,
+                    progress_callback=progress_callback, cancel_check=cancel_check,
+                )
+            return self.pull_file_with_progress(
+                remote_path, local_path,
+                progress_callback=progress_callback, cancel_check=cancel_check,
+            )
+        except Exception as e:
+            self.logger.error(f"Error pulling with progress: {e}")
+            self.last_error = str(e)
+            return False
+
     def pull_file(self, remote_path: str, local_path: str) -> bool:
         if not self.device_connected:
             self.logger.error("No ADB device connected")

@@ -7,6 +7,7 @@ class WorkerThread(QThread):
     finished_signal = pyqtSignal(object)
     error_signal = pyqtSignal(str)
     status_changed = pyqtSignal(str)
+    progress_signal = pyqtSignal(int, int, str)
 
     def __init__(self, name, fn, *args, **kwargs):
         super().__init__()
@@ -76,6 +77,8 @@ class TaskRow(QFrame):
         task.error_signal.connect(self._on_error)
         if hasattr(task, 'status_changed'):
             task.status_changed.connect(self.status_label.setText)
+        if hasattr(task, 'progress_signal'):
+            task.progress_signal.connect(self._on_progress)
 
     def _setup_ui(self):
         self.setFixedHeight(44)
@@ -116,6 +119,32 @@ class TaskRow(QFrame):
         self.cancel_btn.setEnabled(False)
         self.status_label.setText("Cancelling...")
         self.task.cancel()
+
+    def _on_progress(self, transferred: int, total: int, text: str = ""):
+        if self._finished or self._failed:
+            return
+        try:
+            if total and total > 0:
+                pct = int(transferred * 100 / total)
+                pct = max(0, min(100, pct))
+                if self.progress.maximum() == 0:
+                    self.progress.setRange(0, 100)
+                    self.progress.setTextVisible(True)
+                self.progress.setValue(pct)
+                self.progress.setFormat(f"{pct}%")
+                short = (text or "")[:28]
+                self.status_label.setText(f"{pct}% {short}" if short else f"{pct}%")
+            else:
+                if self.progress.maximum() != 0:
+                    self.progress.setRange(0, 0)
+                    self.progress.setTextVisible(False)
+                if text:
+                    self.status_label.setText(text[:40])
+                elif transferred > 0:
+                    mb = transferred / (1024 * 1024)
+                    self.status_label.setText(f"{mb:.1f} MB...")
+        except Exception:
+            pass
 
     def _on_error(self, message):
         self._failed = True
