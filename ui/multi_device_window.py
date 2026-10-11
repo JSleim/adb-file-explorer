@@ -395,19 +395,65 @@ class MultiDeviceWindow(QMainWindow):
 
         task = WorkerThread(title, fn, *args)
 
+        def _fmt(n):
+            try:
+                n = float(n)
+            except Exception:
+                return str(n)
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if n < 1024.0:
+                    return f"{n:.1f} {unit}"
+                n /= 1024.0
+            return f"{n:.1f} TB"
+
         dlg = QDialog(self)
         dlg.setWindowTitle(title)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
-        dlg.setFixedSize(360, 130)
+        dlg.setFixedSize(400, 160)
         layout = QVBoxLayout(dlg)
         layout.setContentsMargins(16, 16, 16, 16)
 
         label = QLabel(f"{title}...")
         layout.addWidget(label)
 
+        detail_label = QLabel("")
+        detail_label.setStyleSheet("font-size: 10px; color: #666;")
+        detail_label.setWordWrap(True)
+        layout.addWidget(detail_label)
+
         bar = QProgressBar()
         bar.setRange(0, 0)
+        bar.setTextVisible(True)
+        bar.setFormat("%p%")
         layout.addWidget(bar)
+
+        def on_progress(transferred, total, text=""):
+            try:
+                if total and total > 0:
+                    pct = int(transferred * 100 / total)
+                    pct = max(0, min(100, pct))
+                    if bar.maximum() == 0:
+                        bar.setRange(0, 100)
+                    bar.setValue(pct)
+                    bar.setFormat(f"{pct}%")
+                    sizes = f"{_fmt(transferred)} / {_fmt(total)}"
+                    detail_label.setText(f"{sizes} — {text}" if text else sizes)
+                    label.setText(f"{title}... {pct}%")
+                else:
+                    if bar.maximum() != 0:
+                        bar.setRange(0, 0)
+                        bar.setFormat("%p%")
+                    if text:
+                        detail_label.setText(f"{_fmt(transferred)} — {text}" if transferred else text)
+                    elif transferred:
+                        detail_label.setText(_fmt(transferred))
+            except Exception:
+                pass
+
+        try:
+            task.progress_signal.connect(on_progress)
+        except Exception:
+            pass
 
         btn_row = QHBoxLayout()
         btn_row.addStretch()
