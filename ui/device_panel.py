@@ -1121,6 +1121,9 @@ class DevicePanel(QWidget):
             dlg.activateWindow()
 
         def send_to_background():
+            if sent_to_background[0]:
+                dlg.hide()
+                return
             parent_window = self.window()
             task_manager = getattr(parent_window, "task_manager", None)
             if task_manager is None:
