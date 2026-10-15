@@ -2,6 +2,7 @@ import os
 import sys
 import tempfile
 import subprocess
+import uuid
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
@@ -14,8 +15,16 @@ from PyQt6.QtWidgets import QCompleter
 from PyQt6.QtCore import Qt, QTimer, QFileInfo, pyqtSignal, QPoint
 
 from handler import ADBHandler
+from operation_control import is_cancelled
 from ui.widgets import DropTreeView
 from ui.task_manager import WorkerThread
+from ui.windows_drag import (
+    build_manifest_for_paths,
+    cancel_windows_drag,
+    native_drag_available,
+    start_windows_drag,
+    wait_for_windows_drag,
+)
 
 
 class PathInput(QLineEdit):
@@ -46,11 +55,7 @@ class PathInput(QLineEdit):
             target = text
         else:
             target = f"{self._panel.current_path.rstrip('/')}/{text}"
-        self._panel.current_path = target
-        self._panel.path_history.append(target)
-        self._panel.clear_search_on_navigation()
-        self._panel.update_path_display()
-        self._panel.refresh_files()
+        self._panel.navigate_to(target)
 
 
 class DevicePanel(QWidget):
@@ -62,8 +67,6 @@ class DevicePanel(QWidget):
         super().__init__(parent)
         self.adb_handler = adb_handler
         self.device_info = device_info or {}
-        self._active_process = None
-
         
         self.clipboard = {'items': [], 'operation': None}
 
@@ -84,6 +87,7 @@ class DevicePanel(QWidget):
         self.root_path = "/"
         self.current_path = "/storage/emulated/0"
         self.path_history = [self.current_path]
+        self._history_index = 0
         self.all_files = []
 
         self._setup_ui()
@@ -162,7 +166,7 @@ class DevicePanel(QWidget):
 
         
         self.search_bar = QLineEdit()
-        self.search_bar.setPlaceholderText("Search files...")
+        self.search_bar.setPlaceholderText("Filter files")
         self.search_bar.setObjectName("search_bar")
         self.search_bar.textChanged.connect(self.apply_search_filter)
         layout.addWidget(self.search_bar)
@@ -180,6 +184,7 @@ class DevicePanel(QWidget):
         for col in (1, 2, 3, 4):
             header.setSectionResizeMode(col, header.ResizeMode.ResizeToContents)
         self.tree_view.doubleClicked.connect(self.handle_double_click)
+        self.tree_view.activated.connect(self.handle_double_click)
         self.tree_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree_view.customContextMenuRequested.connect(self.show_context_menu)
         self._setup_shortcuts()
@@ -207,12 +212,23 @@ class DevicePanel(QWidget):
             (QKeySequence.StandardKey.Paste, self.paste_items),
             (QKeySequence(Qt.Key.Key_Delete), self._shortcut_delete),
             (QKeySequence(Qt.Key.Key_F2), self._shortcut_rename),
+            (QKeySequence("Alt+Left"), self.go_back),
+            (QKeySequence("Alt+Right"), self.go_forward),
+            (QKeySequence("Alt+Up"), self.go_up),
+            (QKeySequence(Qt.Key.Key_F5), self.refresh_files),
+            (QKeySequence("Ctrl+F"), self.focus_filter),
+            (QKeySequence("Ctrl+L"), self.focus_address_bar),
         )
         for key, handler in bindings:
             shortcut = QShortcut(key, self)
             shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
             shortcut.activated.connect(handler)
             self._shortcuts.append(shortcut)
+
+        backspace = QShortcut(QKeySequence(Qt.Key.Key_Backspace), self.tree_view)
+        backspace.setContext(Qt.ShortcutContext.WidgetShortcut)
+        backspace.activated.connect(self.go_back)
+        self._shortcuts.append(backspace)
 
     def update_connection_status(self):
         if self.adb_handler.device_connected:
@@ -226,23 +242,47 @@ class DevicePanel(QWidget):
 
     def update_path_display(self):
         self.path_display.setText(self.current_path)
-        self.back_btn.setEnabled(len(self.path_history) > 1)
+        self.back_btn.setEnabled(self._history_index > 0)
+
+    def navigate_to(self, path):
+        if path == self.current_path:
+            return
+        self.path_history = self.path_history[:self._history_index + 1]
+        self.path_history.append(path)
+        self._history_index = len(self.path_history) - 1
+        self.current_path = path
+        self.clear_search_on_navigation()
+        self.update_path_display()
+        self.refresh_files()
 
     def go_up(self):
         parent = "/".join(self.current_path.rstrip("/").split("/")[:-1]) or self.root_path
         if parent != self.current_path:
-            self.current_path = parent
-            self.clear_search_on_navigation()
-            self.update_path_display()
-            self.refresh_files()
+            self.navigate_to(parent)
 
     def go_back(self):
-        if len(self.path_history) > 1:
-            self.path_history.pop()
-            self.current_path = self.path_history[-1]
-            self.clear_search_on_navigation()
-            self.update_path_display()
-            self.refresh_files()
+        if self._history_index > 0:
+            self._history_index -= 1
+            self._navigate_history()
+
+    def go_forward(self):
+        if self._history_index < len(self.path_history) - 1:
+            self._history_index += 1
+            self._navigate_history()
+
+    def _navigate_history(self):
+        self.current_path = self.path_history[self._history_index]
+        self.clear_search_on_navigation()
+        self.update_path_display()
+        self.refresh_files()
+
+    def focus_filter(self):
+        self.search_bar.setFocus()
+        self.search_bar.selectAll()
+
+    def focus_address_bar(self):
+        self.path_display.setFocus()
+        self.path_display.selectAll()
 
     def clear_search_on_navigation(self):
         if self.search_bar.text():
@@ -250,6 +290,39 @@ class DevicePanel(QWidget):
             self.search_bar.setText("")
             self.search_bar.blockSignals(False)
         self.apply_search_filter()
+
+    def start_native_drag(self, paths):
+        if not native_drag_available():
+            return False
+        manifest = build_manifest_for_paths(
+            self.adb_handler,
+            self.all_files,
+            paths,
+            use_root=self.use_root,
+        )
+        operation_id = start_windows_drag(
+            self.device_serial,
+            manifest,
+            use_su=self.use_root and self.adb_handler.root_mode == "su",
+        )
+        if operation_id is None:
+            return True
+        if operation_id:
+            task_manager = getattr(self.window(), "task_manager", None)
+            if task_manager is not None:
+                task = WorkerThread(
+                    "Copying files to Windows",
+                    wait_for_windows_drag,
+                    operation_id,
+                )
+                task.add_cancel_callback(
+                    lambda: cancel_windows_drag(operation_id)
+                )
+                task_manager.add_task(task, name=task.name)
+                task.start()
+                if hasattr(self.window(), "_position_task_manager"):
+                    self.window()._position_task_manager()
+        return True
 
     
 
@@ -373,11 +446,7 @@ class DevicePanel(QWidget):
             else:
                 new_path = f"{self.current_path.rstrip('/')}/{item_name}"
             if new_path and new_path != self.current_path:
-                self.current_path = new_path
-                self.path_history.append(self.current_path)
-                self.clear_search_on_navigation()
-                self.update_path_display()
-                self.refresh_files()
+                self.navigate_to(new_path)
         elif item_type == "File":
             self.open_file_on_host(item_name)
 
@@ -437,6 +506,8 @@ class DevicePanel(QWidget):
         def run_paste():
             count = 0
             for item in self.clipboard['items']:
+                if is_cancelled():
+                    return count
                 src = item['path']
                 dst = f"{dest_dir}/{os.path.basename(src)}"
                 if operation == 'copy':
@@ -554,6 +625,8 @@ class DevicePanel(QWidget):
     def _send_items_to_device(self, items, target_panel):
         def run_stream():
             for item in items:
+                if is_cancelled():
+                    return False
                 dest = f"{target_panel.current_path.rstrip('/')}/{item['name']}"
                 if item['is_dir']:
                     ok = self.adb_handler.stream_directory(
@@ -661,11 +734,22 @@ class DevicePanel(QWidget):
         if ok and new_name and new_name != old_name:
             old_path = f"{self.current_path.rstrip('/')}/{old_name}"
             new_path = f"{self.current_path.rstrip('/')}/{new_name}"
-            if self.adb_handler.rename_item(old_path, new_path):
+
+            def on_done(_):
                 self.status_label.setText(f"Renamed to '{new_name}'")
                 self.refresh_files()
-            else:
+
+            def on_error():
                 self.status_label.setText(f"Rename failed")
+
+            self._run_modal(
+                f"Rename {old_name}",
+                self.adb_handler.rename_item,
+                old_path,
+                new_path,
+                on_done=on_done,
+                on_error=on_error,
+            )
 
     def delete_item(self, name, is_dir=False):
         if not self.adb_handler.device_connected:
@@ -677,11 +761,22 @@ class DevicePanel(QWidget):
         )
         if reply == QMessageBox.StandardButton.Yes:
             path = f"{self.current_path.rstrip('/')}/{name}"
-            if self.adb_handler.delete_item(path, is_dir):
+
+            def on_done(_):
                 self.status_label.setText(f"Deleted '{name}'")
                 self.refresh_files()
-            else:
+
+            def on_error():
                 self.status_label.setText(f"Delete failed")
+
+            self._run_modal(
+                f"Delete {name}",
+                self.adb_handler.delete_item,
+                path,
+                is_dir,
+                on_done=on_done,
+                on_error=on_error,
+            )
 
     def _shortcut_delete(self):
         indexes = self.tree_view.selectionModel().selectedRows()
@@ -720,6 +815,8 @@ class DevicePanel(QWidget):
             def run_delete():
                 count = 0
                 for name, is_dir in names_types:
+                    if is_cancelled():
+                        return count
                     path = f"{self.current_path.rstrip('/')}/{name}"
                     if self.adb_handler.delete_item(path, is_dir):
                         count += 1
@@ -737,11 +834,21 @@ class DevicePanel(QWidget):
         name, ok = QInputDialog.getText(self, "New File", "File name:")
         if ok and name:
             path = f"{self.current_path.rstrip('/')}/{name}"
-            if self.adb_handler.create_file(path):
+
+            def on_done(_):
                 self.status_label.setText(f"Created '{name}'")
                 self.refresh_files()
-            else:
+
+            def on_error():
                 self.status_label.setText(f"Create failed")
+
+            self._run_modal(
+                f"Create file {name}",
+                self.adb_handler.create_file,
+                path,
+                on_done=on_done,
+                on_error=on_error,
+            )
 
     def create_new_folder(self):
         if not self.adb_handler.device_connected:
@@ -749,11 +856,21 @@ class DevicePanel(QWidget):
         name, ok = QInputDialog.getText(self, "New Folder", "Folder name:")
         if ok and name:
             path = f"{self.current_path.rstrip('/')}/{name}"
-            if self.adb_handler.create_folder(path):
+
+            def on_done(_):
                 self.status_label.setText(f"Created '{name}'")
                 self.refresh_files()
-            else:
+
+            def on_error():
                 self.status_label.setText(f"Create failed")
+
+            self._run_modal(
+                f"Create folder {name}",
+                self.adb_handler.create_folder,
+                path,
+                on_done=on_done,
+                on_error=on_error,
+            )
 
     def upload_file_to_device(self):
         if not self.adb_handler.device_connected:
@@ -770,30 +887,52 @@ class DevicePanel(QWidget):
     def upload_files_and_folders(self, files):
         if not self.adb_handler.device_connected:
             return
-        total = len(files)
 
         def run_upload():
             count = 0
-            for file_path, rel_dir in files:
+
+            def upload_file(file_path, rel_dir):
                 filename = os.path.basename(file_path)
                 if rel_dir and rel_dir != ".":
                     remote_dir = f"{self.current_path.rstrip('/')}/{rel_dir}".replace("\\", "/")
                 else:
                     remote_dir = self.current_path.rstrip("/")
-                if rel_dir:
-                    self.adb_handler.create_folder(remote_dir)
+                if rel_dir and not self.adb_handler.create_folder(remote_dir):
+                    return False
                 remote = f"{remote_dir}/{filename}".replace("\\", "/")
-                ok = self.adb_handler.push_file(file_path, remote)
-                if not ok:
+                return self.adb_handler.push_file(file_path, remote)
+
+            def raise_walk_error(error):
+                raise error
+
+            for path in files:
+                if is_cancelled():
                     return count
-                count += 1
+                if os.path.isdir(path):
+                    for root, _, filenames in os.walk(path, onerror=raise_walk_error):
+                        rel_dir = os.path.relpath(root, path)
+                        for filename in filenames:
+                            if is_cancelled():
+                                return count
+                            if not upload_file(os.path.join(root, filename), rel_dir):
+                                return count
+                            count += 1
+                else:
+                    if not upload_file(path, ""):
+                        return count
+                    count += 1
             return count
 
         def on_done(count):
-            self.status_label.setText(f"Uploaded {count}/{total} files")
+            self.status_label.setText(f"Uploaded {count} files")
             self.refresh_files()
 
-        self._run_modal(f"Upload {total} files", run_upload, on_done=on_done)
+        self._run_modal(
+            "Importing files from PC",
+            run_upload,
+            on_done=on_done,
+            on_error=lambda: self.status_label.setText("Import from PC failed"),
+        )
 
     def download_selected_items(self):
         if not self.adb_handler.device_connected:
@@ -817,6 +956,8 @@ class DevicePanel(QWidget):
         def run_dl():
             count = 0
             for remote, local in pairs:
+                if is_cancelled():
+                    return count
                 if self.adb_handler.pull_file(remote, local):
                     count += 1
             return count
@@ -856,15 +997,37 @@ class DevicePanel(QWidget):
             def run_copy():
                 count = 0
                 for name, is_dir in names:
+                    if is_cancelled():
+                        return count
                     src = f"{self.current_path.rstrip('/')}/{name}"
                     dst = f"{target.rstrip('/')}/{name}"
+                    backup = None
+                    copied = False
                     try:
                         if self.adb_handler.path_exists(dst):
-                            self.adb_handler.delete_item(dst, is_dir)
-                        if self.adb_handler.copy_on_device(src, dst):
+                            backup_path = (
+                                f"{dst.rsplit('/', 1)[0]}/"
+                                f".adb-explorer-backup-{uuid.uuid4().hex}"
+                            )
+                            if not self.adb_handler._move_remote_path_for_recovery(
+                                dst, backup_path
+                            ):
+                                continue
+                            backup = backup_path
+                        copied = self.adb_handler.copy_on_device(src, dst)
+                        if copied:
                             count += 1
                     except Exception:
-                        pass
+                        copied = False
+                    finally:
+                        if backup:
+                            if copied:
+                                self.adb_handler._remove_remote_partial(backup)
+                            else:
+                                self.adb_handler._remove_remote_partial(dst)
+                                self.adb_handler._move_remote_path_for_recovery(
+                                    backup, dst
+                                )
                 return count
 
             def on_done(count):
@@ -888,6 +1051,8 @@ class DevicePanel(QWidget):
         def run():
             count = 0
             for i, index in enumerate(indexes):
+                if is_cancelled():
+                    return count
                 old = self.tree_model.data(self.tree_model.index(index.row(), 0))
                 new = f"{base}{str(i+1).zfill(padding)}"
                 old_path = f"{self.current_path.rstrip('/')}/{old}"
@@ -911,25 +1076,19 @@ class DevicePanel(QWidget):
         if not urls:
             return
         paths = [u.toLocalFile() for u in urls]
-        files_to_upload = []
-        for path in paths:
-            if os.path.isdir(path):
-                for root, _, files in os.walk(path):
-                    for f in files:
-                        abs_file = os.path.join(root, f)
-                        rel_dir = os.path.relpath(root, path)
-                        files_to_upload.append((abs_file, rel_dir))
-            else:
-                files_to_upload.append((path, ""))
-        self.upload_files_and_folders(files_to_upload)
+        self.upload_files_and_folders(paths)
 
     
 
-    def _run_modal(self, title, fn, *args, on_done=None, on_error=None, refresh=False):
+    def _run_modal(
+        self, title, fn, *args, on_done=None, on_error=None, on_cancel=None,
+        refresh=False,
+    ):
         task = WorkerThread(title, fn, *args)
 
         dlg = QDialog(self)
         dlg.setWindowTitle(title)
+        dlg.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, False)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         dlg.setFixedSize(360, 130)
         layout = QVBoxLayout(dlg)
@@ -944,13 +1103,36 @@ class DevicePanel(QWidget):
 
         btn_row = QHBoxLayout()
         btn_row.addStretch()
+        bg_btn = QPushButton("Background")
         cancel_btn = QPushButton("Cancel")
+        btn_row.addWidget(bg_btn)
         btn_row.addWidget(cancel_btn)
         layout.addLayout(btn_row)
 
         sent_to_background = [False]
         completed = [False]
         failed = [False]
+
+        def reopen_dialog():
+            if completed[0]:
+                return
+            dlg.show()
+            dlg.raise_()
+            dlg.activateWindow()
+
+        def send_to_background():
+            parent_window = self.window()
+            task_manager = getattr(parent_window, "task_manager", None)
+            if task_manager is None:
+                return
+            sent_to_background[0] = True
+            dlg.hide()
+            task_manager.add_task(task, name=title, on_reopen=reopen_dialog)
+            if hasattr(parent_window, "_position_task_manager"):
+                parent_window._position_task_manager()
+
+        bg_btn.setEnabled(hasattr(self.window(), "task_manager"))
+        bg_btn.clicked.connect(send_to_background)
 
         def cancel_task():
             task.cancel()
@@ -962,6 +1144,12 @@ class DevicePanel(QWidget):
             completed[0] = True
             if dlg.isVisible():
                 dlg.close()
+            if task.is_cancelled():
+                if on_cancel:
+                    on_cancel()
+                return
+            if failed[0]:
+                return
             is_ok = bool(val) if val is not None else False
             if is_ok:
                 if on_done:

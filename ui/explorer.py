@@ -194,26 +194,52 @@ class ADBFileExplorer(QMainWindow):
 
     def on_root_toggle(self):
         if self.root_checkbox.isChecked():
-            has_root = self.adb_handler.enable_root()
-            if not has_root:
-                QMessageBox.warning(
-                    self, "Root Access",
-                    "Root access is not available on this device.\n\n"
-                    "If rooted, grant superuser permissions on the device.\n"
-                    "If not rooted, adb root may not be supported on production builds."
-                )
+            def reset_root_access():
                 self.root_checkbox.blockSignals(True)
                 self.root_checkbox.setChecked(False)
                 self.root_checkbox.blockSignals(False)
+                self.root_checkbox.setEnabled(True)
                 self.use_root = False
-                return
-            self.use_root = True
+                self.adb_handler.root_mode = None
+                if self._panel:
+                    self._panel.use_root = False
+
+            def on_root_enabled(has_root):
+                self.root_checkbox.setEnabled(True)
+                if not has_root:
+                    reset_root_access()
+                    QMessageBox.warning(
+                        self, "Root Access",
+                        "Root access is not available on this device.\n\n"
+                        "If rooted, grant superuser permissions on the device.\n"
+                        "If not rooted, adb root may not be supported on production builds."
+                    )
+                    return
+                self.use_root = True
+                if self._panel:
+                    self._panel.use_root = True
+                    self.refresh_files()
+
+            def on_root_error():
+                reset_root_access()
+                QMessageBox.warning(
+                    self, "Root Access",
+                    self.adb_handler.last_error or "Could not enable root access."
+                )
+            self.root_checkbox.setEnabled(False)
+            self._run_modal(
+                "Enable root access",
+                self.adb_handler.enable_root,
+                on_done=on_root_enabled,
+                on_error=on_root_error,
+                on_cancel=reset_root_access,
+            )
         else:
             self.use_root = False
             self.adb_handler.root_mode = None
-        if self._panel:
-            self._panel.use_root = self.use_root
-            self.refresh_files()
+            if self._panel:
+                self._panel.use_root = False
+                self.refresh_files()
 
     def update_connection_status(self):
         if self.adb_handler.device_connected:
@@ -395,11 +421,15 @@ class ADBFileExplorer(QMainWindow):
 
     
 
-    def _run_modal(self, title, fn, *args, on_done=None, on_error=None, refresh=False):
+    def _run_modal(
+        self, title, fn, *args, on_done=None, on_error=None, on_cancel=None,
+        refresh=False,
+    ):
         task = WorkerThread(title, fn, *args)
 
         dlg = QDialog(self)
         dlg.setWindowTitle(title)
+        dlg.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, False)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         dlg.setFixedSize(360, 130)
         layout = QVBoxLayout(dlg)
@@ -452,6 +482,10 @@ class ADBFileExplorer(QMainWindow):
             completed[0] = True
             if dlg.isVisible():
                 dlg.close()
+            if task.is_cancelled():
+                if on_cancel:
+                    on_cancel()
+                return
             if failed[0]:
                 return
             is_ok = not failed[0] and (bool(val) if val is not None else False)

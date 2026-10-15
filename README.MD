@@ -1,78 +1,50 @@
-
 # ADB Explorer
-A graphical file manager for Android devices connected via ADB (Android Debug Bridge). Provides an intuitive interface for managing files on Android devices without needing to use command-line ADB commands or navigate through the device's UI.
-## Features
-- **Multi-device support** - Select multiple connected Android devices
-- **Device-to-device transfers** - Copy files from one android device to another efficiently
-- **Multi-Panel viewer** - Side-by-side panel view
-- **Full file operations** - Push, pull, delete, rename, and copy/paste files
-- **Two-way file transfer** - Transfer files between computer and device easily
-- **Familiar file explorer navigation** - Browse device storage like a desktop file manager
-- **File search** - Quickly find files on your device
-- **Batch operations** - Perform actions on multiple files at once
-- **Drag-and-drop support** - Intuitive file transfers
-- **App Installer** - Install APK or XAPK files
-- **Wireless ADB** - Connect to devices over network (no USB required)
 
-## Installation
-### Option 1: Download Executable (Windows)
-Download the latest release from the [Releases](../../releases) page and run the `.exe` file.
-### Option 2: Run from Source
-**Requirements:**
-- Python 3.10+
-- PyQt6
-- ADB installed and in system PATH
-**Install dependencies:**
+ADB Explorer is a desktop file manager for Android devices connected through
+Android Debug Bridge (ADB).
+
+## Features
+
+- Browse and manage files on Android devices
+- Transfer files between your PC and devices, or between devices
+- Work with multiple devices and side-by-side panels
+- Search files, install APKs, and run tasks in the background
+- Drag and drop files
+
+## Install
+
+### Windows executable
+
+Download the latest `.exe` from [Releases](../../releases) and run it.
+
+### Run from source
+
+Install Python 3.10 or newer and [ADB](https://developer.android.com/tools/adb),
+then run:
+
 ```bash
-pip install PyQt6
-```
-**Run:**
-```bash
+pip install -r requirements.txt
 python main.py
 ```
-## Usage
-1. **Connect your Android device** via USB with USB debugging enabled
-2. **Launch the application**
-3. **Select your device** from the device chooser (if multiple devices connected)
-4. **Navigate and manage files** using the GUI:
-   - **Push files**: Transfer files from computer to device
-   - **Pull files**: Download files from device to computer
-   - **Delete**: Remove files from device
-   - **Rename**: Rename files on device
-   - **Copy/Paste**: Copy files within the device
-   - **Search**: Find files quickly using the search function
-   - **Drag-and-drop**: Drop files directly into the application to transfer
-   - **Batch operations**: Select multiple files for simultaneous operations
-## Prerequisites
-- ADB (Android Debug Bridge) must be installed and accessible from command line
-- For USB connections: Android device with USB debugging enabled
-- For wireless connections: Device and computer on the same network
-### Installing ADB
-**Windows:**
-- Download [Android SDK Platform Tools](https://developer.android.com/studio/releases/platform-tools)
-- Extract and add to system PATH
 
-**macOS:**
+To drag files from a device into Windows apps when running from source, build
+the native helper with CMake and a C++ compiler:
+
 ```bash
-brew install android-platform-tools
+cmake -S cpp -B cpp/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+cmake --build cpp/build --config Release
 ```
-**Linux:**
-```bash
-sudo apt-get install adb  # Ubuntu/Debian
-```
-### Enabling USB Debugging on Android
-1. Go to **Settings** > **About Phone**
-2. Tap **Build Number** 7 times to enable Developer Options
-3. Go to **Settings** > **Developer Options**
-4. Enable **USB Debugging**
-## Technical Details
-Built with:
-- **Python** - Core application logic
-- **PyQt6** - GUI framework
-- **ADB** - Android Debug Bridge for device communication
-The application uses subprocess calls to ADB commands and presents them through a familiar file explorer interface, making Android file management accessible without command-line knowledge.
-## Known Limitations
-- Some system directories may require root access
-- File permissions depend on device settings
+
+## Use
+
+Connect a device with USB debugging enabled, then launch ADB Explorer. For
+wireless connections, connect the device to the same network and use ADB's
+wireless debugging.
+
+Select files to copy, move, rename, delete, or transfer. Long-running tasks can
+be moved to the background and cancelled. Cancelling an ADB Explorer transfer
+removes a newly created partial destination.
+
 ## License
-MIT License
+
+MIT

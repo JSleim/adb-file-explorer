@@ -3,4 +3,4 @@ logs
 __pycache__
 dist
 build
-tests
+tests/*

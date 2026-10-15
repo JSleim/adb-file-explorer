@@ -1,13 +1,23 @@
 import sys
+from pathlib import Path
 
 from suppress_console import suppress_console
 suppress_console()
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtGui import QIcon
 
 from logging_config import setup_logging
 from ui.theme import LIGHT
 from ui.multi_device_window import MultiDeviceWindow
+
+
+def get_app_icon_path():
+    if getattr(sys, 'frozen', False):
+        base_dir = Path(getattr(sys, '_MEIPASS', Path(sys.executable).parent))
+    else:
+        base_dir = Path(__file__).parent
+    return base_dir / "assets" / "adb-explorer.ico"
 
 
 def main():
@@ -20,6 +30,7 @@ def main():
         app.setApplicationName("ADB Explorer")
         app.setApplicationVersion("1.0.0")
         app.setQuitOnLastWindowClosed(True)
+        app.setWindowIcon(QIcon(str(get_app_icon_path())))
 
         app.setStyleSheet(LIGHT)
 

@@ -4,8 +4,8 @@
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
-    datas=[],
+    binaries=[('cpp/build/Release/adb_drag_source.dll', '.')],
+    datas=[('logging_config.py', '.'), ('assets/adb-explorer.ico', 'assets')],
     hiddenimports=['PyQt6.QtWidgets', 'PyQt6.QtCore', 'PyQt6.QtGui', 'logging.handlers'],
     hookspath=[],
     hooksconfig={},
@@ -35,4 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=['assets/adb-explorer.ico'],
 )

@@ -1,6 +1,17 @@
+import logging
+import threading
+
 from PyQt6.QtWidgets import (QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
                              QScrollArea, QWidget, QProgressBar)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread
+
+from operation_control import (
+    OperationControl,
+    clear_current_operation,
+    set_current_operation,
+)
+
+_logger = logging.getLogger(__name__)
 
 
 class WorkerThread(QThread):
@@ -16,15 +27,21 @@ class WorkerThread(QThread):
         self._kwargs = kwargs
         self._result = None
         self._error_message = None
+        self._operation = OperationControl()
+        self._cancel_callbacks = []
+        self._cancel_callback_lock = threading.Lock()
 
     def run(self):
+        set_current_operation(self._operation)
         try:
             self._result = self._fn(*self._args, **self._kwargs)
         except Exception as e:
-            self._result = None
-            self._error_message = str(e)
-            self.error_signal.emit(self._error_message)
+            if not self.is_cancelled():
+                self._result = None
+                self._error_message = str(e)
+                self.error_signal.emit(self._error_message)
         finally:
+            clear_current_operation()
             self.finished_signal.emit(self._result)
 
     def result(self):
@@ -33,27 +50,30 @@ class WorkerThread(QThread):
     def error_message(self):
         return self._error_message
 
+    def is_cancelled(self):
+        return self._operation.cancelled
+
+    def add_cancel_callback(self, callback):
+        with self._cancel_callback_lock:
+            if not self.is_cancelled():
+                self._cancel_callbacks.append(callback)
+                return
+        self._run_cancel_callback(callback)
+
     def cancel(self):
         self.requestInterruption()
-        
-        fn_self = getattr(self._fn, '__self__', None)
-        if fn_self and hasattr(fn_self, '_active_process'):
-            proc = fn_self._active_process
-            if proc:
-                try:
-                    proc.kill()
-                    return
-                except Exception:
-                    pass
+        self._operation.cancel()
+        with self._cancel_callback_lock:
+            callbacks, self._cancel_callbacks = self._cancel_callbacks, []
+        for callback in callbacks:
+            self._run_cancel_callback(callback)
 
-        
-        from handler import ADBHandler
-        for stream_id, (src, dst) in list(ADBHandler._active_streams.items()):
-            try: src.kill()
-            except Exception: pass
-            try: dst.kill()
-            except Exception: pass
-        ADBHandler._active_streams.clear()
+    @staticmethod
+    def _run_cancel_callback(callback):
+        try:
+            callback()
+        except Exception:
+            _logger.exception("Could not cancel a background operation")
 
 
 class TaskRow(QFrame):
@@ -133,10 +153,15 @@ class TaskRow(QFrame):
 
     def _show_detail(self):
         from PyQt6.QtWidgets import QMessageBox
-        ok = not self._failed and bool(self._result) if self._result is not None else False
+        if self.task.is_cancelled():
+            status = "Cancelled"
+        elif self._result is not None and not self._failed and bool(self._result):
+            status = "Succeeded"
+        else:
+            status = "Failed"
         msg = QMessageBox(self)
         msg.setWindowTitle(f"Task: {self.name}")
-        msg.setText(f"Status: {'Succeeded' if ok else 'Failed'}")
+        msg.setText(f"Status: {status}")
         detail = f"Name: {self.name}\nResult: {self._result}"
         if self.task.error_message():
             detail += f"\nError: {self.task.error_message()}"
@@ -146,6 +171,13 @@ class TaskRow(QFrame):
     def _on_finished(self, result):
         self._finished = True
         if self._failed:
+            return
+        if self.task.is_cancelled():
+            self._spinner.setStyleSheet("color: #999; font-size: 14px;")
+            self._result = result
+            self.status_label.setText("Cancelled")
+            self.cancel_btn.setVisible(False)
+            QTimer.singleShot(3000, lambda: self.removed.emit(self))
             return
         self._spinner.setStyleSheet("color: #4caf50; font-size: 14px;")
         self._result = result

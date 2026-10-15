@@ -24,6 +24,16 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build native Windows drag source
+        run: |
+          cmake -S cpp -B cpp/build -A x64
+          cmake --build cpp/build --config Release
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -32,7 +42,7 @@ jobs:
 
       - name: Build EXE with PyInstaller
         run: |
-          pyinstaller --noconfirm --onefile --windowed --name "ADB Explorer" --hidden-import="PyQt6.QtWidgets" --hidden-import="PyQt6.QtCore" --hidden-import="PyQt6.QtGui" --hidden-import="logging.handlers" --clean --noconsole --log-level=ERROR main.py
+          pyinstaller --noconfirm --onefile --windowed --icon "assets/adb-explorer.ico" --add-data "assets/adb-explorer.ico;assets" --add-binary "cpp/build/Release/adb_drag_source.dll;." --name "ADB Explorer" --hidden-import="PyQt6.QtWidgets" --hidden-import="PyQt6.QtCore" --hidden-import="PyQt6.QtGui" --hidden-import="logging.handlers" --clean --noconsole --log-level=ERROR main.py
 
       - name: Upload EXE as build artifact
         uses: actions/upload-artifact@v4

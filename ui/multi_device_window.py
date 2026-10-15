@@ -1,7 +1,6 @@
 import os
 import sys
 from pathlib import Path
-import subprocess
 import configparser
 
 from PyQt6.QtWidgets import (
@@ -13,6 +12,7 @@ from PyQt6.QtCore import Qt, QTimer, QUrl
 from PyQt6.QtGui import QDesktopServices
 
 from handler import ADBHandler
+from operation_control import is_cancelled
 from device_chooser import DeviceChooser
 from ui.device_panel import DevicePanel
 from ui.widgets import ADB_MIME
@@ -256,11 +256,14 @@ class MultiDeviceWindow(QMainWindow):
     def _stream_items(self, src_panel, dest_panel, paths):
         def run():
             for path in paths:
+                if is_cancelled():
+                    return False
                 name = path.rstrip('/').split('/')[-1]
                 dest = f"{dest_panel.current_path.rstrip('/')}/{name}"
                 
-                test_cmd = ['adb', '-s', src_panel.device_serial, 'exec-out', 'test', '-d', path]
-                test_r = subprocess.run(test_cmd, capture_output=True, timeout=10)
+                test_r = src_panel.adb_handler._run_adb_command(
+                    ['exec-out', 'test', '-d', path], timeout=10
+                )
                 is_dir = test_r.returncode == 0
 
                 if is_dir:
@@ -389,7 +392,10 @@ class MultiDeviceWindow(QMainWindow):
 
     
 
-    def _run_modal(self, title, fn, *args, on_done=None, on_error=None, refresh=False):
+    def _run_modal(
+        self, title, fn, *args, on_done=None, on_error=None, on_cancel=None,
+        refresh=False,
+    ):
         from ui.task_manager import WorkerThread
         from PyQt6.QtWidgets import QProgressBar, QPushButton
 
@@ -397,6 +403,7 @@ class MultiDeviceWindow(QMainWindow):
 
         dlg = QDialog(self)
         dlg.setWindowTitle(title)
+        dlg.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, False)
         dlg.setWindowModality(Qt.WindowModality.WindowModal)
         dlg.setFixedSize(360, 130)
         layout = QVBoxLayout(dlg)
@@ -449,6 +456,10 @@ class MultiDeviceWindow(QMainWindow):
             completed[0] = True
             if dlg.isVisible():
                 dlg.close()
+            if task.is_cancelled():
+                if on_cancel:
+                    on_cancel()
+                return
             if failed[0]:
                 return
             is_ok = not failed[0] and (bool(val) if val is not None else False)

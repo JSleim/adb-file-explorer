@@ -7,8 +7,16 @@ import re
 import time
 import zipfile
 import os
+import shutil
 import tempfile
 import json
+from operation_control import (
+    is_cancelled,
+    register_process,
+    register_socket,
+    unregister_process,
+    unregister_socket,
+)
 
 @dataclass
 class FileItem:
@@ -20,8 +28,6 @@ class FileItem:
     date_modified: str
 
 class ADBHandler:
-    _active_streams = {}
-
     _WIN_FLAGS: int = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
 
     def __init__(self, device_serial=None):
@@ -35,8 +41,6 @@ class ADBHandler:
         self.device_connected = bool(self.devices)
         self.root_mode = None
         self.last_error = None
-        self._active_process = None
-
         if not self.device_connected:
             self.logger.warning("No ADB device connected")
         elif not device_serial and len(self.devices) == 1:
@@ -60,14 +64,124 @@ class ADBHandler:
         return startupinfo
 
     @staticmethod
+    def _shell_quote(path):
+        return "'" + path.replace("'", "'\\''") + "'"
+
+    def _remote_path_exists(self, path, device_serial=None):
+        quoted_path = self._shell_quote(path)
+        try:
+            result = self._run_adb_command(
+                [
+                    'shell',
+                    f'if test -e {quoted_path}; then printf present; '
+                    'else printf absent; fi',
+                ],
+                timeout=10,
+                device_serial=device_serial,
+            )
+        except Exception as error:
+            self.logger.error("Could not check remote destination %s: %s", path, error)
+            return None
+        if result.returncode != 0:
+            self.logger.error(
+                "Could not check remote destination %s: %s",
+                path,
+                (result.stderr or "").strip() or "ADB command failed",
+            )
+            return None
+        output = (result.stdout or "").strip()
+        if output == "present":
+            return True
+        if output == "absent":
+            return False
+        self.logger.error("Unexpected result checking remote destination %s", path)
+        return None
+
+    def _remove_remote_partial(self, path, device_serial=None):
+        normalized_path = path.rstrip("/")
+        if normalized_path in {"", "/"}:
+            self.logger.error("Refusing to remove unsafe partial destination %r", path)
+            return
+        command = f'rm -rf {self._shell_quote(normalized_path)}'
+        try:
+            result = subprocess.run(
+                self._build_adb_cmd(
+                    ['shell', command], device_serial=device_serial
+                ),
+                capture_output=True,
+                text=True,
+                timeout=15,
+                startupinfo=self._make_startupinfo(),
+                creationflags=self._WIN_FLAGS,
+            )
+            if result.returncode != 0:
+                self.logger.error(
+                    "Could not remove partial remote destination %s: %s",
+                    normalized_path,
+                    (result.stderr or "").strip() or "ADB command failed",
+                )
+        except Exception:
+            self.logger.exception(
+                "Could not remove partial remote destination %s", normalized_path
+            )
+
+    def _move_remote_path_for_recovery(self, source, destination):
+        try:
+            result = subprocess.run(
+                self._build_adb_cmd(
+                    [
+                        'shell',
+                        f'mv {self._shell_quote(source)} '
+                        f'{self._shell_quote(destination)}',
+                    ]
+                ),
+                capture_output=True,
+                text=True,
+                timeout=15,
+                startupinfo=self._make_startupinfo(),
+                creationflags=self._WIN_FLAGS,
+            )
+            if result.returncode == 0:
+                return True
+            self.logger.error(
+                "Could not restore remote destination %s: %s",
+                destination,
+                (result.stderr or "").strip() or "ADB command failed",
+            )
+        except Exception:
+            self.logger.exception(
+                "Could not restore remote destination %s", destination
+            )
+        return False
+
+    def _remove_local_partial(self, path):
+        try:
+            if os.path.islink(path) or not os.path.isdir(path):
+                os.remove(path)
+            else:
+                shutil.rmtree(path)
+        except FileNotFoundError:
+            return
+        except Exception:
+            self.logger.exception("Could not remove partial local destination %s", path)
+
+    @staticmethod
     def _exec_mkdir(serial, remote_dir):
         try:
-            subprocess.run(
+            process = subprocess.Popen(
                 ['adb', '-s', serial, 'exec-out', 'mkdir', '-p', remote_dir],
-                capture_output=True, timeout=10,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 startupinfo=ADBHandler._make_startupinfo(),
                 creationflags=ADBHandler._WIN_FLAGS,
             )
+            register_process(process)
+            try:
+                process.communicate(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.communicate()
+            finally:
+                unregister_process(process)
         except Exception:
             pass
 
@@ -154,21 +268,38 @@ class ADBHandler:
         path = path.replace('"', '\\"').replace("'", "\\'")
         return f'"{path}"'
 
-    def _run_adb_command(self, command: list, use_shell=False, timeout=30) -> subprocess.CompletedProcess:
+    def _run_adb_command(
+        self, command: list, use_shell=False, timeout=30, device_serial=None
+    ) -> subprocess.CompletedProcess:
         cmd = ['adb']
-        if self.device_serial:
-            cmd.extend(['-s', self.device_serial])
+        serial = device_serial or self.device_serial
+        if serial:
+            cmd.extend(['-s', serial])
         cmd.extend(command)
 
         try:
-            return subprocess.run(
+            process = subprocess.Popen(
                 cmd,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
-                timeout=timeout,
                 shell=use_shell,
                 startupinfo=self._make_startupinfo(),
                 creationflags=self._WIN_FLAGS,
+            )
+            register_process(process)
+            try:
+                stdout, stderr = process.communicate(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                stdout, stderr = process.communicate()
+                raise subprocess.TimeoutExpired(
+                    cmd, timeout, output=stdout, stderr=stderr
+                )
+            finally:
+                unregister_process(process)
+            return subprocess.CompletedProcess(
+                cmd, process.returncode, stdout, stderr
             )
         except subprocess.TimeoutExpired:
             self.logger.error(f"Command timed out: {' '.join(cmd)}")
@@ -178,6 +309,7 @@ class ADBHandler:
         sock = None
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            register_socket(sock)
             sock.settimeout(30)
             sock.connect(('127.0.0.1', 5037))
 
@@ -214,7 +346,7 @@ class ADBHandler:
             sexact(b'SEND' + struct.pack('<I', len(send_data)) + send_data)
 
             for chunk in data_iter:
-                if cancel_check and cancel_check():
+                if is_cancelled() or (cancel_check and cancel_check()):
                     return False, "cancelled"
                 sexact(b'DATA' + struct.pack('<I', len(chunk)) + chunk)
 
@@ -232,11 +364,14 @@ class ADBHandler:
             return False, str(e)
         finally:
             if sock:
+                unregister_socket(sock)
                 try: sock.close()
                 except Exception: pass
 
     def stream_file(self, src_serial: str, src_path: str, dst_serial: str, dst_path: str,
                     chunk_callback=None, cancel_check=None) -> bool:
+        destination_existed = self._remote_path_exists(dst_path, dst_serial)
+        transfer_succeeded = False
         si_dir = '/'.join(dst_path.rstrip('/').split('/')[:-1])
         if si_dir:
             ADBHandler._exec_mkdir(dst_serial, si_dir)
@@ -249,14 +384,12 @@ class ADBHandler:
                 startupinfo=self._make_startupinfo(),
                 creationflags=self._WIN_FLAGS,
             )
-            self._active_process = src_proc
-            stream_id = id(src_proc)
-            ADBHandler._active_streams[stream_id] = (src_proc, None)
+            register_process(src_proc)
 
             def data_iter():
                 buf = 262144
                 while True:
-                    if cancel_check and cancel_check():
+                    if is_cancelled() or (cancel_check and cancel_check()):
                         return
                     chunk = src_proc.stdout.read(buf)
                     if not chunk:
@@ -272,8 +405,7 @@ class ADBHandler:
             if src_err:
                 self.logger.error(f"Stream src stderr: {src_err[:300]}")
 
-            ADBHandler._active_streams.pop(stream_id, None)
-            self._active_process = None
+            unregister_process(src_proc)
 
             if not ok:
                 self.logger.error(f"Stream push failed: {err}")
@@ -282,6 +414,7 @@ class ADBHandler:
             if src_proc.returncode != 0:
                 self.last_error = f"source cat exited {src_proc.returncode}"
                 return False
+            transfer_succeeded = True
             return True
 
         except Exception as e:
@@ -290,11 +423,16 @@ class ADBHandler:
             return False
         finally:
             if src_proc:
-                ADBHandler._active_streams.pop(id(src_proc), None)
+                unregister_process(src_proc)
                 if src_proc.returncode is None:
                     try: src_proc.kill()
                     except Exception: pass
-            self._active_process = None
+            if (
+                is_cancelled()
+                and not transfer_succeeded
+                and destination_existed is False
+            ):
+                self._remove_remote_partial(dst_path, dst_serial)
 
     def stream_directory(self, src_serial: str, src_path: str, dst_serial: str, dst_path: str,
                          line_callback=None, cancel_check=None) -> bool:
@@ -304,19 +442,18 @@ class ADBHandler:
         ADBHandler._exec_mkdir(dst_serial, parent)
 
         try:
-            r = subprocess.run(
-                ['adb', '-s', src_serial, 'exec-out', 'find', src_path, '-type', 'f'],
-                capture_output=True, timeout=30,
-                startupinfo=self._make_startupinfo(),
-                creationflags=self._WIN_FLAGS,
+            r = self._run_adb_command(
+                ['exec-out', 'find', src_path, '-type', 'f'],
+                timeout=30,
+                device_serial=src_serial,
             )
             if r.returncode != 0:
                 return False
-            files = [f.strip() for f in r.stdout.decode('utf-8', errors='replace').split('\n') if f.strip()]
+            files = [path for path in r.stdout.splitlines() if path.strip()]
             if not files:
                 return True
             for fpath in files:
-                if cancel_check and cancel_check():
+                if is_cancelled() or (cancel_check and cancel_check()):
                     return False
                 rel = fpath[len(src_path.rstrip('/')):].lstrip('/')
                 dest = f"{target}/{rel}" if rel else target
@@ -364,6 +501,7 @@ class ADBHandler:
     def list_directory(self, path: str, use_root: bool = False) -> List[FileItem]:
         if not self.device_connected:
             self.logger.error("No ADB device connected")
+            self.last_error = "No ADB device connected"
             return []
 
         try:
@@ -402,7 +540,7 @@ class ADBHandler:
                 perms = match.group(1)
                 size = match.group(2)
                 date = f"{match.group(3)} {match.group(4)}"
-                name = match.group(5)
+                name = match.group(5).replace('\\ ', ' ')
                 if name in ['.', '..']:
                     continue
                 self.logger.debug(f"Parsed: perms={perms}, size={size}, date={date}, name={name}")
@@ -418,9 +556,11 @@ class ADBHandler:
             return items
         except subprocess.TimeoutExpired:
             self.logger.error(f"Timeout listing directory: {path}")
+            self.last_error = f"Timeout listing directory: {path}"
             return []
         except Exception as e:
             self.logger.error(f"Error listing directory: {e}")
+            self.last_error = str(e)
             return []
 
     def pull_file(self, remote_path: str, local_path: str) -> bool:
@@ -428,6 +568,8 @@ class ADBHandler:
             self.logger.error("No ADB device connected")
             return False
 
+        destination_existed = os.path.lexists(local_path)
+        transfer_succeeded = False
         try:
             cmd = self._build_adb_cmd(['pull', remote_path, local_path])
             process = subprocess.Popen(
@@ -437,18 +579,33 @@ class ADBHandler:
                 startupinfo=self._make_startupinfo(),
                 creationflags=self._WIN_FLAGS,
             )
-            self._active_process = process
+            register_process(process)
             stdout, stderr = process.communicate()
-            self._active_process = None
-            return process.returncode == 0
+            transfer_succeeded = process.returncode == 0
+            return transfer_succeeded
         except Exception as e:
             self.logger.error(f"Error pulling file/folder: {e}")
             return False
+        finally:
+            if 'process' in locals():
+                unregister_process(process)
+                if process.poll() is None:
+                    process.kill()
+                process.wait()
+            if is_cancelled() and not transfer_succeeded and not destination_existed:
+                self._remove_local_partial(local_path)
 
     def _run_transfer_streaming(self, command, progress_callback=None, line_callback=None):
         if not self.device_connected:
             return False
 
+        destination = command[2]
+        destination_existed = (
+            os.path.lexists(destination)
+            if command[0] == 'pull'
+            else self._remote_path_exists(destination)
+        )
+        transfer_succeeded = False
         cmd = self._build_adb_cmd(command)
 
         try:
@@ -459,24 +616,47 @@ class ADBHandler:
                 startupinfo=self._make_startupinfo(),
                 creationflags=self._WIN_FLAGS,
             )
-            self._active_process = process
+            register_process(process)
 
             for raw_line in iter(process.stdout.readline, b''):
+                if is_cancelled():
+                    process.kill()
+                    return False
                 line = raw_line.decode('utf-8', errors='replace').rstrip('\r\n')
                 if line_callback:
                     line_callback(line)
 
             process.wait()
-            return process.returncode == 0
+            transfer_succeeded = process.returncode == 0
+            return transfer_succeeded
         except Exception as e:
             self.logger.error(f"Error during streaming transfer: {e}")
             return False
+        finally:
+            if 'process' in locals():
+                unregister_process(process)
+                if process.poll() is None:
+                    process.kill()
+                process.wait()
+            if (
+                is_cancelled()
+                and not transfer_succeeded
+                and destination_existed is False
+            ):
+                if command[0] == 'pull':
+                    self._remove_local_partial(destination)
+                else:
+                    self._remove_remote_partial(destination)
 
     def pull_file_streaming(self, remote_path, local_path, line_callback=None):
-        return self._run_transfer_streaming(['pull', remote_path, local_path], line_callback=line_callback)
+        return self._run_transfer_streaming(
+            ['pull', remote_path, local_path], line_callback=line_callback
+        )
 
     def push_file_streaming(self, local_path, remote_path, line_callback=None):
-        return self._run_transfer_streaming(['push', local_path, remote_path], line_callback=line_callback)
+        return self._run_transfer_streaming(
+            ['push', local_path, remote_path], line_callback=line_callback
+        )
 
     def rename_item(self, old_path: str, new_path: str) -> bool:
         if not self.device_connected:
@@ -549,6 +729,8 @@ class ADBHandler:
             self.logger.error("No ADB device connected")
             return False
 
+        destination_existed = self._remote_path_exists(remote_path)
+        transfer_succeeded = False
         try:
             cmd = self._build_adb_cmd(['push', local_path, remote_path])
             process = subprocess.Popen(
@@ -558,19 +740,33 @@ class ADBHandler:
                 startupinfo=self._make_startupinfo(),
                 creationflags=self._WIN_FLAGS,
             )
-            self._active_process = process
+            register_process(process)
             stdout, stderr = process.communicate()
-            self._active_process = None
-            return process.returncode == 0
+            transfer_succeeded = process.returncode == 0
+            return transfer_succeeded
         except Exception as e:
             self.logger.error(f"Error pushing file: {e}")
             return False
+        finally:
+            if 'process' in locals():
+                unregister_process(process)
+                if process.poll() is None:
+                    process.kill()
+                process.wait()
+            if (
+                is_cancelled()
+                and not transfer_succeeded
+                and destination_existed is False
+            ):
+                self._remove_remote_partial(remote_path)
 
     def copy_on_device(self, src_path: str, dest_path: str) -> bool:
         if not self.device_connected:
             self.logger.error("No ADB device connected")
             return False
 
+        destination_existed = self._remote_path_exists(dest_path)
+        transfer_succeeded = False
         try:
             escaped_src = self._escape_path(src_path)
             escaped_dest = self._escape_path(dest_path)
@@ -580,13 +776,21 @@ class ADBHandler:
                 self.create_folder(parent_dir)
 
             result = self._run_adb_command(['shell', f'cp -r {escaped_src} {escaped_dest}'])
-            return result.returncode == 0
+            transfer_succeeded = result.returncode == 0
+            return transfer_succeeded
         except subprocess.TimeoutExpired:
             print(f"Timeout copying: {src_path} to {dest_path}")
             return False
         except Exception as e:
             print(f"Error copying: {e}")
             return False
+        finally:
+            if (
+                is_cancelled()
+                and not transfer_succeeded
+                and destination_existed is False
+            ):
+                self._remove_remote_partial(dest_path)
 
     def move_on_device(self, src_path: str, dest_path: str) -> bool:
         if not self.device_connected:

@@ -25,11 +25,22 @@ class DropTreeView(QTreeView):
             return self.main_window.adb_handler.device_serial or ""
         return ""
 
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.BackButton:
+            self.main_window.go_back()
+            event.accept()
+            return
+        if event.button() == Qt.MouseButton.ForwardButton:
+            self.main_window.go_forward()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls() and not event.source():
             event.acceptProposedAction()
             return
-        if event.mimeData().hasFormat(ADB_MIME):
+        if self._adb_paths_payload(event.mimeData()) is not None:
             event.acceptProposedAction()
             return
         event.ignore()
@@ -38,7 +49,7 @@ class DropTreeView(QTreeView):
         if event.mimeData().hasUrls() and not event.source():
             event.acceptProposedAction()
             return
-        if event.mimeData().hasFormat(ADB_MIME):
+        if self._adb_paths_payload(event.mimeData()) is not None:
             event.acceptProposedAction()
             return
         event.ignore()
@@ -53,8 +64,9 @@ class DropTreeView(QTreeView):
             return
 
         
-        if md.hasFormat(ADB_MIME):
-            raw = bytes(md.data(ADB_MIME)).decode("utf-8")
+        adb_payload = self._adb_paths_payload(md)
+        if adb_payload is not None:
+            raw = adb_payload.decode("utf-8").rstrip("\0")
             lines = [l.strip() for l in raw.split("\n") if l.strip()]
             if not lines:
                 event.ignore()
@@ -78,6 +90,19 @@ class DropTreeView(QTreeView):
             return
 
         event.ignore()
+
+    @staticmethod
+    def _adb_paths_payload(mime_data):
+        if mime_data.hasFormat(ADB_MIME):
+            return bytes(mime_data.data(ADB_MIME))
+
+        for mime_type in mime_data.formats():
+            if (
+                mime_type.startswith("application/x-qt-windows-mime;value=")
+                and ADB_MIME in mime_type
+            ):
+                return bytes(mime_data.data(mime_type))
+        return None
 
     def _get_drop_destination(self, event):
         dest = self.main_window.current_path
@@ -118,6 +143,21 @@ class DropTreeView(QTreeView):
 
         if not paths:
             return
+
+        try:
+            if self.main_window.start_native_drag(paths):
+                self.main_window.status_label.setText(
+                    "Drop accepted; Windows may continue copying in the background."
+                )
+                return
+            self.main_window.status_label.setText(
+                "Native Windows drag source unavailable; using in-app drag."
+            )
+        except (OSError, RuntimeError, ValueError) as error:
+            QMessageBox.warning(self, "Drag Error", str(error))
+            self.main_window.status_label.setText(
+                "Native drag failed; using in-app drag."
+            )
 
         md = QMimeData()
         data_lines = [serial] + paths
