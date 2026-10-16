@@ -9,7 +9,8 @@ Android Debug Bridge (ADB).
 - Transfer files between your PC and devices, or between devices
 - Work with multiple devices and side-by-side panels
 - Search files, install APKs, and run tasks in the background
-- Drag and drop files
+- Import files and folders while preserving folder structure
+- Drag and drop files and folders from your PC
 
 ## Install
 

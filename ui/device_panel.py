@@ -549,6 +549,7 @@ class DevicePanel(QWidget):
             menu.addAction("New File", self.create_new_file)
             menu.addAction("New Folder", self.create_new_folder)
             menu.addAction("Upload to Device", self.upload_file_to_device)
+            menu.addAction("Import Folder from PC...", self.import_folder_from_pc)
         elif len(indexes) > 1:
             menu.addAction("Copy", self.copy_selected)
             menu.addAction("Cut", self.cut_selected)
@@ -884,6 +885,13 @@ class DevicePanel(QWidget):
                         on_done=lambda _: self.status_label.setText(f"Uploaded {filename}"),
                         on_error=lambda: self.status_label.setText(f"Failed to upload {filename}"))
 
+    def import_folder_from_pc(self):
+        if not self.adb_handler.device_connected:
+            return
+        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder to Import")
+        if folder_path:
+            self.upload_files_and_folders([folder_path])
+
     def upload_files_and_folders(self, files):
         if not self.adb_handler.device_connected:
             return
@@ -891,16 +899,11 @@ class DevicePanel(QWidget):
         def run_upload():
             count = 0
 
-            def upload_file(file_path, rel_dir):
+            def upload_file(file_path, remote_dir):
                 filename = os.path.basename(file_path)
-                if rel_dir and rel_dir != ".":
-                    remote_dir = f"{self.current_path.rstrip('/')}/{rel_dir}".replace("\\", "/")
-                else:
-                    remote_dir = self.current_path.rstrip("/")
-                if rel_dir and not self.adb_handler.create_folder(remote_dir):
-                    return False
-                remote = f"{remote_dir}/{filename}".replace("\\", "/")
-                return self.adb_handler.push_file(file_path, remote)
+                remote = f"{remote_dir.rstrip('/')}/{filename}"
+                if not self.adb_handler.push_file(file_path, remote):
+                    raise RuntimeError(f"Failed to upload '{file_path}' to '{remote}'.")
 
             def raise_walk_error(error):
                 raise error
@@ -909,17 +912,31 @@ class DevicePanel(QWidget):
                 if is_cancelled():
                     return count
                 if os.path.isdir(path):
+                    folder_name = os.path.basename(os.path.normpath(path))
+                    if not folder_name:
+                        raise RuntimeError(f"Cannot determine the folder name for '{path}'.")
+                    remote_root = (
+                        f"{self.current_path.rstrip('/')}/{folder_name}"
+                    )
                     for root, _, filenames in os.walk(path, onerror=raise_walk_error):
                         rel_dir = os.path.relpath(root, path)
+                        remote_dir = remote_root
+                        if rel_dir != ".":
+                            remote_dir = (
+                                f"{remote_root}/{rel_dir.replace(os.sep, '/')}"
+                            )
+                        if not self.adb_handler.create_folder(remote_dir):
+                            raise RuntimeError(
+                                f"Failed to create device folder '{remote_dir}'."
+                            )
                         for filename in filenames:
                             if is_cancelled():
                                 return count
-                            if not upload_file(os.path.join(root, filename), rel_dir):
-                                return count
+                            upload_file(os.path.join(root, filename), remote_dir)
                             count += 1
                 else:
-                    if not upload_file(path, ""):
-                        return count
+                    remote_dir = self.current_path.rstrip("/")
+                    upload_file(path, remote_dir)
                     count += 1
             return count
 
