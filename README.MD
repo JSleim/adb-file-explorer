@@ -1,7 +1,7 @@
 # ADB Explorer: Android File Manager for Windows, macOS & Linux
 
 [![Release](https://img.shields.io/github/v/release/JSleim/adb-file-explorer)](https://github.com/JSleim/adb-file-explorer/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-informational)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB)
 
@@ -65,4 +65,4 @@ removes a newly created partial destination.
 
 ## License
 
-MIT
+GPL-3.0. See [LICENSE](LICENSE).
