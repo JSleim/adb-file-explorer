@@ -731,7 +731,12 @@ class DevicePanel(QWidget):
     def rename_item(self, old_name):
         if not self.adb_handler.device_connected:
             return
-        new_name, ok = QInputDialog.getText(self, "Rename", f"New name for '{old_name}':")
+        new_name, ok = QInputDialog.getText(
+            self,
+            "Rename",
+            f"New name for '{old_name}':",
+            text=old_name,
+        )
         if ok and new_name and new_name != old_name:
             old_path = f"{self.current_path.rstrip('/')}/{old_name}"
             new_path = f"{self.current_path.rstrip('/')}/{new_name}"
