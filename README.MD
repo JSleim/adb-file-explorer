@@ -1,27 +1,37 @@
-# ADB Explorer
+# ADB Explorer: Android File Manager for Windows, macOS & Linux
 
-ADB Explorer is a desktop file manager for Android devices connected through
-Android Debug Bridge (ADB).
+[![Release](https://img.shields.io/github/v/release/JSleim/adb-file-explorer)](https://github.com/JSleim/adb-file-explorer/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-informational)
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB)
+
+**ADB Explorer is a free, open-source desktop file manager for Android.** It uses
+Android Debug Bridge (ADB) to browse, copy, move, and manage files on your phone
+or tablet over USB or Wi-Fi, with side-by-side panels, drag and drop, and
+device-to-device transfers.
 
 ## Features
 
-- Browse and manage files on Android devices
-- Transfer files between your PC and devices, or between devices
-- Work with multiple devices and side-by-side panels
-- Search files, install APKs, and run tasks in the background
-- Import files and folders while preserving folder structure
-- Drag and drop files and folders from your PC
+- **Browse and manage files** on Android devices: copy, move, rename, delete
+- **Transfer files** between PC and device, or directly between two devices
+- **Multiple devices, side-by-side panels**
+- **Search files**, **install APKs**, and run tasks in the background
+- **Import files and folders** while preserving folder structure
+- **Drag and drop** files and folders from your PC
+- **Safe cancellation**: cancelled transfers remove partial destination files
 
-## Install
+## Download and install
 
-### Windows executable
+| Platform | How |
+|---|---|
+| Windows | Download the `.exe` from [Releases](../../releases) |
+| macOS / Linux | [Run from source](#run-from-source) (Python 3.10+) |
 
-Download the latest `.exe` from [Releases](../../releases) and run it.
+> **Requires [ADB](https://developer.android.com/tools/adb) installed and in your PATH.** This applies to both the `.exe` and running from source.
 
 ### Run from source
 
-Install Python 3.10 or newer and [ADB](https://developer.android.com/tools/adb),
-then run:
+Install Python 3.10 or newer, then run:
 
 ```bash
 pip install -r requirements.txt
@@ -36,11 +46,18 @@ cmake -S cpp -B cpp/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
 cmake --build cpp/build --config Release
 ```
 
-## Use
+## How to connect your Android device
 
-Connect a device with USB debugging enabled, then launch ADB Explorer. For
-wireless connections, connect the device to the same network and use ADB's
-wireless debugging.
+### USB
+1. Enable **Developer options** and **USB debugging** on your device.
+2. Connect it to your computer and accept the debugging prompt.
+3. Launch ADB Explorer.
+
+### Wi-Fi (wireless debugging)
+Connect the device and computer to the same network, enable **Wireless debugging**
+on the device, and pair it using ADB. Then launch ADB Explorer.
+
+## Using ADB Explorer
 
 Select files to copy, move, rename, delete, or transfer. Long-running tasks can
 be moved to the background and cancelled. Cancelling an ADB Explorer transfer
