@@ -254,9 +254,20 @@ class ADBHandler:
     def check_adb_connection(self) -> bool:
         try:
             result = self._run_adb_command(['devices'])
-            devices = result.stdout.strip()
-            self.logger.debug(f"ADB Devices output: {devices}")
-            return "device" in devices
+            self.logger.debug(f"ADB Devices output: {result.stdout.strip()}")
+            if result.returncode != 0:
+                self.logger.error(
+                    f"ADB connection check failed: {result.stderr.strip()}"
+                )
+                return False
+
+            for line in result.stdout.splitlines():
+                fields = line.split()
+                if len(fields) < 2 or fields[1] != "device":
+                    continue
+                if self.device_serial is None or fields[0] == self.device_serial:
+                    return True
+            return False
         except FileNotFoundError:
             self.logger.error("ADB command not found. Please ensure ADB is installed and in PATH")
             return False

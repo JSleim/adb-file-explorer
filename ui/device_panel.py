@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QMessageBox, QLineEdit, QMenu, QFileDialog, QInputDialog,
     QLabel, QCheckBox, QFileIconProvider, QProgressBar, QDialog, QTreeView,
+    QTabWidget, QTabBar, QApplication, QToolButton,
 )
 from PyQt6.QtGui import QStandardItemModel, QStandardItem, QAction, QKeySequence, QShortcut
 from PyQt6.QtCore import QStringListModel
@@ -71,8 +72,12 @@ class DevicePanel(QWidget):
 
     cross_device_drop = pyqtSignal(str, list, str)
     close_requested = pyqtSignal()
+    path_changed = pyqtSignal(str)
 
-    def __init__(self, parent, adb_handler, device_info=None):
+    def __init__(
+        self, parent, adb_handler, device_info=None, start_path=None,
+        compact_header=False,
+    ):
         super().__init__(parent)
         self.adb_handler = adb_handler
         self.device_info = device_info or {}
@@ -94,13 +99,16 @@ class DevicePanel(QWidget):
 
         
         self.root_path = "/"
-        self.current_path = "/storage/emulated/0"
+        self.current_path = start_path or "/storage/emulated/0"
         self.path_history = [self.current_path]
         self._history_index = 0
         self.all_files = []
 
         self._setup_ui()
         self._setup_context_menu()
+        if compact_header:
+            self.device_header.parentWidget().hide()
+            self.conn_label.hide()
         self.update_path_display()
 
     @property
@@ -129,7 +137,7 @@ class DevicePanel(QWidget):
         self.device_header.setObjectName("device_header")
         header_layout.addWidget(self.device_header)
         header_layout.addStretch()
-        self.close_btn = QPushButton("×")
+        self.close_btn = QPushButton("X")
         self.close_btn.setObjectName("panel_close_btn")
         self.close_btn.setToolTip("Close this device panel")
         self.close_btn.setAccessibleName("Close device panel")
@@ -147,13 +155,13 @@ class DevicePanel(QWidget):
         nav_layout = QHBoxLayout()
         nav_layout.setSpacing(4)
 
-        self.back_btn = QPushButton("←")
+        self.back_btn = QPushButton("<")
         self.back_btn.setMaximumWidth(36)
         self.back_btn.setObjectName("back_btn")
         self.back_btn.clicked.connect(self.go_back)
         nav_layout.addWidget(self.back_btn)
 
-        self.up_btn = QPushButton("↑")
+        self.up_btn = QPushButton("^")
         self.up_btn.setMaximumWidth(36)
         self.up_btn.setObjectName("up_btn")
         self.up_btn.clicked.connect(self.go_up)
@@ -250,6 +258,7 @@ class DevicePanel(QWidget):
     def update_path_display(self):
         self.path_display.setText(self.current_path)
         self.back_btn.setEnabled(self._history_index > 0)
+        self.path_changed.emit(self.current_path)
 
     def navigate_to(self, path):
         if path == self.current_path:
@@ -632,7 +641,12 @@ class DevicePanel(QWidget):
 
         target_devices = []
         for panel in parent.device_panels:
-            if panel is not self and panel.adb_handler.device_connected:
+            contains_view = getattr(panel, "contains_view", None)
+            is_current_panel = (
+                panel is self
+                or (contains_view is not None and contains_view(self))
+            )
+            if not is_current_panel and panel.adb_handler.device_connected:
                 target_devices.append(panel)
 
         if not target_devices:
@@ -1263,3 +1277,250 @@ class DevicePanel(QWidget):
         task.finished_signal.connect(handle_result)
         task.error_signal.connect(lambda msg: (on_error() if on_error else None))
         return task
+
+
+class NonOverlappingTabBar(QTabBar):
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.separate_scroll_buttons()
+
+    def separate_scroll_buttons(self, buttons=None):
+        if buttons is None:
+            buttons = {
+                "left" if button.objectName() == "ScrollLeftButton" else "right": button
+                for button in self.findChildren(QToolButton)
+                if button.objectName() in {"ScrollLeftButton", "ScrollRightButton"}
+            }
+        left = buttons.get("left")
+        right = buttons.get("right")
+        if left is None or right is None:
+            return
+        button_width = 14
+        button_height = 24
+        gap = 3
+        y = (self.height() - button_height) // 2
+        left.setFixedSize(button_width, button_height)
+        right.setFixedSize(button_width, button_height)
+        left.move(self.width() - (button_width * 2 + gap), y)
+        right.move(self.width() - button_width, y)
+
+
+class DevicePanelGroup(QWidget):
+    cross_device_drop = pyqtSignal(str, list, str)
+    close_requested = pyqtSignal()
+
+    def __init__(self, parent, adb_handler, device_info=None):
+        super().__init__(parent)
+        self.adb_handler = adb_handler
+        self.device_info = device_info or {}
+        self._views = []
+        self._closing = False
+        self._last_path = "/storage/emulated/0"
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+
+        header_container = QWidget()
+        header_container.setObjectName("panel_header")
+        header = QHBoxLayout(header_container)
+        header.setContentsMargins(6, 2, 4, 2)
+        header.setSpacing(6)
+        self.device_header = QLabel(self.device_name)
+        self.device_header.setObjectName("device_header")
+        header.addWidget(self.device_header)
+        header.addStretch()
+        self.conn_label = QLabel()
+        header.addWidget(self.conn_label)
+        self.close_btn = QPushButton("X")
+        self.close_btn.setObjectName("panel_close_btn")
+        self.close_btn.setToolTip("Close this device panel")
+        self.close_btn.setAccessibleName("Close device panel")
+        self.close_btn.setFixedSize(30, 30)
+        self.close_btn.clicked.connect(self.close_requested.emit)
+        header.addWidget(self.close_btn)
+        self.add_tab_btn = QPushButton("+")
+        self.add_tab_btn.setObjectName("add_path_tab_btn")
+        self.add_tab_btn.setToolTip("Add a path tab")
+        self.add_tab_btn.setAccessibleName("Add path tab")
+        self.add_tab_btn.setFixedSize(30, 30)
+        self.add_tab_btn.clicked.connect(lambda: self.add_tab())
+        header.insertWidget(header.count() - 1, self.add_tab_btn)
+        layout.addWidget(header_container)
+
+        self.tabs = QTabWidget()
+        self.tabs.setObjectName("path_tabs")
+        self.tabs.setTabBar(NonOverlappingTabBar())
+        self.tabs.setDocumentMode(True)
+        self.tabs.tabBar().setElideMode(Qt.TextElideMode.ElideMiddle)
+        self.tabs.currentChanged.connect(self._update_connection_status)
+        self.tabs.tabBar().setObjectName("path_tab_bar")
+        layout.addWidget(self.tabs)
+
+        self.add_tab()
+        self.update_connection_status()
+
+    @property
+    def active_view(self):
+        return self.tabs.currentWidget()
+
+    @property
+    def device_serial(self):
+        return self.adb_handler.device_serial or ""
+
+    @property
+    def device_name(self):
+        serial = self.device_serial
+        model = self.device_info.get("model") or self.adb_handler.devices.get(serial, "")
+        return model or serial
+
+    @property
+    def current_path(self):
+        return (
+            self.active_view.current_path
+            if self.active_view else self._last_path
+        )
+
+    @current_path.setter
+    def current_path(self, path):
+        if self.active_view:
+            self.active_view.current_path = path
+
+    def __getattr__(self, name):
+        views = self.__dict__.get("_views")
+        if views:
+            active_view = self.active_view
+            if active_view is not None:
+                return getattr(active_view, name)
+        raise AttributeError(f"{type(self).__name__!s} has no attribute {name!r}")
+
+    def add_tab(self, path=None):
+        if self._closing:
+            return None
+        start_path = path or self.current_path
+        view = DevicePanel(
+            self.tabs,
+            self.adb_handler,
+            self.device_info,
+            start_path=start_path,
+            compact_header=True,
+        )
+        self._views.append(view)
+        view.path_changed.connect(
+            lambda changed_path, panel=view: self._on_view_path_changed(
+                panel, changed_path
+            )
+        )
+        view.cross_device_drop.connect(self.cross_device_drop)
+        index = self.tabs.addTab(view, self._tab_title(start_path))
+        close_button = QToolButton(self.tabs.tabBar())
+        close_button.setObjectName("close_path_tab_btn")
+        close_button.setText("x")
+        close_button.setToolTip("Close tab")
+        close_button.setAccessibleName("Close tab")
+        close_button.setAutoRaise(True)
+        close_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        close_button.clicked.connect(
+            lambda _checked=False, tab=view: self._close_view(tab)
+        )
+        self.tabs.tabBar().setTabButton(
+            index, self.tabs.tabBar().ButtonPosition.RightSide, close_button
+        )
+        self.tabs.setCurrentIndex(index)
+        self._enable_click_activation()
+        QTimer.singleShot(0, self._style_tab_scroll_buttons)
+        self._update_connection_status()
+        return view
+
+    def _enable_click_activation(self):
+        widgets = [self, *self.findChildren(QWidget)]
+        for widget in widgets:
+            if widget.focusPolicy() == Qt.FocusPolicy.NoFocus:
+                widget.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+
+    def _style_tab_scroll_buttons(self):
+        buttons = self.tabs.tabBar().findChildren(QToolButton)
+        scroll_buttons = {}
+        for button in buttons:
+            if button.objectName() == "ScrollLeftButton":
+                button.setText("<")
+                button.setToolTip("Scroll tabs left")
+                button.setAccessibleName("Scroll tabs left")
+                scroll_buttons["left"] = button
+            elif button.objectName() == "ScrollRightButton":
+                button.setText(">")
+                button.setToolTip("Scroll tabs right")
+                button.setAccessibleName("Scroll tabs right")
+                scroll_buttons["right"] = button
+            else:
+                continue
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.tabs.tabBar().separate_scroll_buttons(scroll_buttons)
+
+    @staticmethod
+    def _tab_title(path):
+        return path.rstrip("/").rsplit("/", 1)[-1] or "/"
+
+    def _update_tab_title(self, view, path):
+        index = self.tabs.indexOf(view)
+        if index >= 0:
+            self.tabs.setTabText(index, self._tab_title(path))
+
+    def _on_view_path_changed(self, view, path):
+        self._last_path = path
+        self._update_tab_title(view, path)
+
+    def _close_view(self, view):
+        index = self.tabs.indexOf(view)
+        if index < 0:
+            return
+        self._last_path = view.current_path
+        self._views.remove(view)
+        self.tabs.removeTab(index)
+        view.prepare_for_close()
+        if self._views:
+            self._update_connection_status()
+
+    def _close_tab(self, index):
+        if not 0 <= index < len(self._views):
+            return
+        self._close_view(self._views[index])
+
+    def close_active_tab(self):
+        if self.active_view is not None:
+            self._close_view(self.active_view)
+
+    def _update_connection_status(self, _index=None):
+        if not self._views:
+            return
+        self.device_header.setText(self.device_name)
+        if self.adb_handler.device_connected:
+            self.conn_label.setText("🟢 Connected")
+            self.conn_label.setStyleSheet("color: green; font-size: 10px; padding: 0 8px 2px 8px;")
+        else:
+            self.conn_label.setText("🔴 Disconnected")
+            self.conn_label.setStyleSheet("color: red; font-size: 10px; padding: 0 8px 2px 8px;")
+
+    def update_connection_status(self):
+        for view in self._views:
+            view.update_connection_status()
+        self._update_connection_status()
+
+    def contains_focus(self):
+        focus_widget = QApplication.focusWidget()
+        return focus_widget is not None and (
+            focus_widget is self or self.isAncestorOf(focus_widget)
+        )
+
+    def contains_view(self, view):
+        return view in self._views
+
+    def prepare_for_close(self):
+        if self._closing:
+            return
+        self._closing = True
+        self.hide()
+        for view in self._views:
+            view.prepare_for_close()
+        self._views.clear()
+        self.deleteLater()

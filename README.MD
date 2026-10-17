@@ -14,7 +14,7 @@ device-to-device transfers.
 
 - **Browse and manage files** on Android devices: copy, move, rename, delete
 - **Transfer files** between PC and device, or directly between two devices
-- **Multiple devices, side-by-side panels**
+- **Multiple devices, side-by-side panels**, with multiple path tabs per panel
 - **Search files**, **install APKs**, and run tasks in the background
 - **Import files and folders** while preserving folder structure
 - **Drag and drop** files and folders from your PC
@@ -62,6 +62,10 @@ on the device, and pair it using ADB. Then launch ADB Explorer.
 Select files to copy, move, rename, delete, or transfer. Long-running tasks can
 be moved to the background and cancelled. Cancelling an ADB Explorer transfer
 removes a newly created partial destination.
+
+Use **+ Add Panel** to open another connected device panel, including another
+panel for the same device. Use **+ Add Tab** or press **Ctrl+T** to open a new
+path tab in the active panel. Press **Ctrl+W** to close the active tab.
 
 ## License
 

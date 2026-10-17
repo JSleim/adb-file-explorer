@@ -9,12 +9,12 @@ from PyQt6.QtWidgets import (
     QFileDialog, QMenu, QApplication,
 )
 from PyQt6.QtCore import Qt, QTimer, QUrl
-from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtGui import QDesktopServices, QKeySequence, QShortcut
 
 from handler import ADBHandler
 from operation_control import is_cancelled
 from device_chooser import DeviceChooser
-from ui.device_panel import DevicePanel
+from ui.device_panel import DevicePanelGroup
 from ui.widgets import ADB_MIME
 from ui.task_manager import BackgroundTaskManager
 from ui.theme import LIGHT, DARK
@@ -56,6 +56,7 @@ class MultiDeviceWindow(QMainWindow):
         self.setGeometry(100, 100, 1100, 600)
 
         self.device_panels = []
+        self._last_active_panel = None
         self._dark = _load_theme()
         QApplication.instance().setStyleSheet(DARK if self._dark else LIGHT)
 
@@ -71,6 +72,8 @@ class MultiDeviceWindow(QMainWindow):
         self.connection_timer.start(10000)
 
     def _setup_ui(self):
+        app = QApplication.instance()
+        app.focusChanged.connect(self._remember_active_panel)
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
@@ -83,8 +86,20 @@ class MultiDeviceWindow(QMainWindow):
         self.addToolBar(toolbar)
 
         self.add_panel_btn = QPushButton("+ Add Panel")
+        self.add_panel_btn.setObjectName("add_panel_btn")
         self.add_panel_btn.clicked.connect(self._add_panel)
         toolbar.addWidget(self.add_panel_btn)
+
+        self.add_tab_btn = QPushButton("+ Add Tab")
+        self.add_tab_btn.setObjectName("add_tab_btn")
+        self.add_tab_btn.clicked.connect(self._add_tab)
+        toolbar.addWidget(self.add_tab_btn)
+        self.add_tab_shortcut = QShortcut(QKeySequence("Ctrl+T"), self)
+        self.add_tab_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self.add_tab_shortcut.activated.connect(self._add_tab)
+        self.close_tab_shortcut = QShortcut(QKeySequence("Ctrl+W"), self)
+        self.close_tab_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self.close_tab_shortcut.activated.connect(self._close_active_tab)
 
 
         toolbar.addSeparator()
@@ -161,7 +176,9 @@ class MultiDeviceWindow(QMainWindow):
 
         if not initial_devices:
             self.device_status_label.setText("No devices connected")
-            self.status_label.setText("No ADB devices found. Connect a device and use + Add Panel.")
+            self.status_label.setText(
+                "No ADB devices found. Connect a device and use + Add Panel."
+            )
             return
 
         devices_list = list(initial_devices.items())
@@ -179,11 +196,17 @@ class MultiDeviceWindow(QMainWindow):
     def _add_panel_for_device(self, serial, model):
         try:
             handler = ADBHandler(device_serial=serial)
-            panel = DevicePanel(self.splitter, handler, device_info={"model": model})
+            panel = DevicePanelGroup(
+                self.splitter, handler, device_info={"model": model}
+            )
             self.splitter.addWidget(panel)
             self.device_panels.append(panel)
+            self._last_active_panel = panel
             panel.cross_device_drop.connect(self._on_cross_device_drop)
             panel.close_requested.connect(lambda p=panel: self._close_panel(p))
+            panel.tabs.tabBar().tabBarClicked.connect(
+                lambda _index, p=panel: self._remember_panel(p)
+            )
 
             
             idx = len(self.device_panels)
@@ -202,24 +225,34 @@ class MultiDeviceWindow(QMainWindow):
             QMessageBox.information(self, "No Devices", "No ADB devices connected.")
             return
 
-        
-        existing_serials = {p.device_serial for p in self.device_panels}
-        available = {s: m for s, m in devices.items() if s not in existing_serials}
-
-        if not available:
-            QMessageBox.information(self, "All Connected",
-                                    "All detected devices already have panels open.")
-            return
-
-        dialog = DeviceChooser(available, self)
+        dialog = DeviceChooser(devices, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             for serial in dialog.selected_devices():
-                self._add_panel_for_device(serial, available.get(serial, "Unknown"))
+                self._add_panel_for_device(serial, devices.get(serial, "Unknown"))
+
+    def _add_tab(self):
+        panel = self._active_panel()
+        if panel is None:
+            QMessageBox.information(
+                self, "No Panel", "Add a device panel before opening a tab."
+            )
+            return
+        panel.add_tab()
+
+    def _close_active_tab(self):
+        panel = self._active_panel()
+        if panel is not None:
+            panel.close_active_tab()
 
     def _close_panel(self, panel):
         if panel not in self.device_panels:
             return
         self.device_panels.remove(panel)
+        if self._last_active_panel is panel:
+            self._last_active_panel = (
+                self.device_panels[-1] if self.device_panels else None
+            )
+        panel.setParent(None)
         panel.prepare_for_close()
         self._update_panel_count_ui()
         self._reconnect_drop_signals()
@@ -237,7 +270,7 @@ class MultiDeviceWindow(QMainWindow):
     def _on_cross_device_drop(self, src_serial, paths, dest_path):
         
         dest_panel = self.sender()
-        if not isinstance(dest_panel, DevicePanel):
+        if not isinstance(dest_panel, DevicePanelGroup):
             return
 
         
@@ -336,38 +369,54 @@ class MultiDeviceWindow(QMainWindow):
     
 
     def _active_panel(self):
+        if self._last_active_panel in self.device_panels:
+            return self._last_active_panel
         for p in self.device_panels:
-            if p.tree_view.hasFocus():
+            if p.contains_focus():
+                self._last_active_panel = p
                 return p
         return self._target_panel()
 
+    def _remember_panel(self, panel):
+        if panel in self.device_panels:
+            self._last_active_panel = panel
+
+    def _remember_active_panel(self, _old_widget, new_widget):
+        if new_widget is None:
+            return
+        for panel in self.device_panels:
+            if new_widget is panel or panel.isAncestorOf(new_widget):
+                self._remember_panel(panel)
+                return
+
     def _broadcast_copy(self):
         p = self._active_panel()
-        if p:
-            p.copy_selected()
+        if p and p.active_view:
+            p.active_view.copy_selected()
 
     def _broadcast_cut(self):
         p = self._active_panel()
-        if p:
-            p.cut_selected()
+        if p and p.active_view:
+            p.active_view.cut_selected()
 
     def _broadcast_paste(self):
         p = self._active_panel()
-        if p:
-            p.paste_items()
+        if p and p.active_view:
+            p.active_view.paste_items()
 
     def _broadcast_delete(self):
         p = self._active_panel()
-        if p:
-            p.delete_selected_items()
+        if p and p.active_view:
+            p.active_view.delete_selected_items()
 
     def _broadcast_rename(self):
         p = self._active_panel()
-        if p:
-            if len(p.tree_view.selectionModel().selectedRows()) == 1:
-                name = p.tree_model.data(p.tree_model.index(p.tree_view.selectionModel().selectedRows()[0].row(), 0))
+        if p and p.active_view:
+            view = p.active_view
+            if len(view.tree_view.selectionModel().selectedRows()) == 1:
+                name = view.tree_model.data(view.tree_model.index(view.tree_view.selectionModel().selectedRows()[0].row(), 0))
                 if name and name != "..":
-                    p.rename_item(name)
+                    view.rename_item(name)
 
     def _open_updates(self):
         QDesktopServices.openUrl(QUrl("https://github.com/JSleim/adb-file-explorer/releases"))
