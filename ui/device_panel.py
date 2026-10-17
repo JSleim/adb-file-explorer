@@ -194,8 +194,6 @@ class DevicePanel(QWidget):
             header.setSectionResizeMode(col, header.ResizeMode.ResizeToContents)
         self.tree_view.doubleClicked.connect(self.handle_double_click)
         self.tree_view.activated.connect(self.handle_double_click)
-        self.tree_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tree_view.customContextMenuRequested.connect(self.show_context_menu)
         self._setup_shortcuts()
         layout.addWidget(self.tree_view)
 
