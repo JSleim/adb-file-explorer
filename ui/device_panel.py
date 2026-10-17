@@ -755,9 +755,14 @@ class DevicePanel(QWidget):
     def delete_item(self, name, is_dir=False):
         if not self.adb_handler.device_connected:
             return
+        confirmation = (
+            f"Delete folder '{name}' and all of its contents, including "
+            "subfolders?"
+            if is_dir
+            else f"Delete '{name}'?"
+        )
         reply = QMessageBox.question(
-            self, "Delete",
-            f"Delete '{name}'?",
+            self, "Delete", confirmation,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if reply == QMessageBox.StandardButton.Yes:
@@ -807,9 +812,25 @@ class DevicePanel(QWidget):
                 names_types.append((name, typ == "Directory"))
         if not names_types:
             return
+        has_directories = any(is_dir for _, is_dir in names_types)
+        if len(names_types) == 1:
+            name, is_dir = names_types[0]
+            confirmation = (
+                f"Delete folder '{name}' and all of its contents, including "
+                "subfolders?"
+                if is_dir
+                else f"Delete '{name}'?"
+            )
+        else:
+            confirmation = f"Delete {len(names_types)} selected items?"
+            if has_directories:
+                confirmation += (
+                    "\nAny selected folders and all their contents, including "
+                    "subfolders, will also be deleted."
+                )
         reply = QMessageBox.question(
             self, "Delete",
-            f"Delete {len(names_types)} selected items?",
+            confirmation,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if reply == QMessageBox.StandardButton.Yes:
