@@ -27,6 +27,15 @@ from ui.windows_drag import (
 )
 
 
+class SortableStandardItem(QStandardItem):
+    def __lt__(self, other):
+        value = self.data(Qt.ItemDataRole.UserRole)
+        other_value = other.data(Qt.ItemDataRole.UserRole)
+        if value is not None and other_value is not None:
+            return value < other_value
+        return self.text().casefold() < other.text().casefold()
+
+
 class PathInput(QLineEdit):
 
     def __init__(self, panel):
@@ -177,7 +186,7 @@ class DevicePanel(QWidget):
         self.tree_model.setHorizontalHeaderLabels(['Name', 'Type', 'Size', 'Permissions', 'Modified'])
         self.tree_view.setModel(self.tree_model)
         self.tree_view.setSelectionMode(QTreeView.SelectionMode.ExtendedSelection)
-        self.tree_view.setColumnHidden(4, True)
+        self.tree_view.setSortingEnabled(True)
         header = self.tree_view.header()
         header.setStretchLastSection(False)
         header.setSectionResizeMode(0, header.ResizeMode.Stretch)
@@ -411,7 +420,11 @@ class DevicePanel(QWidget):
         dirs = sorted([f for f in files if f.is_dir], key=lambda x: x.name.lower())
         regular_files = sorted([f for f in files if not f.is_dir], key=lambda x: x.name.lower())
         for file_item in dirs + regular_files:
-            name_item = QStandardItem(file_item.name)
+            name_item = SortableStandardItem(file_item.name)
+            name_item.setData(
+                (0 if file_item.is_dir else 1, file_item.name.casefold()),
+                Qt.ItemDataRole.UserRole,
+            )
             if file_item.is_dir:
                 name_item.setIcon(self._folder_icon)
             else:
@@ -420,12 +433,23 @@ class DevicePanel(QWidget):
                     icon = self._icon_provider.icon(QFileInfo(f"x{ext}"))
                     self._icon_cache[ext] = icon if not icon.isNull() else self._file_icon
                 name_item.setIcon(self._icon_cache[ext])
+            size_item = SortableStandardItem(
+                str(file_item.size) if not file_item.is_dir else ""
+            )
+            size_item.setData(
+                file_item.size if not file_item.is_dir else None,
+                Qt.ItemDataRole.UserRole,
+            )
+            modified_item = SortableStandardItem(file_item.date_modified)
+            modified_item.setData(
+                file_item.date_modified, Qt.ItemDataRole.UserRole
+            )
             self.tree_model.appendRow([
                 name_item,
-                QStandardItem("Directory" if file_item.is_dir else "File"),
-                QStandardItem(str(file_item.size) if not file_item.is_dir else ""),
-                QStandardItem(file_item.permissions),
-                QStandardItem(file_item.date_modified),
+                SortableStandardItem("Directory" if file_item.is_dir else "File"),
+                size_item,
+                SortableStandardItem(file_item.permissions),
+                modified_item,
             ])
         for i in range(5):
             self.tree_view.resizeColumnToContents(i)
@@ -731,7 +755,12 @@ class DevicePanel(QWidget):
     def rename_item(self, old_name):
         if not self.adb_handler.device_connected:
             return
-        new_name, ok = QInputDialog.getText(self, "Rename", f"New name for '{old_name}':")
+        new_name, ok = QInputDialog.getText(
+            self,
+            "Rename",
+            f"New name for '{old_name}':",
+            text=old_name,
+        )
         if ok and new_name and new_name != old_name:
             old_path = f"{self.current_path.rstrip('/')}/{old_name}"
             new_path = f"{self.current_path.rstrip('/')}/{new_name}"
