@@ -330,6 +330,41 @@ QMessageBox QLabel {
     font-size: 12px;
     color: #444;
 }
+QMessageBox QCheckBox#apply_to_all_conflicts {
+    color: #444;
+    font-size: 12px;
+    spacing: 8px;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts:hover {
+    background: #f0f7ff;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts:focus {
+    border-color: #4a8fe0;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts:disabled {
+    color: #999;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts::indicator {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #b8c0cc;
+    border-radius: 4px;
+    background: #fff;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts::indicator:hover {
+    border-color: #4a8fe0;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts::indicator:checked {
+    background: #4a8fe0;
+    border-color: #4a8fe0;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts::indicator:disabled {
+    background: #f0f0f0;
+    border-color: #d8d8d8;
+}
 QPushButton {
     background: #fff;
     border: 1px solid #d8d8d8;
@@ -859,6 +894,41 @@ QMessageBox {
 QMessageBox QLabel {
     font-size: 12px;
     color: #cdd6f4;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts {
+    color: #cdd6f4;
+    font-size: 12px;
+    spacing: 8px;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts:hover {
+    background: #313244;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts:focus {
+    border-color: #89b4fa;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts:disabled {
+    color: #6c7086;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts::indicator {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #585b70;
+    border-radius: 4px;
+    background: #181825;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts::indicator:hover {
+    border-color: #89b4fa;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts::indicator:checked {
+    background: #89b4fa;
+    border-color: #89b4fa;
+}
+QMessageBox QCheckBox#apply_to_all_conflicts::indicator:disabled {
+    background: #313244;
+    border-color: #45475a;
 }
 QPushButton {
     background: #313244;

@@ -67,34 +67,47 @@ class ADBHandler:
     def _shell_quote(path):
         return "'" + path.replace("'", "'\\''") + "'"
 
-    def _remote_path_exists(self, path, device_serial=None):
+    def _remote_path_exists(self, path, device_serial=None, use_root=False):
         quoted_path = self._shell_quote(path)
+        stat_command = f"stat -c '%s %Y' {quoted_path}"
+        command = (
+            ['shell', 'su', '-c', stat_command]
+            if use_root and self.root_mode == "su"
+            else ['shell', stat_command]
+        )
         try:
             result = self._run_adb_command(
-                [
-                    'shell',
-                    f'if test -e {quoted_path}; then printf present; '
-                    'else printf absent; fi',
-                ],
+                command,
                 timeout=10,
                 device_serial=device_serial,
             )
         except Exception as error:
             self.logger.error("Could not check remote destination %s: %s", path, error)
+            self.last_error = str(error)
             return None
         if result.returncode != 0:
+            error = (result.stderr or result.stdout or "").strip()
+            if "no such file or directory" in error.lower():
+                self.last_error = None
+                return False
             self.logger.error(
                 "Could not check remote destination %s: %s",
                 path,
-                (result.stderr or "").strip() or "ADB command failed",
+                error or "ADB command failed",
             )
+            self.last_error = error or "ADB command failed"
             return None
-        output = (result.stdout or "").strip()
-        if output == "present":
-            return True
-        if output == "absent":
-            return False
+        fields = (result.stdout or "").split()
+        if len(fields) == 2 and fields[0].isdigit():
+            try:
+                int(fields[1])
+            except ValueError:
+                pass
+            else:
+                self.last_error = None
+                return True
         self.logger.error("Unexpected result checking remote destination %s", path)
+        self.last_error = "Unexpected output checking remote path"
         return None
 
     def _remove_remote_partial(self, path, device_serial=None):

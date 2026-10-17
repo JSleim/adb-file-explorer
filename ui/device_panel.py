@@ -3,6 +3,7 @@ import sys
 import tempfile
 import subprocess
 import uuid
+from datetime import datetime
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
@@ -10,9 +11,12 @@ from PyQt6.QtWidgets import (
     QLabel, QCheckBox, QFileIconProvider, QProgressBar, QDialog, QTreeView,
     QTabWidget, QTabBar, QApplication, QToolButton,
 )
-from PyQt6.QtGui import QStandardItemModel, QStandardItem, QAction, QKeySequence, QShortcut
+from PyQt6.QtGui import (
+    QPainter, QPen, QStandardItemModel, QStandardItem, QAction,
+    QKeySequence, QShortcut,
+)
 from PyQt6.QtCore import QStringListModel
-from PyQt6.QtWidgets import QCompleter
+from PyQt6.QtWidgets import QCompleter, QStyle, QStyleOptionButton
 from PyQt6.QtCore import Qt, QTimer, QFileInfo, pyqtSignal, QPoint
 
 from handler import ADBHandler
@@ -35,6 +39,39 @@ class SortableStandardItem(QStandardItem):
         if value is not None and other_value is not None:
             return value < other_value
         return self.text().casefold() < other.text().casefold()
+
+
+class ApplyToAllCheckBox(QCheckBox):
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if not self.isChecked():
+            return
+
+        option = QStyleOptionButton()
+        self.initStyleOption(option)
+        indicator = self.style().subElementRect(
+            QStyle.SubElement.SE_CheckBoxIndicator, option, self
+        )
+        if not indicator.isValid():
+            return
+
+        start = (indicator.left() + 4, indicator.top() + 8)
+        middle = (indicator.left() + 7, indicator.top() + 11)
+        end = (indicator.left() + 12, indicator.top() + 5)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(QPen(
+            Qt.GlobalColor.black, 3, Qt.PenStyle.SolidLine,
+            Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin,
+        ))
+        painter.drawLine(*start, *middle)
+        painter.drawLine(*middle, *end)
+        painter.setPen(QPen(
+            Qt.GlobalColor.white, 1.5, Qt.PenStyle.SolidLine,
+            Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin,
+        ))
+        painter.drawLine(*start, *middle)
+        painter.drawLine(*middle, *end)
 
 
 class PathInput(QLineEdit):
@@ -941,11 +978,7 @@ class DevicePanel(QWidget):
         file_path, _ = QFileDialog.getOpenFileName(self, "Select File to Upload")
         if not file_path:
             return
-        filename = os.path.basename(file_path)
-        remote = f"{self.current_path.rstrip('/')}/{filename}"
-        self._run_modal("Uploading", self.adb_handler.push_file, file_path, remote,
-                        on_done=lambda _: self.status_label.setText(f"Uploaded {filename}"),
-                        on_error=lambda: self.status_label.setText(f"Failed to upload {filename}"))
+        self.upload_files_and_folders([file_path])
 
     def import_folder_from_pc(self):
         if not self.adb_handler.device_connected:
@@ -958,52 +991,224 @@ class DevicePanel(QWidget):
         if not self.adb_handler.device_connected:
             return
 
-        def run_upload():
-            count = 0
+        target_path = self.current_path.rstrip("/") or "/"
+        try:
+            plan = self._build_upload_plan(files, target_path)
+        except (OSError, RuntimeError) as error:
+            self.status_label.setText(f"Import from PC failed: {error}")
+            return
+        if not plan["files"] and not plan["directories"]:
+            self.status_label.setText("No files to upload")
+            return
 
-            def upload_file(file_path, remote_dir):
-                filename = os.path.basename(file_path)
-                remote = f"{remote_dir.rstrip('/')}/{filename}"
-                if not self.adb_handler.push_file(file_path, remote):
-                    raise RuntimeError(f"Failed to upload '{file_path}' to '{remote}'.")
+        self._run_modal(
+            "Checking destination files",
+            self._inspect_upload_conflicts,
+            plan,
+            on_done=lambda result: self._resolve_upload_conflicts(
+                plan, result[0]
+            ),
+            on_error=lambda: self.status_label.setText(
+                "Could not verify destination files; import was not started"
+            ),
+            on_cancel=lambda: self.status_label.setText("Import cancelled"),
+        )
 
-            def raise_walk_error(error):
-                raise error
+    @staticmethod
+    def _build_upload_plan(files, target_path):
+        directories = []
+        uploads = []
 
-            for path in files:
-                if is_cancelled():
-                    return count
-                if os.path.isdir(path):
-                    folder_name = os.path.basename(os.path.normpath(path))
-                    if not folder_name:
-                        raise RuntimeError(f"Cannot determine the folder name for '{path}'.")
-                    remote_root = (
-                        f"{self.current_path.rstrip('/')}/{folder_name}"
+        def raise_walk_error(error):
+            raise error
+
+        for path in files:
+            if os.path.isdir(path):
+                folder_name = os.path.basename(os.path.normpath(path))
+                if not folder_name:
+                    raise RuntimeError(
+                        f"Cannot determine the folder name for '{path}'."
                     )
-                    for root, _, filenames in os.walk(path, onerror=raise_walk_error):
-                        rel_dir = os.path.relpath(root, path)
-                        remote_dir = remote_root
-                        if rel_dir != ".":
-                            remote_dir = (
-                                f"{remote_root}/{rel_dir.replace(os.sep, '/')}"
-                            )
-                        if not self.adb_handler.create_folder(remote_dir):
-                            raise RuntimeError(
-                                f"Failed to create device folder '{remote_dir}'."
-                            )
-                        for filename in filenames:
-                            if is_cancelled():
-                                return count
-                            upload_file(os.path.join(root, filename), remote_dir)
-                            count += 1
-                else:
-                    remote_dir = self.current_path.rstrip("/")
-                    upload_file(path, remote_dir)
-                    count += 1
-            return count
+                remote_root = f"{target_path.rstrip('/')}/{folder_name}"
+                for root, _, filenames in os.walk(path, onerror=raise_walk_error):
+                    relative_dir = os.path.relpath(root, path)
+                    remote_dir = remote_root
+                    if relative_dir != ".":
+                        relative_dir = relative_dir.replace(os.sep, "/")
+                        remote_dir = f"{remote_root}/{relative_dir}"
+                    directories.append(remote_dir)
+                    for filename in filenames:
+                        local_path = os.path.join(root, filename)
+                        uploads.append((
+                            local_path,
+                            remote_dir,
+                            f"{remote_dir.rstrip('/')}/{filename}",
+                        ))
+            elif os.path.isfile(path):
+                filename = os.path.basename(path)
+                uploads.append((
+                    path,
+                    target_path,
+                    f"{target_path.rstrip('/')}/{filename}",
+                ))
+            else:
+                raise RuntimeError(f"'{path}' is not a file or folder.")
 
-        def on_done(count):
-            self.status_label.setText(f"Uploaded {count} files")
+        return {
+            "directories": list(dict.fromkeys(directories)),
+            "files": uploads,
+        }
+
+    def _inspect_upload_conflicts(self, plan):
+        conflicts = {}
+        files_by_directory = {}
+        for upload in plan["files"]:
+            files_by_directory.setdefault(upload[1], []).append(upload)
+        remote_directories = list(dict.fromkeys(
+            [*plan["directories"], *files_by_directory]
+        ))
+        for remote_dir in remote_directories:
+            if is_cancelled():
+                return (conflicts,)
+
+            self.adb_handler.last_error = None
+            exists = self.adb_handler._remote_path_exists(
+                remote_dir, use_root=self.use_root
+            )
+            if exists is None:
+                error = getattr(self.adb_handler, "last_error", None)
+                raise RuntimeError(
+                    f"Could not verify destination folder '{remote_dir}'"
+                    + (f": {error}" if error else ".")
+                )
+            if not exists:
+                continue
+
+            self.adb_handler.last_error = None
+            entries = self.adb_handler.list_directory(remote_dir, self.use_root)
+            listing_error = getattr(self.adb_handler, "last_error", None)
+            if entries is None or listing_error:
+                raise RuntimeError(
+                    f"Could not list destination folder '{remote_dir}'"
+                    + (f": {listing_error}" if listing_error else ".")
+                )
+
+            existing_entries = {entry.name: entry for entry in entries}
+            for local_path, _, remote_path in files_by_directory.get(remote_dir, ()):
+                existing = existing_entries.get(os.path.basename(local_path))
+                if existing is None:
+                    continue
+                if existing.is_dir:
+                    raise RuntimeError(
+                        f"Cannot upload file '{local_path}': a folder already "
+                        f"exists at '{remote_path}'."
+                    )
+                conflicts[remote_path] = (local_path, existing)
+        return (conflicts,)
+
+    @staticmethod
+    def _format_upload_size(size):
+        value = float(size)
+        for unit in ("Bytes", "KB", "MB", "GB", "TB"):
+            if value < 1024 or unit == "TB":
+                return f"{int(value)} {unit}" if unit == "Bytes" else f"{value:.1f} {unit}"
+            value /= 1024
+
+    def _confirm_upload_conflict(self, remote_path, local_path, existing):
+        source_info = os.stat(local_path)
+        source_modified = datetime.fromtimestamp(source_info.st_mtime).strftime(
+            "%d/%m/%Y %H:%M:%S"
+        )
+        try:
+            destination_modified = datetime.strptime(
+                existing.date_modified, "%Y-%m-%d %H:%M"
+            ).strftime("%d/%m/%Y %H:%M")
+        except ValueError:
+            destination_modified = existing.date_modified
+
+        box = QMessageBox(self)
+        box.setWindowTitle("File already exists")
+        box.setText("The following file already exists:")
+        box.setInformativeText(
+            f"{remote_path}\n\n"
+            f"Source: {self._format_upload_size(source_info.st_size)}, "
+            f"Modified {source_modified}\n"
+            f"Destination: {self._format_upload_size(existing.size)}, "
+            f"Modified {destination_modified}\n\n"
+            "Overwriting will replace the existing content."
+        )
+        overwrite = box.addButton("Overwrite", QMessageBox.ButtonRole.AcceptRole)
+        skip = box.addButton("Skip", QMessageBox.ButtonRole.ActionRole)
+        box.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+        apply_to_all = ApplyToAllCheckBox("Apply to all conflicts")
+        apply_to_all.setObjectName("apply_to_all_conflicts")
+        apply_to_all.setAccessibleName("Apply to all file conflicts")
+        apply_to_all.setToolTip(
+            "Use this choice for every remaining file conflict in this import."
+        )
+        box.setCheckBox(apply_to_all)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked is overwrite:
+            choice = "overwrite"
+        elif clicked is skip:
+            choice = "skip"
+        else:
+            choice = "cancel"
+        return choice, apply_to_all.isChecked()
+
+    def _resolve_upload_conflicts(self, plan, conflicts):
+        choices = {}
+        apply_choice = None
+        for remote_path, (local_path, existing) in conflicts.items():
+            if apply_choice is None:
+                try:
+                    choice, apply_to_all = self._confirm_upload_conflict(
+                        remote_path, local_path, existing
+                    )
+                except (OSError, OverflowError, ValueError) as error:
+                    self.status_label.setText(
+                        f"Could not read source file '{local_path}': {error}; "
+                        "import was not started"
+                    )
+                    return
+                if apply_to_all and choice != "cancel":
+                    apply_choice = choice
+            else:
+                choice = apply_choice
+            if choice == "cancel":
+                self.status_label.setText("Import cancelled; no files were uploaded")
+                return
+            choices[remote_path] = choice
+
+        def run_upload():
+            uploaded = 0
+            skipped = 0
+            for remote_dir in plan["directories"]:
+                if is_cancelled():
+                    return uploaded, skipped
+                if not self.adb_handler.create_folder(remote_dir):
+                    raise RuntimeError(
+                        f"Failed to create device folder '{remote_dir}'."
+                    )
+            for local_path, _, remote_path in plan["files"]:
+                if is_cancelled():
+                    return uploaded, skipped
+                if choices.get(remote_path) == "skip":
+                    skipped += 1
+                    continue
+                if not self.adb_handler.push_file(local_path, remote_path):
+                    raise RuntimeError(
+                        f"Failed to upload '{local_path}' to '{remote_path}'."
+                    )
+                uploaded += 1
+            return uploaded, skipped
+
+        def on_done(result):
+            uploaded, skipped = result
+            self.status_label.setText(
+                f"Uploaded {uploaded} files; skipped {skipped}"
+            )
             self.refresh_files()
 
         self._run_modal(
@@ -1011,6 +1216,7 @@ class DevicePanel(QWidget):
             run_upload,
             on_done=on_done,
             on_error=lambda: self.status_label.setText("Import from PC failed"),
+            on_cancel=lambda: self.status_label.setText("Import cancelled"),
         )
 
     def download_selected_items(self):
