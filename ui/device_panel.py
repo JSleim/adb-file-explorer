@@ -1015,6 +1015,20 @@ class DevicePanel(QWidget):
         )
 
     @staticmethod
+    def _next_renamed_destination(remote_path, occupied_names):
+        directory, filename = remote_path.rsplit("/", 1)
+        stem, extension = os.path.splitext(filename)
+        if not stem:
+            stem, extension = filename, ""
+        index = 1
+        while True:
+            candidate_name = f"{stem} ({index}){extension}"
+            if candidate_name not in occupied_names:
+                occupied_names.add(candidate_name)
+                return f"{directory}/{candidate_name}"
+            index += 1
+
+    @staticmethod
     def _build_upload_plan(files, target_path):
         directories = []
         uploads = []
@@ -1061,6 +1075,7 @@ class DevicePanel(QWidget):
 
     def _inspect_upload_conflicts(self, plan):
         conflicts = {}
+        plan["existing_names_by_directory"] = {}
         files_by_directory = {}
         for upload in plan["files"]:
             files_by_directory.setdefault(upload[1], []).append(upload)
@@ -1082,6 +1097,7 @@ class DevicePanel(QWidget):
                     + (f": {error}" if error else ".")
                 )
             if not exists:
+                plan["existing_names_by_directory"][remote_dir] = set()
                 continue
 
             self.adb_handler.last_error = None
@@ -1094,6 +1110,9 @@ class DevicePanel(QWidget):
                 )
 
             existing_entries = {entry.name: entry for entry in entries}
+            plan["existing_names_by_directory"][remote_dir] = set(
+                existing_entries
+            )
             for local_path, _, remote_path in files_by_directory.get(remote_dir, ()):
                 existing = existing_entries.get(os.path.basename(local_path))
                 if existing is None:
@@ -1135,9 +1154,13 @@ class DevicePanel(QWidget):
             f"Modified {source_modified}\n"
             f"Destination: {self._format_upload_size(existing.size)}, "
             f"Modified {destination_modified}\n\n"
-            "Overwriting will replace the existing content."
+            "Overwrite replaces the existing content. Rename Destination keeps "
+            "the existing file under a numbered name before uploading."
         )
         overwrite = box.addButton("Overwrite", QMessageBox.ButtonRole.AcceptRole)
+        rename = box.addButton(
+            "Rename", QMessageBox.ButtonRole.ActionRole
+        )
         skip = box.addButton("Skip", QMessageBox.ButtonRole.ActionRole)
         box.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
         apply_to_all = ApplyToAllCheckBox("Apply to all conflicts")
@@ -1151,6 +1174,8 @@ class DevicePanel(QWidget):
         clicked = box.clickedButton()
         if clicked is overwrite:
             choice = "overwrite"
+        elif clicked is rename:
+            choice = "rename"
         elif clicked is skip:
             choice = "skip"
         else:
@@ -1159,6 +1184,8 @@ class DevicePanel(QWidget):
 
     def _resolve_upload_conflicts(self, plan, conflicts):
         choices = {}
+        renamed_destinations = {}
+        occupied_names = plan.get("existing_names_by_directory", {})
         apply_choice = None
         for remote_path, (local_path, existing) in conflicts.items():
             if apply_choice is None:
@@ -1180,34 +1207,52 @@ class DevicePanel(QWidget):
                 self.status_label.setText("Import cancelled; no files were uploaded")
                 return
             choices[remote_path] = choice
+            if choice == "rename":
+                directory = remote_path.rsplit("/", 1)[0] or "/"
+                names = occupied_names.setdefault(directory, set())
+                renamed_destinations[remote_path] = (
+                    DevicePanel._next_renamed_destination(remote_path, names)
+                )
 
         def run_upload():
             uploaded = 0
             skipped = 0
+            renamed = 0
             for remote_dir in plan["directories"]:
                 if is_cancelled():
-                    return uploaded, skipped
+                    return uploaded, skipped, renamed
                 if not self.adb_handler.create_folder(remote_dir):
                     raise RuntimeError(
                         f"Failed to create device folder '{remote_dir}'."
                     )
             for local_path, _, remote_path in plan["files"]:
                 if is_cancelled():
-                    return uploaded, skipped
+                    return uploaded, skipped, renamed
                 if choices.get(remote_path) == "skip":
                     skipped += 1
                     continue
+                renamed_path = renamed_destinations.get(remote_path)
+                if renamed_path is not None:
+                    if not self.adb_handler.rename_item(
+                        remote_path, renamed_path, use_root=self.use_root
+                    ):
+                        raise RuntimeError(
+                            f"Failed to preserve existing file '{remote_path}' "
+                            f"as '{renamed_path}'."
+                        )
+                    renamed += 1
                 if not self.adb_handler.push_file(local_path, remote_path):
                     raise RuntimeError(
                         f"Failed to upload '{local_path}' to '{remote_path}'."
                     )
                 uploaded += 1
-            return uploaded, skipped
+            return uploaded, skipped, renamed
 
         def on_done(result):
-            uploaded, skipped = result
+            uploaded, skipped, renamed = result
             self.status_label.setText(
-                f"Uploaded {uploaded} files; skipped {skipped}"
+                f"Uploaded {uploaded} files; skipped {skipped}; "
+                f"preserved {renamed} existing files"
             )
             self.refresh_files()
 

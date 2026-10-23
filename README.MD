@@ -17,8 +17,8 @@ device-to-device transfers.
 - **Multiple devices, side-by-side panels**, with multiple path tabs per panel
 - **Search files**, **install APKs**, and run tasks in the background
 - **Import files and folders** while preserving folder structure
-- **Protect existing files during PC uploads** with overwrite, skip, cancel,
-  file details, and an apply-to-all option
+- **Protect existing files during PC uploads** with overwrite, rename,
+  skip, cancel, file details, and an apply-to-all option
 - **Drag and drop** files and folders from your PC
 - **Safe cancellation**: cancelled transfers remove partial destination files
 

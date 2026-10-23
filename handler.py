@@ -682,7 +682,7 @@ class ADBHandler:
             ['push', local_path, remote_path], line_callback=line_callback
         )
 
-    def rename_item(self, old_path: str, new_path: str) -> bool:
+    def rename_item(self, old_path: str, new_path: str, use_root: bool = False) -> bool:
         if not self.device_connected:
             self.logger.error("No ADB device connected")
             return False
@@ -690,7 +690,15 @@ class ADBHandler:
         try:
             escaped_old = self._escape_path(old_path)
             escaped_new = self._escape_path(new_path)
-            result = self._run_adb_command(['shell', f'mv {escaped_old} {escaped_new}'])
+            rename_command = (
+                f'mv -n {escaped_old} {escaped_new} && test ! -e {escaped_old}'
+            )
+            command = (
+                ['shell', 'su', '-c', rename_command]
+                if use_root and self.root_mode == "su"
+                else ['shell', rename_command]
+            )
+            result = self._run_adb_command(command)
             return result.returncode == 0
         except subprocess.TimeoutExpired:
             self.logger.error(f"Timeout renaming: {old_path}")
