@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import tempfile
 import subprocess
@@ -9,13 +10,14 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QMessageBox, QLineEdit, QMenu, QFileDialog, QInputDialog,
     QLabel, QCheckBox, QFileIconProvider, QProgressBar, QDialog, QTreeView,
-    QTabWidget, QTabBar, QApplication, QToolButton,
+    QTabWidget, QTabBar, QApplication, QToolButton, QStackedWidget, QScrollArea,
+    QSizePolicy,
 )
 from PyQt6.QtGui import (
     QPainter, QPen, QStandardItemModel, QStandardItem, QAction,
     QKeySequence, QShortcut,
 )
-from PyQt6.QtCore import QStringListModel
+from PyQt6.QtCore import QEvent, QSize, QStringListModel
 from PyQt6.QtWidgets import QCompleter, QStyle, QStyleOptionButton
 from PyQt6.QtCore import Qt, QTimer, QFileInfo, pyqtSignal, QPoint
 
@@ -32,13 +34,20 @@ from ui.windows_drag import (
 )
 
 
+def _natural_sort_key(value):
+    return tuple(
+        (1, int(part)) if part.isdigit() else (0, part)
+        for part in re.split(r"([0-9]+)", value.casefold())
+    )
+
+
 class SortableStandardItem(QStandardItem):
     def __lt__(self, other):
         value = self.data(Qt.ItemDataRole.UserRole)
         other_value = other.data(Qt.ItemDataRole.UserRole)
         if value is not None and other_value is not None:
             return value < other_value
-        return self.text().casefold() < other.text().casefold()
+        return _natural_sort_key(self.text()) < _natural_sort_key(other.text())
 
 
 class ApplyToAllCheckBox(QCheckBox):
@@ -74,24 +83,245 @@ class ApplyToAllCheckBox(QCheckBox):
         painter.drawLine(*middle, *end)
 
 
+class PathBreadcrumbs(QWidget):
+    def __init__(self, panel):
+        super().__init__(panel)
+        self._panel = panel
+        self._layout = QHBoxLayout(self)
+        self._layout.setContentsMargins(2, 0, 2, 0)
+        self._layout.setSpacing(4)
+        self._scroll_area = QScrollArea(self)
+        self._scroll_area.setObjectName("path_breadcrumb_scroll")
+        self._scroll_area.setWidgetResizable(False)
+        self._scroll_area.viewport().setObjectName("path_breadcrumb_viewport")
+        self._scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self._scroll_area.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self._scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
+        self._scroll_area.setMinimumWidth(0)
+        self._scroll_area.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self._scroll_area.setFixedHeight(24)
+        self._content = QWidget()
+        self._content.setObjectName("path_breadcrumb_content")
+        self._content_layout = QHBoxLayout(self._content)
+        self._content_layout.setContentsMargins(0, 0, 0, 0)
+        self._content_layout.setSpacing(0)
+        self._scroll_area.setWidget(self._content)
+        self._scroll_area.horizontalScrollBar().rangeChanged.connect(
+            lambda _minimum, _maximum: self._scroll_to_end()
+        )
+        self._layout.addWidget(self._scroll_area, 1)
+        self._edit_button = QToolButton(self)
+        self._edit_button.setObjectName("path_breadcrumb_edit")
+        self._edit_button.setText("✎")
+        self._edit_button.setToolTip("Edit path")
+        self._edit_button.setAccessibleName("Edit path")
+        self._edit_button.setAutoRaise(True)
+        self._edit_button.clicked.connect(panel.focus_address_bar)
+        self._layout.addWidget(self._edit_button)
+        self.setMinimumWidth(0)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.set_path(panel.current_path)
+
+    def sizeHint(self):
+        return QSize(180, 24)
+
+    def minimumSizeHint(self):
+        return QSize(0, 24)
+
+    def set_path(self, path):
+        self._content.setMinimumSize(0, 0)
+        while self._content_layout.count():
+            item = self._content_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
+        parts = [part for part in path.split("/") if part]
+        segments = [("/", "/")]
+        current_path = ""
+        for part in parts:
+            current_path += f"/{part}"
+            segments.append((part, current_path))
+
+        for index, (label, target) in enumerate(segments):
+            if index:
+                separator = QLabel("›", self)
+                separator.setObjectName("path_breadcrumb_separator")
+                self._content_layout.addWidget(separator)
+
+            button = QToolButton(self)
+            button.setObjectName(
+                "path_breadcrumb_current"
+                if index == len(segments) - 1
+                else "path_breadcrumb_segment"
+            )
+            button.setText(label)
+            button.setToolTip(target)
+            button.setAccessibleName(f"Navigate to {target}")
+            button.setAutoRaise(True)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.clicked.connect(
+                lambda _checked=False, destination=target:
+                self._panel.navigate_to(destination)
+            )
+            self._content_layout.addWidget(button)
+
+        QTimer.singleShot(0, self._update_content_size)
+
+    def _update_content_size(self):
+        self._content_layout.activate()
+        content_size = self._content_layout.sizeHint()
+        self._content.setMinimumSize(content_size)
+        self._content.resize(content_size)
+        self._content.updateGeometry()
+        self._scroll_to_end()
+
+    def _scroll_to_end(self):
+        scrollbar = self._scroll_area.horizontalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+
+
 class PathInput(QLineEdit):
 
     def __init__(self, panel):
         super().__init__()
         self._panel = panel
-        self._completer = QCompleter([], self)
+        self._completion_model = QStringListModel(self)
+        self._completer = QCompleter(self._completion_model, self)
+        self._completion_paths = set()
+        self._loaded_completion_paths = set()
+        self._requested_completion_paths = set()
         self._completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self._completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self._completer.setFilterMode(Qt.MatchFlag.MatchStartsWith)
+        self._completer.activated.connect(self._accept_completion)
+        self._completer.popup().setObjectName("path_completion_popup")
         self.setCompleter(self._completer)
+        self.installEventFilter(self)
+        self.textEdited.connect(self._show_completions)
         self.returnPressed.connect(self._navigate)
 
     def update_completions(self, items):
-        names = [f.name for f in items] if items else []
-        
-        parent = "/".join(self._panel.current_path.rstrip("/").split("/")[:-1]) or "/"
-        names.append("..")
-        model = QStringListModel(names)
-        self._completer.setModel(model)
+        current_path = self._panel.current_path.rstrip("/") or "/"
+        self._loaded_completion_paths.add(current_path)
+        parts = [part for part in current_path.split("/") if part]
+        self._completion_paths.update({
+            "/" + "/".join(parts[:index]) + "/"
+            for index in range(1, len(parts) + 1)
+        })
+        self.add_directory_completions(current_path, items)
+
+    def add_directory_completions(self, path, items):
+        base_path = path.rstrip("/")
+        self._loaded_completion_paths.add(base_path or "/")
+        self._completion_paths.update(
+            f"{base_path}/{item.name}/"
+            for item in (items or [])
+            if item.is_dir and item.name != ".."
+        )
+        self._completion_model.setStringList(sorted(self._completion_paths))
+
+    def _request_directory_completions(self, path):
+        path = path.rstrip("/") or "/"
+        if (
+            path in self._loaded_completion_paths
+            or path in self._requested_completion_paths
+            or not self._panel.adb_handler.device_connected
+        ):
+            return
+
+        self._requested_completion_paths.add(path)
+        task = WorkerThread(
+            f"Complete path {path}",
+            self._panel.adb_handler.list_directory,
+            path,
+            self._panel.use_root,
+        )
+        self._panel._path_completion_tasks.add(task)
+
+        def on_items(items):
+            self._requested_completion_paths.discard(path)
+            if self._panel._closing:
+                return
+            if items is None:
+                self._panel.status_label.setText(
+                    f"Failed to load path suggestions for {path}"
+                )
+                return
+            self.add_directory_completions(path, items)
+            input_path = self.text()
+            if input_path.startswith(f"{path.rstrip('/')}/"):
+                self._completer.setCompletionPrefix(input_path)
+                self._completer.complete()
+
+        task.finished_signal.connect(on_items)
+        task.error_signal.connect(
+            lambda error: self._panel.status_label.setText(
+                f"Path suggestions failed: {error}"
+            )
+        )
+
+        def on_task_finished():
+            self._panel._path_completion_tasks.discard(task)
+            self._panel._delete_after_background_tasks()
+
+        task.finished.connect(on_task_finished)
+        task.start()
+
+    def _show_completions(self, text):
+        if not text:
+            self._completer.popup().hide()
+            return
+        if text.endswith("/"):
+            self._request_directory_completions(text)
+        self._completer.setCompletionPrefix(text)
+        self._completer.complete()
+
+    def _accept_completion(self, completion):
+        self.setText(completion)
+        self.setCursorPosition(len(completion))
+        self._completer.popup().hide()
+        self._request_directory_completions(completion)
+
+    def _try_accept_completion(self):
+        self._completer.setCompletionPrefix(self.text())
+        self._completer.setCurrentRow(0)
+        completion = self._completer.currentCompletion()
+        if not completion:
+            return False
+        self._accept_completion(completion)
+        return True
+
+    def eventFilter(self, watched, event):
+        if (
+            watched is self
+            and event.type() == QEvent.Type.KeyPress
+            and event.key() in (Qt.Key.Key_Tab, Qt.Key.Key_Right)
+            and (event.key() == Qt.Key.Key_Tab or self.cursorPosition() == len(self.text()))
+            and self._try_accept_completion()
+        ):
+            event.accept()
+            return True
+        return super().eventFilter(watched, event)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape:
+            self.setText(self._panel.current_path)
+            self._panel.show_breadcrumbs()
+            event.accept()
+            return
+        if event.key() in (Qt.Key.Key_Tab, Qt.Key.Key_Right):
+            if event.key() == Qt.Key.Key_Tab or self.cursorPosition() == len(self.text()):
+                if self._try_accept_completion():
+                    event.accept()
+                    return
+        super().keyPressEvent(event)
 
     def _navigate(self):
         text = self.text().strip()
@@ -103,6 +333,7 @@ class PathInput(QLineEdit):
         else:
             target = f"{self._panel.current_path.rstrip('/')}/{text}"
         self._panel.navigate_to(target)
+        self._panel.show_breadcrumbs()
 
 
 class DevicePanel(QWidget):
@@ -113,19 +344,23 @@ class DevicePanel(QWidget):
 
     def __init__(
         self, parent, adb_handler, device_info=None, start_path=None,
-        compact_header=False,
+        compact_header=False, clipboard=None,
     ):
         super().__init__(parent)
         self.adb_handler = adb_handler
         self.device_info = device_info or {}
         
-        self.clipboard = {'items': [], 'operation': None}
+        self.clipboard = clipboard if clipboard is not None else {
+            'items': [], 'operation': None,
+        }
 
         
         self.use_root = False
         self._loading = False
         self._refresh_pending = False
         self._refresh_task = None
+        self._path_completion_tasks = set()
+        self._close_wait_tasks = set()
         self._closing = False
 
         
@@ -206,7 +441,16 @@ class DevicePanel(QWidget):
 
         self.path_display = PathInput(self)
         self.path_display.setObjectName("path_display")
-        nav_layout.addWidget(self.path_display)
+        self.path_breadcrumbs = PathBreadcrumbs(self)
+        self.path_stack = QStackedWidget()
+        self.path_stack.setObjectName("path_stack")
+        self.path_stack.addWidget(self.path_breadcrumbs)
+        self.path_stack.addWidget(self.path_display)
+        self.path_stack.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.path_stack.setCurrentWidget(self.path_breadcrumbs)
+        nav_layout.addWidget(self.path_stack)
 
         refresh_btn = QPushButton("↻")
         refresh_btn.setMaximumWidth(32)
@@ -215,6 +459,9 @@ class DevicePanel(QWidget):
 
         nav_container = QWidget()
         nav_container.setObjectName("panel_nav")
+        nav_container.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
+        )
         nav_container.setLayout(nav_layout)
         layout.addWidget(nav_container)
 
@@ -230,6 +477,9 @@ class DevicePanel(QWidget):
         self.tree_model = QStandardItemModel()
         self.tree_model.setHorizontalHeaderLabels(['Name', 'Type', 'Size', 'Permissions', 'Modified'])
         self.tree_view.setModel(self.tree_model)
+        self.tree_view.selectionModel().selectionChanged.connect(
+            self.update_selection_count
+        )
         self.tree_view.setSelectionMode(QTreeView.SelectionMode.ExtendedSelection)
         self.tree_view.setSortingEnabled(True)
         header = self.tree_view.header()
@@ -245,7 +495,16 @@ class DevicePanel(QWidget):
         
         self.status_label = QLabel("Ready")
         self.status_label.setStyleSheet("font-size: 10px; color: #888; padding: 0 4px;")
-        layout.addWidget(self.status_label)
+        self.selection_count_label = QLabel("0 items selected")
+        self.selection_count_label.setObjectName("selection_count_label")
+        self.selection_count_label.setStyleSheet(
+            "font-size: 10px; color: #888; padding: 0 4px;"
+        )
+        status_layout = QHBoxLayout()
+        status_layout.addWidget(self.status_label)
+        status_layout.addStretch()
+        status_layout.addWidget(self.selection_count_label)
+        layout.addLayout(status_layout)
 
         if self.adb_handler.device_connected:
             self.refresh_files()
@@ -294,6 +553,8 @@ class DevicePanel(QWidget):
 
     def update_path_display(self):
         self.path_display.setText(self.current_path)
+        self.path_breadcrumbs.set_path(self.current_path)
+        self.path_stack.setCurrentWidget(self.path_breadcrumbs)
         self.back_btn.setEnabled(self._history_index > 0)
         self.path_changed.emit(self.current_path)
 
@@ -334,8 +595,15 @@ class DevicePanel(QWidget):
         self.search_bar.selectAll()
 
     def focus_address_bar(self):
+        self.path_stack.setCurrentWidget(self.path_display)
         self.path_display.setFocus()
         self.path_display.selectAll()
+
+    def show_breadcrumbs(self):
+        self.path_display.setText(self.current_path)
+        self.path_display.completer().popup().hide()
+        self.path_breadcrumbs.set_path(self.current_path)
+        self.path_stack.setCurrentWidget(self.path_breadcrumbs)
 
     def clear_search_on_navigation(self):
         if self.search_bar.text():
@@ -434,10 +702,20 @@ class DevicePanel(QWidget):
         self._refresh_pending = False
         self.hide()
 
-        task = self._refresh_task
-        if task is not None and task.isRunning():
-            task.finished.connect(self.deleteLater)
-        else:
+        self._delete_after_background_tasks()
+
+    def _delete_after_background_tasks(self):
+        tasks = [self._refresh_task, *self._path_completion_tasks]
+        running_tasks = [
+            task for task in tasks if task is not None and task.isRunning()
+        ]
+        if running_tasks:
+            for task in running_tasks:
+                if task not in self._close_wait_tasks:
+                    self._close_wait_tasks.add(task)
+                    task.finished.connect(self._delete_after_background_tasks)
+            return
+        if self._closing:
             self.deleteLater()
 
 
@@ -451,6 +729,7 @@ class DevicePanel(QWidget):
     def populate_view(self, files):
         self.tree_model.clear()
         self.tree_model.setHorizontalHeaderLabels(['Name', 'Type', 'Size', 'Permissions', 'Modified'])
+        self.update_selection_count()
         if files is None:
             return
 
@@ -461,12 +740,16 @@ class DevicePanel(QWidget):
             self.tree_model.appendRow([parent_item, QStandardItem("Directory"),
                                        QStandardItem(""), QStandardItem(""), QStandardItem("")])
 
-        dirs = sorted([f for f in files if f.is_dir], key=lambda x: x.name.lower())
-        regular_files = sorted([f for f in files if not f.is_dir], key=lambda x: x.name.lower())
+        dirs = sorted(
+            [f for f in files if f.is_dir], key=lambda x: _natural_sort_key(x.name)
+        )
+        regular_files = sorted(
+            [f for f in files if not f.is_dir], key=lambda x: _natural_sort_key(x.name)
+        )
         for file_item in dirs + regular_files:
             name_item = SortableStandardItem(file_item.name)
             name_item.setData(
-                (0 if file_item.is_dir else 1, file_item.name.casefold()),
+                (0 if file_item.is_dir else 1, _natural_sort_key(file_item.name)),
                 Qt.ItemDataRole.UserRole,
             )
             if file_item.is_dir:
@@ -532,18 +815,28 @@ class DevicePanel(QWidget):
             })
         return selected_items
 
+    def update_selection_count(self, *_):
+        selected_rows = {
+            index.row()
+            for index in self.tree_view.selectionModel().selectedIndexes()
+            if self.tree_model.item(index.row(), 0).text() != ".."
+        }
+        count = len(selected_rows)
+        noun = "item" if count == 1 else "items"
+        self.selection_count_label.setText(f"{count} {noun} selected")
+
     def copy_selected(self):
         items = self.get_selected_items()
         if not items:
             return
-        self.clipboard = {'items': items, 'operation': 'copy'}
+        self.clipboard.update({'items': items, 'operation': 'copy'})
         self.status_label.setText(f"Copied {len(items)} item(s)")
 
     def cut_selected(self):
         items = self.get_selected_items()
         if not items:
             return
-        self.clipboard = {'items': items, 'operation': 'cut'}
+        self.clipboard.update({'items': items, 'operation': 'cut'})
         self.status_label.setText(f"Cut {len(items)} item(s)")
 
     def paste_items(self):
@@ -589,7 +882,7 @@ class DevicePanel(QWidget):
         def on_paste_done(count):
             if count > 0:
                 if cut_mode:
-                    self.clipboard = {'items': [], 'operation': None}
+                    self.clipboard.update({'items': [], 'operation': None})
                 self.status_label.setText(f"Pasted {count} item(s)")
                 self.refresh_files()
             else:
@@ -1564,6 +1857,7 @@ class DevicePanelGroup(QWidget):
         super().__init__(parent)
         self.adb_handler = adb_handler
         self.device_info = device_info or {}
+        self.clipboard = {'items': [], 'operation': None}
         self._views = []
         self._closing = False
         self._last_path = "/storage/emulated/0"
@@ -1655,6 +1949,7 @@ class DevicePanelGroup(QWidget):
             self.device_info,
             start_path=start_path,
             compact_header=True,
+            clipboard=self.clipboard,
         )
         self._views.append(view)
         view.path_changed.connect(

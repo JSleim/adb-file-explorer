@@ -36,6 +36,17 @@ class DropTreeView(QTreeView):
             return
         super().mousePressEvent(event)
 
+    def keyPressEvent(self, event):
+        if event.text() and not event.modifiers() & (
+            Qt.KeyboardModifier.ControlModifier
+            | Qt.KeyboardModifier.AltModifier
+            | Qt.KeyboardModifier.MetaModifier
+        ):
+            index = self.currentIndex()
+            if index.isValid() and index.column() != 0:
+                self.setCurrentIndex(index.siblingAtColumn(0))
+        super().keyPressEvent(event)
+
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls() and not event.source():
             event.acceptProposedAction()

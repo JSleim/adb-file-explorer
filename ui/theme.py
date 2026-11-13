@@ -110,6 +110,48 @@ QLineEdit#path_display {
     padding: 3px 8px;
     font-size: 11px;
 }
+QToolButton#path_breadcrumb_segment,
+QToolButton#path_breadcrumb_current,
+QToolButton#path_breadcrumb_edit {
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    padding: 3px 5px;
+    color: #475467;
+}
+QToolButton#path_breadcrumb_segment:hover,
+QToolButton#path_breadcrumb_current:hover,
+QToolButton#path_breadcrumb_edit:hover {
+    background: #e3effa;
+    color: #1a5a9e;
+}
+QToolButton#path_breadcrumb_current {
+    color: #1a5a9e;
+    font-weight: 600;
+}
+QLabel#path_breadcrumb_separator {
+    color: #98a2b3;
+    padding: 0 2px;
+}
+QScrollArea#path_breadcrumb_scroll,
+QWidget#path_breadcrumb_viewport,
+QWidget#path_breadcrumb_content {
+    background-color: #ffffff;
+    border: none;
+}
+QListView#path_completion_popup {
+    background-color: #ffffff;
+    color: #2c2c2c;
+    border: 1px solid #d8d8d8;
+    outline: none;
+}
+QListView#path_completion_popup::item {
+    padding: 4px 8px;
+}
+QListView#path_completion_popup::item:selected {
+    background-color: #e3effa;
+    color: #1a5a9e;
+}
 
 /* ── Tree view (file browser) ──────────────────────────── */
 QTreeView {
@@ -672,6 +714,48 @@ QLineEdit#path_display {
     padding: 3px 8px;
     color: #6c7086;
     font-size: 11px;
+}
+QToolButton#path_breadcrumb_segment,
+QToolButton#path_breadcrumb_current,
+QToolButton#path_breadcrumb_edit {
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    padding: 3px 5px;
+    color: #a6adc8;
+}
+QToolButton#path_breadcrumb_segment:hover,
+QToolButton#path_breadcrumb_current:hover,
+QToolButton#path_breadcrumb_edit:hover {
+    background: #313244;
+    color: #89b4fa;
+}
+QToolButton#path_breadcrumb_current {
+    color: #89b4fa;
+    font-weight: 600;
+}
+QLabel#path_breadcrumb_separator {
+    color: #6c7086;
+    padding: 0 2px;
+}
+QScrollArea#path_breadcrumb_scroll,
+QWidget#path_breadcrumb_viewport,
+QWidget#path_breadcrumb_content {
+    background-color: #181825;
+    border: none;
+}
+QListView#path_completion_popup {
+    background-color: #1e1e2e;
+    color: #cdd6f4;
+    border: 1px solid #45475a;
+    outline: none;
+}
+QListView#path_completion_popup::item {
+    padding: 4px 8px;
+}
+QListView#path_completion_popup::item:selected {
+    background-color: #313244;
+    color: #89b4fa;
 }
 
 /* ── Tree view (file browser) ──────────────────────────── */

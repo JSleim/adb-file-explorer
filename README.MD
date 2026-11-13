@@ -68,6 +68,12 @@ removes a newly created partial destination.
 Use **+ Add Panel** to open another connected device panel, including another
 panel for the same device. Use **+ Add Tab** or press **Ctrl+T** to open a new
 path tab in the active panel. Press **Ctrl+W** to close the active tab.
+The address bar shows clickable path breadcrumbs; click a segment to navigate
+to that folder. Press **Ctrl+L** or select the edit icon to type a path, and
+press **Escape** to return to the breadcrumbs. Long paths scroll to keep the
+current folder visible without widening the window or its device panels.
+In the address bar, type a path and press **Tab** or **Right Arrow** to accept
+a matching folder completion. Suggestions update as you enter nested folders.
 
 ## License
 
