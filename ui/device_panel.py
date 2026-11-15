@@ -32,6 +32,7 @@ from ui.windows_drag import (
     start_windows_drag,
     wait_for_windows_drag,
 )
+from PyQt6.QtCore import QCoreApplication
 
 
 def _natural_sort_key(value):
@@ -119,7 +120,7 @@ class PathBreadcrumbs(QWidget):
         self._edit_button = QToolButton(self)
         self._edit_button.setObjectName("path_breadcrumb_edit")
         self._edit_button.setText("✎")
-        self._edit_button.setToolTip("Edit path")
+        self._edit_button.setToolTip(self.tr("Edit path"))
         self._edit_button.setAccessibleName("Edit path")
         self._edit_button.setAutoRaise(True)
         self._edit_button.clicked.connect(panel.focus_address_bar)
@@ -251,7 +252,7 @@ class PathInput(QLineEdit):
                 return
             if items is None:
                 self._panel.status_label.setText(
-                    f"Failed to load path suggestions for {path}"
+                    self.tr("Failed to load path suggestions for {0}").format(path)
                 )
                 return
             self.add_directory_completions(path, items)
@@ -263,7 +264,7 @@ class PathInput(QLineEdit):
         task.finished_signal.connect(on_items)
         task.error_signal.connect(
             lambda error: self._panel.status_label.setText(
-                f"Path suggestions failed: {error}"
+                self.tr("Path suggestions failed: {0}").format(error)
             )
         )
 
@@ -411,7 +412,7 @@ class DevicePanel(QWidget):
         header_layout.addStretch()
         self.close_btn = QPushButton("X")
         self.close_btn.setObjectName("panel_close_btn")
-        self.close_btn.setToolTip("Close this device panel")
+        self.close_btn.setToolTip(self.tr("Close this device panel"))
         self.close_btn.setAccessibleName("Close device panel")
         self.close_btn.setFixedSize(24, 24)
         self.close_btn.clicked.connect(self.close_requested.emit)
@@ -467,7 +468,7 @@ class DevicePanel(QWidget):
 
         
         self.search_bar = QLineEdit()
-        self.search_bar.setPlaceholderText("Filter files")
+        self.search_bar.setPlaceholderText(self.tr("Filter files"))
         self.search_bar.setObjectName("search_bar")
         self.search_bar.textChanged.connect(self.apply_search_filter)
         layout.addWidget(self.search_bar)
@@ -475,7 +476,7 @@ class DevicePanel(QWidget):
         
         self.tree_view = DropTreeView(self, self)
         self.tree_model = QStandardItemModel()
-        self.tree_model.setHorizontalHeaderLabels(['Name', 'Type', 'Size', 'Permissions', 'Modified'])
+        self.tree_model.setHorizontalHeaderLabels([self.tr('Name'), self.tr('Type'), self.tr('Size'), self.tr('Permissions'), self.tr('Modified')])
         self.tree_view.setModel(self.tree_model)
         self.tree_view.selectionModel().selectionChanged.connect(
             self.update_selection_count
@@ -493,9 +494,9 @@ class DevicePanel(QWidget):
         layout.addWidget(self.tree_view)
 
         
-        self.status_label = QLabel("Ready")
+        self.status_label = QLabel(QCoreApplication.translate("DevicePanel", "Ready"))
         self.status_label.setStyleSheet("font-size: 10px; color: #888; padding: 0 4px;")
-        self.selection_count_label = QLabel("0 items selected")
+        self.selection_count_label = QLabel(QCoreApplication.translate("DevicePanel", "0 items selected"))
         self.selection_count_label.setObjectName("selection_count_label")
         self.selection_count_label.setStyleSheet(
             "font-size: 10px; color: #888; padding: 0 4px;"
@@ -509,7 +510,7 @@ class DevicePanel(QWidget):
         if self.adb_handler.device_connected:
             self.refresh_files()
         else:
-            self.status_label.setText("No ADB device connected")
+            self.status_label.setText(self.tr("No ADB device connected"))
 
     def _setup_context_menu(self):
         self.tree_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -543,10 +544,10 @@ class DevicePanel(QWidget):
 
     def update_connection_status(self):
         if self.adb_handler.device_connected:
-            self.conn_label.setText("🟢 Connected")
+            self.conn_label.setText(self.tr("🟢 Connected"))
             self.conn_label.setStyleSheet("color: green; font-size: 10px; padding: 0 8px 2px 8px;")
         else:
-            self.conn_label.setText("🔴 Disconnected")
+            self.conn_label.setText(self.tr("🔴 Disconnected"))
             self.conn_label.setStyleSheet("color: red; font-size: 10px; padding: 0 8px 2px 8px;")
 
     
@@ -651,16 +652,16 @@ class DevicePanel(QWidget):
         if self._closing:
             return
         if not self.adb_handler.device_connected:
-            self.status_label.setText("No ADB device")
+            self.status_label.setText(self.tr("No ADB device"))
             return
         if self._loading:
             self._refresh_pending = True
             return
 
         self._loading = True
-        self.status_label.setText(f"Loading {self.current_path}...")
+        self.status_label.setText(self.tr("Loading {0}...").format(self.current_path))
         self.tree_model.clear()
-        self.tree_model.setHorizontalHeaderLabels(['Name', 'Type', 'Size', 'Permissions', 'Modified'])
+        self.tree_model.setHorizontalHeaderLabels([self.tr('Name'), self.tr('Type'), self.tr('Size'), self.tr('Permissions'), self.tr('Modified')])
         loading_item = QStandardItem("Loading...")
         loading_item.setEnabled(False)
         self.tree_model.appendRow([loading_item])
@@ -672,9 +673,9 @@ class DevicePanel(QWidget):
             if files is not None:
                 self.all_files = files
                 self.apply_search_filter()
-                self.status_label.setText(f"Found {len(self.all_files)} items")
+                self.status_label.setText(self.tr("Found {0} items").format(len(self.all_files)))
             else:
-                self.status_label.setText("Failed to list directory")
+                self.status_label.setText(self.tr("Failed to list directory"))
             if self._refresh_pending:
                 self._refresh_pending = False
                 self.refresh_files()
@@ -728,7 +729,7 @@ class DevicePanel(QWidget):
 
     def populate_view(self, files):
         self.tree_model.clear()
-        self.tree_model.setHorizontalHeaderLabels(['Name', 'Type', 'Size', 'Permissions', 'Modified'])
+        self.tree_model.setHorizontalHeaderLabels([self.tr('Name'), self.tr('Type'), self.tr('Size'), self.tr('Permissions'), self.tr('Modified')])
         self.update_selection_count()
         if files is None:
             return
@@ -822,26 +823,25 @@ class DevicePanel(QWidget):
             if self.tree_model.item(index.row(), 0).text() != ".."
         }
         count = len(selected_rows)
-        noun = "item" if count == 1 else "items"
-        self.selection_count_label.setText(f"{count} {noun} selected")
+        self.selection_count_label.setText(self.tr("Selected items: {0}").format(count))
 
     def copy_selected(self):
         items = self.get_selected_items()
         if not items:
             return
         self.clipboard.update({'items': items, 'operation': 'copy'})
-        self.status_label.setText(f"Copied {len(items)} item(s)")
+        self.status_label.setText(self.tr("Copied {0} item(s)").format(len(items)))
 
     def cut_selected(self):
         items = self.get_selected_items()
         if not items:
             return
         self.clipboard.update({'items': items, 'operation': 'cut'})
-        self.status_label.setText(f"Cut {len(items)} item(s)")
+        self.status_label.setText(self.tr("Cut {0} item(s)").format(len(items)))
 
     def paste_items(self):
         if not self.clipboard or not self.clipboard['items']:
-            self.status_label.setText("Clipboard is empty")
+            self.status_label.setText(self.tr("Clipboard is empty"))
             return
         dest_dir = self.current_path
         conflicts = []
@@ -853,12 +853,12 @@ class DevicePanel(QWidget):
             names = "\n".join(conflicts[:10])
             more = f"\n...and {len(conflicts) - 10} more" if len(conflicts) > 10 else ""
             reply = QMessageBox.question(
-                self, "Item(s) Already Exist",
-                f"The following already exist in the destination:\n\n{names}{more}\n\nOverwrite?",
+                self, QCoreApplication.translate("DevicePanel", "Item(s) Already Exist"),
+                QCoreApplication.translate("DevicePanel", "The following already exist in the destination:\n\n{0}{1}\n\nOverwrite?").format(names, more),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             if reply == QMessageBox.StandardButton.No:
-                self.status_label.setText("Paste canceled")
+                self.status_label.setText(self.tr("Paste canceled"))
                 return
 
         operation = self.clipboard['operation']
@@ -883,10 +883,10 @@ class DevicePanel(QWidget):
             if count > 0:
                 if cut_mode:
                     self.clipboard.update({'items': [], 'operation': None})
-                self.status_label.setText(f"Pasted {count} item(s)")
+                self.status_label.setText(self.tr("Pasted {0} item(s)").format(count))
                 self.refresh_files()
             else:
-                self.status_label.setText("Paste failed")
+                self.status_label.setText(self.tr("Paste failed"))
 
         self._run_modal(f"Paste {len(self.clipboard['items'])} items", run_paste, on_done=on_paste_done)
 
@@ -902,71 +902,71 @@ class DevicePanel(QWidget):
         menu = QMenu()
 
         if self.clipboard and self.clipboard['items']:
-            paste_action = menu.addAction("Paste")
+            paste_action = menu.addAction(self.tr("Paste"))
             paste_action.triggered.connect(self.paste_items)
             menu.addSeparator()
 
         if not indexes:
-            menu.addAction("New File", self.create_new_file)
-            menu.addAction("New Folder", self.create_new_folder)
-            menu.addAction("Upload to Device", self.upload_file_to_device)
-            menu.addAction("Import Folder from PC...", self.import_folder_from_pc)
+            menu.addAction(self.tr("New File"), self.create_new_file)
+            menu.addAction(self.tr("New Folder"), self.create_new_folder)
+            menu.addAction(self.tr("Upload to Device"), self.upload_file_to_device)
+            menu.addAction(self.tr("Import Folder from PC..."), self.import_folder_from_pc)
         elif len(indexes) > 1:
-            menu.addAction("Copy", self.copy_selected)
-            menu.addAction("Cut", self.cut_selected)
+            menu.addAction(self.tr("Copy"), self.copy_selected)
+            menu.addAction(self.tr("Cut"), self.cut_selected)
             menu.addSeparator()
-            menu.addAction("Delete Selected", self.delete_selected_items)
-            menu.addAction("Download to PC", self.download_selected_items)
-            menu.addAction("Copy to Device Folder...", self.copy_selected_to)
-            menu.addAction("Batch Rename...", self.batch_rename_selected)
+            menu.addAction(self.tr("Delete Selected"), self.delete_selected_items)
+            menu.addAction(self.tr("Download to PC"), self.download_selected_items)
+            menu.addAction(self.tr("Copy to Device Folder..."), self.copy_selected_to)
+            menu.addAction(self.tr("Batch Rename..."), self.batch_rename_selected)
             total_size = sum(
                 self.get_file_size_from_row(idx.row())
                 for idx in indexes
                 if not self.is_dir_from_row(idx.row())
             )
             menu.addSeparator()
-            sz_lbl = menu.addAction(f"Total Size: {self.format_size(total_size)}")
+            sz_lbl = menu.addAction(self.tr("Total Size: {0}").format(self.format_size(total_size)))
             sz_lbl.setEnabled(False)
         else:
             idx = indexes[0]
             item_name = self.tree_model.data(self.tree_model.index(idx.row(), 0))
             item_type = self.tree_model.data(self.tree_model.index(idx.row(), 1))
 
-            menu.addAction("Copy", self.copy_selected)
-            menu.addAction("Cut", self.cut_selected)
+            menu.addAction(self.tr("Copy"), self.copy_selected)
+            menu.addAction(self.tr("Cut"), self.cut_selected)
             menu.addSeparator()
 
             if item_type == "File":
-                menu.addAction("Open", lambda n=item_name: self.open_file_on_host(n))
-                menu.addAction("Save to PC...", lambda n=item_name: self.copy_file_to(n))
+                menu.addAction(self.tr("Open"), lambda n=item_name: self.open_file_on_host(n))
+                menu.addAction(self.tr("Save to PC..."), lambda n=item_name: self.copy_file_to(n))
                 menu.addSeparator()
-                menu.addAction("Rename", lambda n=item_name: self.rename_item(n))
-                menu.addAction("Delete", lambda n=item_name: self.delete_item(n, is_dir=False))
+                menu.addAction(self.tr("Rename"), lambda n=item_name: self.rename_item(n))
+                menu.addAction(self.tr("Delete"), lambda n=item_name: self.delete_item(n, is_dir=False))
             elif item_type == "Directory":
-                menu.addAction("Save to PC...", lambda n=item_name: self.copy_folder_to(n))
+                menu.addAction(self.tr("Save to PC..."), lambda n=item_name: self.copy_folder_to(n))
                 menu.addSeparator()
-                menu.addAction("Rename", lambda n=item_name: self.rename_item(n))
-                menu.addAction("Delete", lambda n=item_name: self.delete_item(n, is_dir=True))
+                menu.addAction(self.tr("Rename"), lambda n=item_name: self.rename_item(n))
+                menu.addAction(self.tr("Delete"), lambda n=item_name: self.delete_item(n, is_dir=True))
 
         
         menu.addSeparator()
-        send_menu = menu.addMenu("Send to Device...")
+        send_menu = menu.addMenu(self.tr("Send to Device..."))
         self._populate_send_to_menu(send_menu, indexes, position)
 
         menu.exec(self.tree_view.viewport().mapToGlobal(position))
 
     def _populate_send_to_menu(self, menu, indexes, position):
         if not indexes:
-            menu.addAction("No items selected").setEnabled(False)
+            menu.addAction(self.tr("No items selected")).setEnabled(False)
             return
         items = self.get_selected_items()
         if not items:
-            menu.addAction("No items selected").setEnabled(False)
+            menu.addAction(self.tr("No items selected")).setEnabled(False)
             return
 
         parent = self.window()
         if not hasattr(parent, 'device_panels'):
-            menu.addAction("No other devices").setEnabled(False)
+            menu.addAction(self.tr("No other devices")).setEnabled(False)
             return
 
         target_devices = []
@@ -980,7 +980,7 @@ class DevicePanel(QWidget):
                 target_devices.append(panel)
 
         if not target_devices:
-            menu.addAction("No other devices").setEnabled(False)
+            menu.addAction(self.tr("No other devices")).setEnabled(False)
             return
 
         for panel in target_devices:
@@ -1012,10 +1012,10 @@ class DevicePanel(QWidget):
 
         def on_done(ok):
             if ok:
-                self.status_label.setText(f"Sent {len(items)} item(s) to {target_panel.device_name}")
+                self.status_label.setText(self.tr("Sent {0} item(s) to {1}").format(len(items), target_panel.device_name))
                 target_panel.refresh_files()
             else:
-                self.status_label.setText("Stream failed")
+                self.status_label.setText(self.tr("Stream failed"))
 
         self._run_modal(f"Streaming to {target_panel.device_name}", run_stream, on_done=on_done)
 
@@ -1039,7 +1039,7 @@ class DevicePanel(QWidget):
 
     def open_file_on_host(self, filename):
         if not self.adb_handler.device_connected:
-            self.status_label.setText("No connection")
+            self.status_label.setText(self.tr("No connection"))
             return
         remote_path = f"{self.current_path.rstrip('/')}/{filename}"
         temp_dir = tempfile.gettempdir()
@@ -1050,7 +1050,7 @@ class DevicePanel(QWidget):
 
         def on_pulled(ok):
             if not ok:
-                self.status_label.setText(f"Failed to open {filename}")
+                self.status_label.setText(self.tr("Failed to open {0}").format(filename))
                 return
             try:
                 if sys.platform.startswith('win'):
@@ -1059,9 +1059,9 @@ class DevicePanel(QWidget):
                     subprocess.run(['open', local_path])
                 else:
                     subprocess.run(['xdg-open', local_path])
-                self.status_label.setText(f"Opened {filename}")
+                self.status_label.setText(self.tr("Opened {0}").format(filename))
             except Exception:
-                self.status_label.setText(f"Failed to open file")
+                self.status_label.setText(self.tr("Failed to open file"))
 
         self._run_modal("Downloading file", run_pull, on_done=on_pulled)
 
@@ -1069,7 +1069,7 @@ class DevicePanel(QWidget):
         if not self.adb_handler.device_connected:
             return
         remote_path = f"{self.current_path.rstrip('/')}/{filename}"
-        save_path, _ = QFileDialog.getSaveFileName(self, "Save File As", filename)
+        save_path, _ = QFileDialog.getSaveFileName(self, QCoreApplication.translate("DevicePanel", "Save File As"), filename)
         if not save_path:
             return
         self._run_transfer("Copying file", remote_path, save_path,
@@ -1079,7 +1079,7 @@ class DevicePanel(QWidget):
         if not self.adb_handler.device_connected:
             return
         remote_path = f"{self.current_path.rstrip('/')}/{foldername}"
-        save_dir = QFileDialog.getExistingDirectory(self, "Select Destination")
+        save_dir = QFileDialog.getExistingDirectory(self, QCoreApplication.translate("DevicePanel", "Select Destination"))
         if not save_dir:
             return
         local_path = os.path.join(save_dir, foldername)
@@ -1108,11 +1108,11 @@ class DevicePanel(QWidget):
             new_path = f"{self.current_path.rstrip('/')}/{new_name}"
 
             def on_done(_):
-                self.status_label.setText(f"Renamed to '{new_name}'")
+                self.status_label.setText(self.tr("Renamed to '{0}'").format(new_name))
                 self.refresh_files()
 
             def on_error():
-                self.status_label.setText(f"Rename failed")
+                self.status_label.setText(self.tr("Rename failed"))
 
             self._run_modal(
                 f"Rename {old_name}",
@@ -1133,18 +1133,18 @@ class DevicePanel(QWidget):
             else f"Delete '{name}'?"
         )
         reply = QMessageBox.question(
-            self, "Delete", confirmation,
+            self, QCoreApplication.translate("DevicePanel", "Delete"), confirmation,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if reply == QMessageBox.StandardButton.Yes:
             path = f"{self.current_path.rstrip('/')}/{name}"
 
             def on_done(_):
-                self.status_label.setText(f"Deleted '{name}'")
+                self.status_label.setText(self.tr("Deleted '{0}'").format(name))
                 self.refresh_files()
 
             def on_error():
-                self.status_label.setText(f"Delete failed")
+                self.status_label.setText(self.tr("Delete failed"))
 
             self._run_modal(
                 f"Delete {name}",
@@ -1200,7 +1200,7 @@ class DevicePanel(QWidget):
                     "subfolders, will also be deleted."
                 )
         reply = QMessageBox.question(
-            self, "Delete",
+            self, QCoreApplication.translate("DevicePanel", "Delete"),
             confirmation,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
@@ -1216,7 +1216,7 @@ class DevicePanel(QWidget):
                 return count
 
             def on_done(count):
-                self.status_label.setText(f"Deleted {count} items")
+                self.status_label.setText(self.tr("Deleted {0} items").format(count))
                 self.refresh_files()
 
             self._run_modal(f"Delete {len(names_types)} items", run_delete, on_done=on_done)
@@ -1229,11 +1229,11 @@ class DevicePanel(QWidget):
             path = f"{self.current_path.rstrip('/')}/{name}"
 
             def on_done(_):
-                self.status_label.setText(f"Created '{name}'")
+                self.status_label.setText(self.tr("Created '{0}'").format(name))
                 self.refresh_files()
 
             def on_error():
-                self.status_label.setText(f"Create failed")
+                self.status_label.setText(self.tr("Create failed"))
 
             self._run_modal(
                 f"Create file {name}",
@@ -1251,11 +1251,11 @@ class DevicePanel(QWidget):
             path = f"{self.current_path.rstrip('/')}/{name}"
 
             def on_done(_):
-                self.status_label.setText(f"Created '{name}'")
+                self.status_label.setText(self.tr("Created '{0}'").format(name))
                 self.refresh_files()
 
             def on_error():
-                self.status_label.setText(f"Create failed")
+                self.status_label.setText(self.tr("Create failed"))
 
             self._run_modal(
                 f"Create folder {name}",
@@ -1268,7 +1268,7 @@ class DevicePanel(QWidget):
     def upload_file_to_device(self):
         if not self.adb_handler.device_connected:
             return
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select File to Upload")
+        file_path, _ = QFileDialog.getOpenFileName(self, QCoreApplication.translate("DevicePanel", "Select File to Upload"))
         if not file_path:
             return
         self.upload_files_and_folders([file_path])
@@ -1276,7 +1276,7 @@ class DevicePanel(QWidget):
     def import_folder_from_pc(self):
         if not self.adb_handler.device_connected:
             return
-        folder_path = QFileDialog.getExistingDirectory(self, "Select Folder to Import")
+        folder_path = QFileDialog.getExistingDirectory(self, QCoreApplication.translate("DevicePanel", "Select Folder to Import"))
         if folder_path:
             self.upload_files_and_folders([folder_path])
 
@@ -1288,10 +1288,10 @@ class DevicePanel(QWidget):
         try:
             plan = self._build_upload_plan(files, target_path)
         except (OSError, RuntimeError) as error:
-            self.status_label.setText(f"Import from PC failed: {error}")
+            self.status_label.setText(self.tr("Import from PC failed: {0}").format(error))
             return
         if not plan["files"] and not plan["directories"]:
-            self.status_label.setText("No files to upload")
+            self.status_label.setText(self.tr("No files to upload"))
             return
 
         self._run_modal(
@@ -1302,9 +1302,9 @@ class DevicePanel(QWidget):
                 plan, result[0]
             ),
             on_error=lambda: self.status_label.setText(
-                "Could not verify destination files; import was not started"
+                self.tr("Could not verify destination files; import was not started")
             ),
-            on_cancel=lambda: self.status_label.setText("Import cancelled"),
+            on_cancel=lambda: self.status_label.setText(self.tr("Import cancelled")),
         )
 
     @staticmethod
@@ -1439,8 +1439,8 @@ class DevicePanel(QWidget):
             destination_modified = existing.date_modified
 
         box = QMessageBox(self)
-        box.setWindowTitle("File already exists")
-        box.setText("The following file already exists:")
+        box.setWindowTitle(self.tr("File already exists"))
+        box.setText(self.tr("The following file already exists:"))
         box.setInformativeText(
             f"{remote_path}\n\n"
             f"Source: {self._format_upload_size(source_info.st_size)}, "
@@ -1460,7 +1460,7 @@ class DevicePanel(QWidget):
         apply_to_all.setObjectName("apply_to_all_conflicts")
         apply_to_all.setAccessibleName("Apply to all file conflicts")
         apply_to_all.setToolTip(
-            "Use this choice for every remaining file conflict in this import."
+            self.tr("Use this choice for every remaining file conflict in this import.")
         )
         box.setCheckBox(apply_to_all)
         box.exec()
@@ -1488,8 +1488,7 @@ class DevicePanel(QWidget):
                     )
                 except (OSError, OverflowError, ValueError) as error:
                     self.status_label.setText(
-                        f"Could not read source file '{local_path}': {error}; "
-                        "import was not started"
+                        self.tr("Could not read source file '{0}': {1}; import was not started").format(local_path, error)
                     )
                     return
                 if apply_to_all and choice != "cancel":
@@ -1497,7 +1496,7 @@ class DevicePanel(QWidget):
             else:
                 choice = apply_choice
             if choice == "cancel":
-                self.status_label.setText("Import cancelled; no files were uploaded")
+                self.status_label.setText(self.tr("Import cancelled; no files were uploaded"))
                 return
             choices[remote_path] = choice
             if choice == "rename":
@@ -1544,8 +1543,7 @@ class DevicePanel(QWidget):
         def on_done(result):
             uploaded, skipped, renamed = result
             self.status_label.setText(
-                f"Uploaded {uploaded} files; skipped {skipped}; "
-                f"preserved {renamed} existing files"
+                self.tr("Uploaded {0} files; skipped {1}; preserved {2} existing files").format(uploaded, skipped, renamed)
             )
             self.refresh_files()
 
@@ -1553,8 +1551,8 @@ class DevicePanel(QWidget):
             "Importing files from PC",
             run_upload,
             on_done=on_done,
-            on_error=lambda: self.status_label.setText("Import from PC failed"),
-            on_cancel=lambda: self.status_label.setText("Import cancelled"),
+            on_error=lambda: self.status_label.setText(self.tr("Import from PC failed")),
+            on_cancel=lambda: self.status_label.setText(self.tr("Import cancelled")),
         )
 
     def download_selected_items(self):
@@ -1563,7 +1561,7 @@ class DevicePanel(QWidget):
         indexes = self.tree_view.selectionModel().selectedRows()
         if not indexes:
             return
-        save_dir = QFileDialog.getExistingDirectory(self, "Download Location")
+        save_dir = QFileDialog.getExistingDirectory(self, QCoreApplication.translate("DevicePanel", "Download Location"))
         if not save_dir:
             return
         pairs = []
@@ -1586,7 +1584,7 @@ class DevicePanel(QWidget):
             return count
 
         def on_done(count):
-            self.status_label.setText(f"Downloaded {count} files")
+            self.status_label.setText(self.tr("Downloaded {0} files").format(count))
 
         self._run_modal(f"Download {len(pairs)} files", run_dl, on_done=on_done)
 
@@ -1613,7 +1611,7 @@ class DevicePanel(QWidget):
             target = dialog.get_selected_path()
             if not target:
                 return
-            if QMessageBox.question(self, "Copy", f"Copy {len(names)} items to '{target}'?",
+            if QMessageBox.question(self, QCoreApplication.translate("DevicePanel", "Copy"), QCoreApplication.translate("DevicePanel", "Copy {0} items to '{1}'?").format(len(names), target),
                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.No:
                 return
 
@@ -1654,7 +1652,7 @@ class DevicePanel(QWidget):
                 return count
 
             def on_done(count):
-                self.status_label.setText(f"Copied {count} items")
+                self.status_label.setText(self.tr("Copied {0} items").format(count))
                 self.refresh_files()
 
             self._run_modal(f"Copy {len(names)} items", run_copy, on_done=on_done)
@@ -1664,7 +1662,7 @@ class DevicePanel(QWidget):
             return
         indexes = self.tree_view.selectionModel().selectedRows()
         if len(indexes) < 2:
-            QMessageBox.information(self, "Info", "Select 2+ items to batch rename.")
+            QMessageBox.information(self, QCoreApplication.translate("DevicePanel", "Info"), QCoreApplication.translate("DevicePanel", "Select 2+ items to batch rename."))
             return
         base, ok = QInputDialog.getText(self, "Batch Rename", "Base name:")
         if not ok or not base:
@@ -1685,7 +1683,7 @@ class DevicePanel(QWidget):
             return count
 
         def on_done(count):
-            self.status_label.setText(f"Renamed {count} items")
+            self.status_label.setText(self.tr("Renamed {0} items").format(count))
             self.refresh_files()
 
         self._run_modal(f"Rename {len(indexes)} items", run, on_done=on_done)
@@ -1726,8 +1724,8 @@ class DevicePanel(QWidget):
 
         btn_row = QHBoxLayout()
         btn_row.addStretch()
-        bg_btn = QPushButton("Background")
-        cancel_btn = QPushButton("Cancel")
+        bg_btn = QPushButton(QCoreApplication.translate("DevicePanel", "Background"))
+        cancel_btn = QPushButton(QCoreApplication.translate("DevicePanel", "Cancel"))
         btn_row.addWidget(bg_btn)
         btn_row.addWidget(cancel_btn)
         layout.addLayout(btn_row)
@@ -1879,14 +1877,14 @@ class DevicePanelGroup(QWidget):
         header.addWidget(self.conn_label)
         self.close_btn = QPushButton("X")
         self.close_btn.setObjectName("panel_close_btn")
-        self.close_btn.setToolTip("Close this device panel")
+        self.close_btn.setToolTip(self.tr("Close this device panel"))
         self.close_btn.setAccessibleName("Close device panel")
         self.close_btn.setFixedSize(30, 30)
         self.close_btn.clicked.connect(self.close_requested.emit)
         header.addWidget(self.close_btn)
         self.add_tab_btn = QPushButton("+")
         self.add_tab_btn.setObjectName("add_path_tab_btn")
-        self.add_tab_btn.setToolTip("Add a path tab")
+        self.add_tab_btn.setToolTip(self.tr("Add a path tab"))
         self.add_tab_btn.setAccessibleName("Add path tab")
         self.add_tab_btn.setFixedSize(30, 30)
         self.add_tab_btn.clicked.connect(lambda: self.add_tab())
@@ -1962,7 +1960,7 @@ class DevicePanelGroup(QWidget):
         close_button = QToolButton(self.tabs.tabBar())
         close_button.setObjectName("close_path_tab_btn")
         close_button.setText("x")
-        close_button.setToolTip("Close tab")
+        close_button.setToolTip(self.tr("Close tab"))
         close_button.setAccessibleName("Close tab")
         close_button.setAutoRaise(True)
         close_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -1990,12 +1988,12 @@ class DevicePanelGroup(QWidget):
         for button in buttons:
             if button.objectName() == "ScrollLeftButton":
                 button.setText("<")
-                button.setToolTip("Scroll tabs left")
+                button.setToolTip(self.tr("Scroll tabs left"))
                 button.setAccessibleName("Scroll tabs left")
                 scroll_buttons["left"] = button
             elif button.objectName() == "ScrollRightButton":
                 button.setText(">")
-                button.setToolTip("Scroll tabs right")
+                button.setToolTip(self.tr("Scroll tabs right"))
                 button.setAccessibleName("Scroll tabs right")
                 scroll_buttons["right"] = button
             else:
@@ -2041,10 +2039,10 @@ class DevicePanelGroup(QWidget):
             return
         self.device_header.setText(self.device_name)
         if self.adb_handler.device_connected:
-            self.conn_label.setText("🟢 Connected")
+            self.conn_label.setText(self.tr("🟢 Connected"))
             self.conn_label.setStyleSheet("color: green; font-size: 10px; padding: 0 8px 2px 8px;")
         else:
-            self.conn_label.setText("🔴 Disconnected")
+            self.conn_label.setText(self.tr("🔴 Disconnected"))
             self.conn_label.setStyleSheet("color: red; font-size: 10px; padding: 0 8px 2px 8px;")
 
     def update_connection_status(self):

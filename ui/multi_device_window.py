@@ -18,6 +18,7 @@ from ui.device_panel import DevicePanelGroup
 from ui.widgets import ADB_MIME
 from ui.task_manager import BackgroundTaskManager
 from ui.theme import LIGHT, DARK
+from PyQt6.QtCore import QCoreApplication
 
 def get_base_dir():
     if getattr(sys, 'frozen', False):
@@ -52,7 +53,7 @@ class MultiDeviceWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("ADB Explorer")
+        self.setWindowTitle(self.tr("ADB Explorer"))
         self.setGeometry(100, 100, 1100, 600)
 
         self.device_panels = []
@@ -85,12 +86,12 @@ class MultiDeviceWindow(QMainWindow):
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
 
-        self.add_panel_btn = QPushButton("+ Add Panel")
+        self.add_panel_btn = QPushButton(QCoreApplication.translate("MultiDeviceWindow", "+ Add Panel"))
         self.add_panel_btn.setObjectName("add_panel_btn")
         self.add_panel_btn.clicked.connect(self._add_panel)
         toolbar.addWidget(self.add_panel_btn)
 
-        self.add_tab_btn = QPushButton("+ Add Tab")
+        self.add_tab_btn = QPushButton(QCoreApplication.translate("MultiDeviceWindow", "+ Add Tab"))
         self.add_tab_btn.setObjectName("add_tab_btn")
         self.add_tab_btn.clicked.connect(self._add_tab)
         toolbar.addWidget(self.add_tab_btn)
@@ -104,29 +105,29 @@ class MultiDeviceWindow(QMainWindow):
 
         toolbar.addSeparator()
 
-        self.device_status_label = QLabel("Detecting devices...")
+        self.device_status_label = QLabel(QCoreApplication.translate("MultiDeviceWindow", "Detecting devices..."))
         toolbar.addWidget(self.device_status_label)
 
         
         menubar = self.menuBar()
         menubar.setObjectName("main_menu")
-        edit_menu = menubar.addMenu("Edit")
-        edit_menu.addAction("Cut", self._broadcast_cut)
-        edit_menu.addAction("Copy", self._broadcast_copy)
-        edit_menu.addAction("Paste", self._broadcast_paste)
+        edit_menu = menubar.addMenu(self.tr("Edit"))
+        edit_menu.addAction(self.tr("Cut"), self._broadcast_cut)
+        edit_menu.addAction(self.tr("Copy"), self._broadcast_copy)
+        edit_menu.addAction(self.tr("Paste"), self._broadcast_paste)
         edit_menu.addSeparator()
-        edit_menu.addAction("Delete", self._broadcast_delete)
-        edit_menu.addAction("Rename", self._broadcast_rename)
-        view_menu = menubar.addMenu("View")
-        self.dark_mode_action = view_menu.addAction("Dark Mode")
+        edit_menu.addAction(self.tr("Delete"), self._broadcast_delete)
+        edit_menu.addAction(self.tr("Rename"), self._broadcast_rename)
+        view_menu = menubar.addMenu(self.tr("View"))
+        self.dark_mode_action = view_menu.addAction(self.tr("Dark Mode"))
         self.dark_mode_action.setCheckable(True)
         self.dark_mode_action.setChecked(self._dark)
         self.dark_mode_action.toggled.connect(self._toggle_theme)
-        tools_menu = menubar.addMenu("Tools")
-        tools_menu.addAction("Install APK...", self._install_apk_dialog)
-        tools_menu.addAction("Install XAPK...", self._install_xapk_dialog)
-        help_menu = menubar.addMenu("Help")
-        help_menu.addAction("Check for Updates...", self._open_updates)
+        tools_menu = menubar.addMenu(self.tr("Tools"))
+        tools_menu.addAction(self.tr("Install APK..."), self._install_apk_dialog)
+        tools_menu.addAction(self.tr("Install XAPK..."), self._install_xapk_dialog)
+        help_menu = menubar.addMenu(self.tr("Help"))
+        help_menu.addAction(self.tr("Check for Updates..."), self._open_updates)
 
         
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -136,7 +137,7 @@ class MultiDeviceWindow(QMainWindow):
         
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_label = QLabel("Ready")
+        self.status_label = QLabel(QCoreApplication.translate("MultiDeviceWindow", "Ready"))
         self.status_bar.addWidget(self.status_label)
 
         
@@ -175,14 +176,14 @@ class MultiDeviceWindow(QMainWindow):
         initial_devices = ADBHandler().get_unique_devices()
 
         if not initial_devices:
-            self.device_status_label.setText("No devices connected")
+            self.device_status_label.setText(self.tr("No devices connected"))
             self.status_label.setText(
-                "No ADB devices found. Connect a device and use + Add Panel."
+                self.tr("No ADB devices found. Connect a device and use + Add Panel.")
             )
             return
 
         devices_list = list(initial_devices.items())
-        self.device_status_label.setText(f"{len(devices_list)} device(s) connected")
+        self.device_status_label.setText(self.tr("{0} device(s) connected").format(len(devices_list)))
 
         
         serial, model = devices_list[0]
@@ -210,19 +211,19 @@ class MultiDeviceWindow(QMainWindow):
 
             
             idx = len(self.device_panels)
-            self.status_label.setText(f"Added panel {idx}: {model} ({serial})")
+            self.status_label.setText(self.tr("Added panel {0}: {1} ({2})").format(idx, model, serial))
             self._update_panel_count_ui()
             self._reconnect_drop_signals()
             return panel
         except Exception as e:
-            self.status_label.setText(f"Failed to add panel: {e}")
+            self.status_label.setText(self.tr("Failed to add panel: {0}").format(e))
             return None
 
     def _add_panel(self):
         handler = ADBHandler()
         devices = handler.get_unique_devices()
         if not devices:
-            QMessageBox.information(self, "No Devices", "No ADB devices connected.")
+            QMessageBox.information(self, QCoreApplication.translate("MultiDeviceWindow", "No Devices"), QCoreApplication.translate("MultiDeviceWindow", "No ADB devices connected."))
             return
 
         dialog = DeviceChooser(devices, self)
@@ -234,7 +235,7 @@ class MultiDeviceWindow(QMainWindow):
         panel = self._active_panel()
         if panel is None:
             QMessageBox.information(
-                self, "No Panel", "Add a device panel before opening a tab."
+                self, QCoreApplication.translate("MultiDeviceWindow", "No Panel"), QCoreApplication.translate("MultiDeviceWindow", "Add a device panel before opening a tab.")
             )
             return
         panel.add_tab()
@@ -256,7 +257,7 @@ class MultiDeviceWindow(QMainWindow):
         panel.prepare_for_close()
         self._update_panel_count_ui()
         self._reconnect_drop_signals()
-        self.status_label.setText("Panel closed")
+        self.status_label.setText(self.tr("Panel closed"))
 
     def _update_panel_count_ui(self):
         pass
@@ -281,7 +282,7 @@ class MultiDeviceWindow(QMainWindow):
                 break
 
         if not src_panel:
-            self.status_label.setText("Source device panel not found")
+            self.status_label.setText(self.tr("Source device panel not found"))
             return
 
         self._stream_items(src_panel, dest_panel, paths)
@@ -315,10 +316,10 @@ class MultiDeviceWindow(QMainWindow):
 
         def on_done(ok):
             if ok:
-                self.status_label.setText("Stream complete")
+                self.status_label.setText(self.tr("Stream complete"))
                 dest_panel.refresh_files()
             else:
-                self.status_label.setText("Stream failed")
+                self.status_label.setText(self.tr("Stream failed"))
 
         self._run_modal(f"Stream to {dest_panel.device_name}", run, on_done=on_done)
 
@@ -333,31 +334,31 @@ class MultiDeviceWindow(QMainWindow):
     def _install_apk_dialog(self):
         panel = self._target_panel()
         if not panel:
-            QMessageBox.warning(self, "No Device", "No connected device panel to install to.")
+            QMessageBox.warning(self, QCoreApplication.translate("MultiDeviceWindow", "No Device"), QCoreApplication.translate("MultiDeviceWindow", "No connected device panel to install to."))
             return
-        path, _ = QFileDialog.getOpenFileName(self, "Select APK", "", "APK (*.apk)")
+        path, _ = QFileDialog.getOpenFileName(self, QCoreApplication.translate("MultiDeviceWindow", "Select APK"), "", "APK (*.apk)")
         if not path:
             return
         self._run_modal(
             "Install APK", panel.adb_handler.install_apk, path,
             on_done=lambda ok: (
-                self.status_label.setText("APK installed successfully") if ok
-                else self.status_label.setText("APK installation failed")
+                self.status_label.setText(self.tr("APK installed successfully")) if ok
+                else self.status_label.setText(self.tr("APK installation failed"))
             ),
         )
 
     def _install_xapk_dialog(self):
         panel = self._target_panel()
         if not panel:
-            QMessageBox.warning(self, "No Device", "No connected device panel to install to.")
+            QMessageBox.warning(self, QCoreApplication.translate("MultiDeviceWindow", "No Device"), QCoreApplication.translate("MultiDeviceWindow", "No connected device panel to install to."))
             return
-        path, _ = QFileDialog.getOpenFileName(self, "Select XAPK", "", "XAPK (*.xapk)")
+        path, _ = QFileDialog.getOpenFileName(self, QCoreApplication.translate("MultiDeviceWindow", "Select XAPK"), "", "XAPK (*.xapk)")
         if not path:
             return
 
         def on_done(val):
             if val:
-                self.status_label.setText(f"XAPK installed ({val} APK files)")
+                self.status_label.setText(self.tr("XAPK installed ({0} APK files)").format(val))
 
         def on_error():
             err = panel.adb_handler.last_error or "XAPK install failed"
@@ -434,9 +435,9 @@ class MultiDeviceWindow(QMainWindow):
             if was != panel.adb_handler.device_connected:
                 panel.update_connection_status()
                 if not panel.adb_handler.device_connected:
-                    panel.status_label.setText("Disconnected")
+                    panel.status_label.setText(self.tr("Disconnected"))
                 else:
-                    panel.status_label.setText("Reconnected")
+                    panel.status_label.setText(self.tr("Reconnected"))
                     panel.refresh_files()
 
     
@@ -467,8 +468,8 @@ class MultiDeviceWindow(QMainWindow):
 
         btn_row = QHBoxLayout()
         btn_row.addStretch()
-        bg_btn = QPushButton("Background")
-        cancel_btn = QPushButton("Cancel")
+        bg_btn = QPushButton(QCoreApplication.translate("MultiDeviceWindow", "Background"))
+        cancel_btn = QPushButton(QCoreApplication.translate("MultiDeviceWindow", "Cancel"))
         btn_row.addWidget(bg_btn)
         btn_row.addWidget(cancel_btn)
         layout.addLayout(btn_row)
@@ -521,7 +522,7 @@ class MultiDeviceWindow(QMainWindow):
                 if on_error:
                     on_error()
                 else:
-                    self.status_label.setText(f"{title} failed")
+                    self.status_label.setText(self.tr("{0} failed").format(title))
 
         def handle_error(msg):
             failed[0] = True
