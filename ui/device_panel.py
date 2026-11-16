@@ -4,6 +4,7 @@ import sys
 import tempfile
 import subprocess
 import uuid
+import logging
 from datetime import datetime
 
 from PyQt6.QtWidgets import (
@@ -11,17 +12,21 @@ from PyQt6.QtWidgets import (
     QMessageBox, QLineEdit, QMenu, QFileDialog, QInputDialog,
     QLabel, QCheckBox, QFileIconProvider, QProgressBar, QDialog, QTreeView,
     QTabWidget, QTabBar, QApplication, QToolButton, QStackedWidget, QScrollArea,
-    QSizePolicy,
+    QSizePolicy, QDialogButtonBox, QFormLayout, QSplitter, QTreeWidget,
+    QTreeWidgetItem,
 )
 from PyQt6.QtGui import (
     QPainter, QPen, QStandardItemModel, QStandardItem, QAction,
     QKeySequence, QShortcut,
 )
-from PyQt6.QtCore import QEvent, QSize, QStringListModel
+from PyQt6.QtCore import (
+    QEvent, QItemSelectionModel, QSize, QStringListModel,
+)
 from PyQt6.QtWidgets import QCompleter, QStyle, QStyleOptionButton
 from PyQt6.QtCore import Qt, QTimer, QFileInfo, pyqtSignal, QPoint
 
 from handler import ADBHandler
+from ui.bookmarks import BookmarkStore
 from operation_control import is_cancelled
 from ui.widgets import DropTreeView
 from ui.task_manager import WorkerThread
@@ -33,6 +38,9 @@ from ui.windows_drag import (
     wait_for_windows_drag,
 )
 from PyQt6.QtCore import QCoreApplication
+
+
+_logger = logging.getLogger(__name__)
 
 
 def _natural_sort_key(value):
@@ -340,6 +348,7 @@ class PathInput(QLineEdit):
 class DevicePanel(QWidget):
 
     cross_device_drop = pyqtSignal(str, list, str)
+    favorite_requested = pyqtSignal(str, str)
     close_requested = pyqtSignal()
     path_changed = pyqtSignal(str)
 
@@ -898,7 +907,20 @@ class DevicePanel(QWidget):
             self.tree_view.clearSelection()
             indexes = []
         else:
-            indexes = self.tree_view.selectionModel().selectedRows()
+            selection_model = self.tree_view.selectionModel()
+            selected_rows = selection_model.selectedRows()
+            if not any(row.row() == index.row() for row in selected_rows):
+                selection_model.clearSelection()
+                selection_model.select(
+                    index,
+                    QItemSelectionModel.SelectionFlag.Select
+                    | QItemSelectionModel.SelectionFlag.Rows,
+                )
+                selection_model.setCurrentIndex(
+                    index,
+                    QItemSelectionModel.SelectionFlag.NoUpdate,
+                )
+            indexes = selection_model.selectedRows()
         menu = QMenu()
 
         if self.clipboard and self.clipboard['items']:
@@ -943,6 +965,16 @@ class DevicePanel(QWidget):
                 menu.addAction(self.tr("Rename"), lambda n=item_name: self.rename_item(n))
                 menu.addAction(self.tr("Delete"), lambda n=item_name: self.delete_item(n, is_dir=False))
             elif item_type == "Directory":
+                if item_name != "..":
+                    folder_path = (
+                        f"{self.current_path.rstrip('/')}/{item_name}"
+                    )
+                    menu.addAction(
+                        self.tr("Add to favorites"),
+                        lambda n=item_name, p=folder_path:
+                            self.favorite_requested.emit(n, p),
+                    )
+                    menu.addSeparator()
                 menu.addAction(self.tr("Save to PC..."), lambda n=item_name: self.copy_folder_to(n))
                 menu.addSeparator()
                 menu.addAction(self.tr("Rename"), lambda n=item_name: self.rename_item(n))
@@ -1847,18 +1879,75 @@ class NonOverlappingTabBar(QTabBar):
         right.move(self.width() - button_width, y)
 
 
+class BookmarkDialog(QDialog):
+    def __init__(self, parent, bookmark, title):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+        self.name_input = QLineEdit(bookmark.get("name", ""))
+        self.path_input = QLineEdit(bookmark.get("path", ""))
+        self.path_input.setReadOnly(True)
+        self.note_input = QLineEdit(bookmark.get("note", ""))
+        form.addRow(self.tr("Name"), self.name_input)
+        form.addRow(self.tr("Path"), self.path_input)
+        form.addRow(self.tr("Note"), self.note_input)
+        layout.addLayout(form)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def bookmark(self):
+        return {
+            "name": self.name_input.text().strip(),
+            "path": self.path_input.text(),
+            "note": self.note_input.text().strip(),
+        }
+
+
+_DEVICE_FOLDER_SHORTCUTS = (
+    ("Downloads", "Download"),
+    ("Documents", "Documents"),
+    ("Pictures", "Pictures"),
+    ("Music", "Music"),
+    ("Videos", "Movies"),
+    ("Camera", "DCIM"),
+)
+
+
 class DevicePanelGroup(QWidget):
     cross_device_drop = pyqtSignal(str, list, str)
     close_requested = pyqtSignal()
 
-    def __init__(self, parent, adb_handler, device_info=None):
+    def __init__(
+        self, parent, adb_handler, device_info=None, bookmarks_path=None,
+        bookmark_store=None,
+    ):
         super().__init__(parent)
         self.adb_handler = adb_handler
         self.device_info = device_info or {}
         self.clipboard = {'items': [], 'operation': None}
         self._views = []
+        self._navigation_items = []
         self._closing = False
         self._last_path = "/storage/emulated/0"
+        self._multi_panel_mode = False
+        self._navigation_pane_open = True
+        self._restore_navigation_pane_open = True
+        self._bookmark_store = bookmark_store or BookmarkStore(bookmarks_path)
+        self._bookmark_store.bookmarks_changed.connect(
+            self._on_bookmarks_changed
+        )
+        try:
+            self._bookmarks = self._bookmark_store.load(self.device_serial)
+            self._bookmark_load_error = None
+        except (OSError, ValueError) as error:
+            self._bookmarks = []
+            self._bookmark_load_error = str(error)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -1869,6 +1958,21 @@ class DevicePanelGroup(QWidget):
         header = QHBoxLayout(header_container)
         header.setContentsMargins(6, 2, 4, 2)
         header.setSpacing(6)
+        self.navigation_toggle_btn = QToolButton()
+        self.navigation_toggle_btn.setObjectName("navigation_toggle_btn")
+        self.navigation_toggle_btn.setText("◧")
+        self.navigation_toggle_btn.setCheckable(True)
+        self.navigation_toggle_btn.setChecked(True)
+        self.navigation_toggle_btn.setToolTip(
+            self.tr("Hide navigation pane")
+        )
+        self.navigation_toggle_btn.setAccessibleName(
+            self.tr("Toggle navigation pane")
+        )
+        self.navigation_toggle_btn.clicked.connect(
+            self.toggle_navigation_pane
+        )
+        header.addWidget(self.navigation_toggle_btn)
         self.device_header = QLabel(self.device_name)
         self.device_header.setObjectName("device_header")
         header.addWidget(self.device_header)
@@ -1891,17 +1995,331 @@ class DevicePanelGroup(QWidget):
         header.insertWidget(header.count() - 1, self.add_tab_btn)
         layout.addWidget(header_container)
 
-        self.tabs = QTabWidget()
+        self.content_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.content_splitter.setObjectName("panel_content_splitter")
+        self.content_splitter.setChildrenCollapsible(False)
+        self.favorites_pane = self._create_favorites_pane()
+        self.content_splitter.addWidget(self.favorites_pane)
+
+        self.tabs = QTabWidget(self.content_splitter)
         self.tabs.setObjectName("path_tabs")
         self.tabs.setTabBar(NonOverlappingTabBar())
         self.tabs.setDocumentMode(True)
         self.tabs.tabBar().setElideMode(Qt.TextElideMode.ElideMiddle)
-        self.tabs.currentChanged.connect(self._update_connection_status)
+        self.tabs.currentChanged.connect(self._on_active_tab_changed)
         self.tabs.tabBar().setObjectName("path_tab_bar")
-        layout.addWidget(self.tabs)
+        self.content_splitter.addWidget(self.tabs)
+        self.content_splitter.setStretchFactor(0, 0)
+        self.content_splitter.setStretchFactor(1, 1)
+        self.content_splitter.setSizes([180, 640])
+        layout.addWidget(self.content_splitter, 1)
 
         self.add_tab()
         self.update_connection_status()
+        if self._bookmark_load_error:
+            self._show_bookmark_error(
+                self.tr("Could not load favorites: {0}").format(
+                    self._bookmark_load_error
+                )
+            )
+
+    def _create_favorites_pane(self):
+        pane = QWidget(self.content_splitter)
+        pane.setObjectName("favorites_pane")
+        pane.setMinimumWidth(140)
+        pane.setMaximumWidth(240)
+        layout = QVBoxLayout(pane)
+        layout.setContentsMargins(6, 8, 6, 6)
+        layout.setSpacing(6)
+
+        header = QHBoxLayout()
+        title = QLabel(self.tr("Folders"), pane)
+        title.setObjectName("navigation_title")
+        header.addWidget(title)
+        header.addStretch()
+        layout.addLayout(header)
+
+        self.navigation_tree = QTreeWidget(pane)
+        self.navigation_tree.setObjectName("navigation_tree")
+        self.navigation_tree.setHeaderHidden(True)
+        self.navigation_tree.setRootIsDecorated(True)
+        self.navigation_tree.setUniformRowHeights(True)
+        self.navigation_tree.setIndentation(16)
+        self.navigation_tree.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
+        self.navigation_tree.customContextMenuRequested.connect(
+            self._show_bookmark_context_menu
+        )
+        self.navigation_tree.itemClicked.connect(
+            self._activate_navigation_item
+        )
+        self.navigation_tree.itemActivated.connect(
+            self._activate_navigation_item
+        )
+        layout.addWidget(self.navigation_tree)
+        self._refresh_navigation_tree()
+        return pane
+
+    def _refresh_navigation_tree(self):
+        expanded_sections = {}
+        for index in range(self.navigation_tree.topLevelItemCount()):
+            item = self.navigation_tree.topLevelItem(index)
+            data = item.data(0, Qt.ItemDataRole.UserRole) or {}
+            section = data.get("section")
+            if section:
+                expanded_sections[section] = item.isExpanded()
+
+        self.navigation_tree.clear()
+        self._navigation_items = []
+        folder_icon = QFileIconProvider().icon(
+            QFileIconProvider.IconType.Folder
+        )
+
+        favorites_root = QTreeWidgetItem([self.tr("Favorites")])
+        favorites_root.setFont(0, self._navigation_group_font())
+        favorites_root.setIcon(0, folder_icon)
+        favorites_root.setData(
+            0,
+            Qt.ItemDataRole.UserRole,
+            {"kind": "group", "section": "favorites"},
+        )
+        self.navigation_tree.addTopLevelItem(favorites_root)
+        for bookmark in self._bookmarks:
+            item = QTreeWidgetItem([bookmark["name"]])
+            item.setIcon(0, folder_icon)
+            item.setData(
+                0,
+                Qt.ItemDataRole.UserRole,
+                {
+                    "kind": "favorite",
+                    "path": bookmark["path"],
+                    "bookmark": bookmark,
+                },
+            )
+            tooltip = bookmark["path"]
+            if bookmark.get("note"):
+                tooltip = f"{bookmark['note']}\n{tooltip}"
+            item.setToolTip(0, tooltip)
+            favorites_root.addChild(item)
+            self._navigation_items.append((item, bookmark["path"]))
+        if not self._bookmarks:
+            empty_item = QTreeWidgetItem([self.tr("No favorites yet")])
+            empty_item.setFlags(Qt.ItemFlag.NoItemFlags)
+            favorites_root.addChild(empty_item)
+        favorites_root.setExpanded(expanded_sections.get("favorites", True))
+
+        storage_root = QTreeWidgetItem([self.tr("Internal storage")])
+        storage_root.setFont(0, self._navigation_group_font())
+        storage_root.setIcon(0, folder_icon)
+        storage_root.setData(
+            0,
+            Qt.ItemDataRole.UserRole,
+            {
+                "kind": "folder",
+                "path": "/storage/emulated/0",
+                "section": "storage",
+            },
+        )
+        self.navigation_tree.addTopLevelItem(storage_root)
+        self._navigation_items.append(
+            (storage_root, "/storage/emulated/0")
+        )
+        for label, directory in _DEVICE_FOLDER_SHORTCUTS:
+            path = f"/storage/emulated/0/{directory}"
+            item = QTreeWidgetItem([self.tr(label)])
+            item.setIcon(0, folder_icon)
+            item.setData(
+                0,
+                Qt.ItemDataRole.UserRole,
+                {"kind": "folder", "path": path},
+            )
+            storage_root.addChild(item)
+            self._navigation_items.append((item, path))
+        storage_root.setExpanded(expanded_sections.get("storage", True))
+        if hasattr(self, "tabs"):
+            self._update_navigation_selection(self.current_path)
+
+    def _navigation_group_font(self):
+        font = self.navigation_tree.font()
+        font.setBold(True)
+        return font
+
+    def _activate_navigation_item(self, item, _column=0):
+        data = item.data(0, Qt.ItemDataRole.UserRole) or {}
+        if data.get("kind") in {"folder", "favorite"}:
+            if self.active_view is not None:
+                self.active_view.navigate_to(data["path"])
+
+    def _on_bookmarks_changed(self, device_id):
+        if device_id != self.device_serial:
+            return
+        try:
+            self._bookmarks = self._bookmark_store.load(self.device_serial)
+        except (OSError, ValueError) as error:
+            self._show_bookmark_error(
+                self.tr("Could not load favorites: {0}").format(error)
+            )
+            return
+        self._refresh_navigation_tree()
+
+    def _show_bookmark_error(self, message, view=None):
+        _logger.warning(message)
+        target_view = view if view is not None else self.active_view
+        if target_view is not None:
+            target_view.status_label.setText(message)
+
+    def _save_bookmarks(self, bookmarks):
+        try:
+            self._bookmark_store.save(self.device_serial, bookmarks)
+        except (OSError, ValueError) as error:
+            self._show_bookmark_error(
+                self.tr("Could not save favorites: {0}").format(error)
+            )
+            return False
+        self._bookmarks = bookmarks
+        self._refresh_navigation_tree()
+        return True
+
+    def add_bookmark(self, name, path, note=""):
+        bookmark = {
+            "name": name.strip(),
+            "path": path,
+            "note": note.strip(),
+        }
+        if not bookmark["name"] or not bookmark["path"].startswith("/"):
+            raise ValueError("A favorite needs a name and absolute device path")
+        if any(saved["path"] == bookmark["path"] for saved in self._bookmarks):
+            return False
+        return self._save_bookmarks([*self._bookmarks, bookmark])
+
+    def _edit_bookmark_dialog(self, bookmark, title):
+        dialog = BookmarkDialog(self, bookmark, title)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        updated = dialog.bookmark()
+        if not updated["name"]:
+            self._show_bookmark_error(self.tr("Favorite name cannot be empty"))
+            return
+        if bookmark in self._bookmarks:
+            index = self._bookmarks.index(bookmark)
+            bookmarks = list(self._bookmarks)
+            bookmarks[index] = updated
+        else:
+            if any(saved["path"] == updated["path"] for saved in self._bookmarks):
+                self._show_bookmark_error(
+                    self.tr("This folder is already in favorites")
+                )
+                return
+            bookmarks = [*self._bookmarks, updated]
+        self._save_bookmarks(bookmarks)
+
+    def _selected_bookmark(self):
+        item = self.navigation_tree.currentItem()
+        data = item.data(0, Qt.ItemDataRole.UserRole) if item else None
+        if data and data.get("kind") == "favorite":
+            return data.get("bookmark")
+        return None
+
+    def _remove_bookmark(self):
+        bookmark = self._selected_bookmark()
+        if bookmark is None:
+            return
+        self._save_bookmarks([
+            saved for saved in self._bookmarks if saved != bookmark
+        ])
+
+    def _edit_selected_bookmark(self):
+        bookmark = self._selected_bookmark()
+        if bookmark is not None:
+            self._edit_bookmark_dialog(bookmark, self.tr("Edit favorite"))
+
+    def _show_bookmark_context_menu(self, position):
+        item = self.navigation_tree.itemAt(position)
+        if item is None:
+            return
+        data = item.data(0, Qt.ItemDataRole.UserRole) or {}
+        kind = data.get("kind")
+        if kind not in {"folder", "favorite"}:
+            return
+        self.navigation_tree.setCurrentItem(item)
+        menu = QMenu(self)
+        menu.addAction(self.tr("Open"), lambda: self._activate_navigation_item(item))
+        if kind == "favorite":
+            menu.addAction(self.tr("Edit"), self._edit_selected_bookmark)
+            menu.addAction(
+                self.tr("Remove from favorites"), self._remove_bookmark
+            )
+        else:
+            menu.addAction(
+                self.tr("Add to favorites"),
+                lambda: self._pin_navigation_item(item),
+            )
+        menu.exec(self.navigation_tree.viewport().mapToGlobal(position))
+
+    def _pin_navigation_item(self, item):
+        data = item.data(0, Qt.ItemDataRole.UserRole) or {}
+        self._add_folder_to_favorites(
+            item.text(0), data["path"], self.active_view
+        )
+
+    def _add_folder_to_favorites(self, name, path, source_view=None):
+        if any(bookmark["path"] == path for bookmark in self._bookmarks):
+            self._show_bookmark_error(
+                self.tr("This folder is already in favorites"), source_view
+            )
+            return
+        if self.add_bookmark(name, path) and source_view is not None:
+            source_view.status_label.setText(
+                self.tr("Added '{0}' to favorites").format(name)
+            )
+
+    def _update_navigation_selection(self, path):
+        normalized_path = path.rstrip("/") or "/"
+        match = None
+        match_length = -1
+        for item, item_path in self._navigation_items:
+            normalized_item_path = item_path.rstrip("/") or "/"
+            if (
+                normalized_path == normalized_item_path
+                or normalized_path.startswith(normalized_item_path + "/")
+            ) and len(normalized_item_path) > match_length:
+                match = item
+                match_length = len(normalized_item_path)
+
+        if match is None:
+            self.navigation_tree.clearSelection()
+            self.navigation_tree.setCurrentItem(None)
+            return
+        if match.parent() is not None:
+            match.parent().setExpanded(True)
+        self.navigation_tree.setCurrentItem(match)
+        self.navigation_tree.scrollToItem(match)
+
+    def toggle_navigation_pane(self, _checked=False):
+        self._set_navigation_pane_open(not self._navigation_pane_open)
+        self._restore_navigation_pane_open = self._navigation_pane_open
+
+    def _set_navigation_pane_open(self, is_open):
+        self._navigation_pane_open = is_open
+        self.favorites_pane.setVisible(is_open)
+        self.navigation_toggle_btn.setChecked(is_open)
+        self.navigation_toggle_btn.setToolTip(
+            self.tr("Hide navigation pane")
+            if is_open
+            else self.tr("Show navigation pane")
+        )
+
+    def set_multi_panel_mode(self, enabled):
+        if enabled == self._multi_panel_mode:
+            return
+        if enabled:
+            self._restore_navigation_pane_open = self._navigation_pane_open
+            self._multi_panel_mode = True
+            self._set_navigation_pane_open(False)
+            return
+        self._multi_panel_mode = False
+        self._set_navigation_pane_open(self._restore_navigation_pane_open)
 
     @property
     def active_view(self):
@@ -1954,6 +2372,10 @@ class DevicePanelGroup(QWidget):
             lambda changed_path, panel=view: self._on_view_path_changed(
                 panel, changed_path
             )
+        )
+        view.favorite_requested.connect(
+            lambda name, path, source=view:
+                self._add_folder_to_favorites(name, path, source)
         )
         view.cross_device_drop.connect(self.cross_device_drop)
         index = self.tabs.addTab(view, self._tab_title(start_path))
@@ -2013,6 +2435,8 @@ class DevicePanelGroup(QWidget):
     def _on_view_path_changed(self, view, path):
         self._last_path = path
         self._update_tab_title(view, path)
+        if view is self.active_view:
+            self._update_navigation_selection(path)
 
     def _close_view(self, view):
         index = self.tabs.indexOf(view)
@@ -2044,6 +2468,11 @@ class DevicePanelGroup(QWidget):
         else:
             self.conn_label.setText(self.tr("🔴 Disconnected"))
             self.conn_label.setStyleSheet("color: red; font-size: 10px; padding: 0 8px 2px 8px;")
+
+    def _on_active_tab_changed(self, _index=None):
+        self._update_connection_status()
+        if self.active_view is not None:
+            self._update_navigation_selection(self.active_view.current_path)
 
     def update_connection_status(self):
         for view in self._views:

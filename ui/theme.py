@@ -190,6 +190,53 @@ QTreeView QHeaderView::section {
     border-bottom: 1px solid #e4e4e4;
     border-right: 1px solid #eee;
 }
+QWidget#favorites_pane {
+    background: #f7f9fc;
+    border-right: 1px solid #e4e9f0;
+}
+QSplitter#panel_content_splitter::handle:horizontal {
+    background: #e4e9f0;
+    width: 3px;
+}
+QLabel#navigation_title {
+    color: #344054;
+    font-weight: 600;
+    padding: 2px 4px;
+}
+QTreeWidget#navigation_tree {
+    background: transparent;
+    border: none;
+    outline: none;
+}
+QTreeWidget#navigation_tree::item {
+    padding: 4px 4px;
+    min-height: 24px;
+}
+QTreeWidget#navigation_tree::item:selected:active {
+    background: #e3effa;
+    color: #1a5a9e;
+}
+QTreeWidget#navigation_tree::item:selected:!active {
+    background: #f0f0f0;
+    color: #444;
+}
+QTreeWidget#navigation_tree::item:hover:!selected {
+    background: #edf2f8;
+}
+QToolButton#navigation_toggle_btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: #667085;
+    min-width: 24px;
+    min-height: 24px;
+}
+QToolButton#navigation_toggle_btn:hover,
+QToolButton#navigation_toggle_btn:checked {
+    background: #e3effa;
+    border-color: #c5d9ef;
+    color: #1a5a9e;
+}
 
 /* ── Menu bar ──────────────────────────────────────────── */
 QMenuBar {
@@ -794,6 +841,53 @@ QTreeView QHeaderView::section {
     border: none;
     border-bottom: 1px solid #313244;
     border-right: 1px solid #282840;
+}
+QWidget#favorites_pane {
+    background: #181825;
+    border-right: 1px solid #313244;
+}
+QSplitter#panel_content_splitter::handle:horizontal {
+    background: #313244;
+    width: 3px;
+}
+QLabel#navigation_title {
+    color: #cdd6f4;
+    font-weight: 600;
+    padding: 2px 4px;
+}
+QTreeWidget#navigation_tree {
+    background: transparent;
+    border: none;
+    outline: none;
+}
+QTreeWidget#navigation_tree::item {
+    padding: 4px 4px;
+    min-height: 24px;
+}
+QTreeWidget#navigation_tree::item:selected:active {
+    background: #313244;
+    color: #89b4fa;
+}
+QTreeWidget#navigation_tree::item:selected:!active {
+    background: #313244;
+    color: #a6adc8;
+}
+QTreeWidget#navigation_tree::item:hover:!selected {
+    background: #282840;
+}
+QToolButton#navigation_toggle_btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: #a6adc8;
+    min-width: 24px;
+    min-height: 24px;
+}
+QToolButton#navigation_toggle_btn:hover,
+QToolButton#navigation_toggle_btn:checked {
+    background: #313244;
+    border-color: #45475a;
+    color: #89b4fa;
 }
 
 /* ── Menu bar ──────────────────────────────────────────── */

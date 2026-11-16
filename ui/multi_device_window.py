@@ -2,6 +2,7 @@ import os
 import sys
 from pathlib import Path
 import configparser
+import logging
 
 from PyQt6.QtWidgets import (
     QMainWindow, QSplitter, QVBoxLayout, QHBoxLayout, QWidget,
@@ -14,6 +15,7 @@ from PyQt6.QtGui import QDesktopServices, QKeySequence, QShortcut
 from handler import ADBHandler
 from operation_control import is_cancelled
 from device_chooser import DeviceChooser
+from ui.bookmarks import BookmarkStore, get_app_data_directory
 from ui.device_panel import DevicePanelGroup
 from ui.widgets import ADB_MIME
 from ui.task_manager import BackgroundTaskManager
@@ -25,28 +27,47 @@ def get_base_dir():
         return Path(sys.executable).parent
     return Path(os.path.abspath(__file__)).parent
 
-CONFIG_PATH = get_base_dir() / "config.ini"
+def _config_path():
+    return get_app_data_directory() / "config.ini"
+
+
+def _legacy_config_path():
+    return get_base_dir() / "config.ini"
 
 def _load_theme():
     cp = configparser.ConfigParser()
-    cp.read(CONFIG_PATH)
+    config_path = _config_path()
+    using_legacy_path = not config_path.exists()
+    path = _legacy_config_path() if using_legacy_path else config_path
     try:
-        return cp.getboolean("app", "dark_mode")
-    except Exception:
+        cp.read(path, encoding="utf-8")
+        dark = cp.getboolean("app", "dark_mode")
+    except (configparser.Error, ValueError):
         return False
+    if using_legacy_path and path.exists():
+        try:
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+            with config_path.open("w", encoding="utf-8") as file:
+                cp.write(file)
+        except OSError:
+            logging.getLogger(__name__).exception(
+                "Could not migrate theme settings from %s to %s",
+                path,
+                config_path,
+            )
+    return dark
 
 
 def _save_theme(dark: bool):
     cp = configparser.ConfigParser()
-    cp.read(CONFIG_PATH)
+    config_path = _config_path()
+    cp.read(config_path, encoding="utf-8")
     if "app" not in cp:
         cp["app"] = {}
     cp["app"]["dark_mode"] = "yes" if dark else "no"
-    try:
-        with open(CONFIG_PATH, "w") as f:
-            cp.write(f)
-    except Exception:
-        pass
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    with config_path.open("w", encoding="utf-8") as file:
+        cp.write(file)
 
 
 class MultiDeviceWindow(QMainWindow):
@@ -58,6 +79,7 @@ class MultiDeviceWindow(QMainWindow):
 
         self.device_panels = []
         self._last_active_panel = None
+        self.bookmark_store = BookmarkStore()
         self._dark = _load_theme()
         QApplication.instance().setStyleSheet(DARK if self._dark else LIGHT)
 
@@ -198,7 +220,10 @@ class MultiDeviceWindow(QMainWindow):
         try:
             handler = ADBHandler(device_serial=serial)
             panel = DevicePanelGroup(
-                self.splitter, handler, device_info={"model": model}
+                self.splitter,
+                handler,
+                device_info={"model": model},
+                bookmark_store=self.bookmark_store,
             )
             self.splitter.addWidget(panel)
             self.device_panels.append(panel)
@@ -260,7 +285,10 @@ class MultiDeviceWindow(QMainWindow):
         self.status_label.setText(self.tr("Panel closed"))
 
     def _update_panel_count_ui(self):
-        pass
+        multi_panel_mode = len(self.device_panels) > 1
+        for panel in self.device_panels:
+            if hasattr(panel, "set_multi_panel_mode"):
+                panel.set_multi_panel_mode(multi_panel_mode)
 
     def _reconnect_drop_signals(self):
         
@@ -423,7 +451,16 @@ class MultiDeviceWindow(QMainWindow):
         QDesktopServices.openUrl(QUrl("https://github.com/JSleim/adb-file-explorer/releases"))
 
     def _toggle_theme(self, dark):
-        _save_theme(dark)
+        try:
+            _save_theme(dark)
+        except (OSError, configparser.Error) as error:
+            logging.getLogger(__name__).exception(
+                "Could not save theme settings to %s", _config_path()
+            )
+            self.status_label.setText(
+                self.tr("Could not save theme settings: {0}").format(error)
+            )
+        self._dark = dark
         QApplication.instance().setStyleSheet(DARK if dark else LIGHT)
 
     
