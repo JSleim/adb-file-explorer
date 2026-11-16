@@ -1,18 +1,19 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QListWidget, 
                             QDialogButtonBox, QLabel, QListWidgetItem)
 from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QCoreApplication
 
 
 class DeviceChooser(QDialog):
     def __init__(self, devices, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Open device panels")
+        self.setWindowTitle(self.tr("Open device panels"))
         self.setObjectName("device_chooser")
         self.setMinimumWidth(400)
 
         layout = QVBoxLayout(self)
 
-        label = QLabel("Select device panels to open:")
+        label = QLabel(QCoreApplication.translate("DeviceChooser", "Select device panels to open:"))
         label.setObjectName("chooser_prompt")
         layout.addWidget(label)
 

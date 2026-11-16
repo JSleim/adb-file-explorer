@@ -16,13 +16,14 @@ from device_chooser import DeviceChooser
 from ui.widgets import DropTreeView
 from ui.task_manager import BackgroundTaskManager, WorkerThread
 from ui.device_panel import DevicePanel
+from PyQt6.QtCore import QCoreApplication
 
 
 class ADBFileExplorer(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("ADB File Explorer")
+        self.setWindowTitle(self.tr("ADB File Explorer"))
         self.setGeometry(100, 100, 800, 600)
 
         self.adb_handler = ADBHandler()
@@ -92,7 +93,7 @@ class ADBFileExplorer(QMainWindow):
 
     def select_device(self):
         if not self.adb_handler.device_connected:
-            QMessageBox.critical(self, "No Devices", "No ADB devices found. Please connect a device and try again.")
+            QMessageBox.critical(self, QCoreApplication.translate("ADBFileExplorer", "No Devices"), QCoreApplication.translate("ADBFileExplorer", "No ADB devices found. Please connect a device and try again."))
             return False
 
         if len(self.adb_handler.devices) > 1:
@@ -101,12 +102,12 @@ class ADBFileExplorer(QMainWindow):
                 selected_serial = dialog.selected_device()
                 if selected_serial:
                     self.adb_handler = ADBHandler(device_serial=selected_serial)
-                    self.setWindowTitle(f"ADB File Explorer - {self.adb_handler.devices[selected_serial]} ({selected_serial})")
+                    self.setWindowTitle(self.tr("ADB File Explorer - {0} ({1})").format(self.adb_handler.devices[selected_serial], selected_serial))
                     return True
             return False
         elif len(self.adb_handler.devices) == 1:
             serial = next(iter(self.adb_handler.devices.keys()))
-            self.setWindowTitle(f"ADB File Explorer - {self.adb_handler.devices[serial]} ({serial})")
+            self.setWindowTitle(self.tr("ADB File Explorer - {0} ({1})").format(self.adb_handler.devices[serial], serial))
             return True
 
         return False
@@ -124,14 +125,14 @@ class ADBFileExplorer(QMainWindow):
 
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_label = QLabel("Ready")
+        self.status_label = QLabel(QCoreApplication.translate("ADBFileExplorer", "Ready"))
         self.status_bar.addWidget(self.status_label)
 
         self.connection_label = QLabel("")
         self.status_bar.addPermanentWidget(self.connection_label)
         self.update_connection_status()
 
-        self.root_checkbox = QCheckBox("Root access")
+        self.root_checkbox = QCheckBox(QCoreApplication.translate("ADBFileExplorer", "Root access"))
         self.root_checkbox.setChecked(False)
         self.root_checkbox.stateChanged.connect(self.on_root_toggle)
         self.status_bar.addPermanentWidget(self.root_checkbox)
@@ -139,16 +140,16 @@ class ADBFileExplorer(QMainWindow):
         self.task_manager = BackgroundTaskManager(main_widget)
 
         self.toolbar = self.addToolBar("Edit")
-        self.copy_action = self.toolbar.addAction("Copy")
+        self.copy_action = self.toolbar.addAction(self.tr("Copy"))
         self.copy_action.triggered.connect(self.copy_selected)
-        self.cut_action = self.toolbar.addAction("Cut")
+        self.cut_action = self.toolbar.addAction(self.tr("Cut"))
         self.cut_action.triggered.connect(self.cut_selected)
-        self.paste_action = self.toolbar.addAction("Paste")
+        self.paste_action = self.toolbar.addAction(self.tr("Paste"))
         self.paste_action.triggered.connect(self.paste_items)
 
-        self.install_apk_action = self.toolbar.addAction("Install APK")
+        self.install_apk_action = self.toolbar.addAction(self.tr("Install APK"))
         self.install_apk_action.triggered.connect(self.install_apk_dialog)
-        self.install_xapk_action = self.toolbar.addAction("Install XAPK")
+        self.install_xapk_action = self.toolbar.addAction(self.tr("Install XAPK"))
         self.install_xapk_action.triggered.connect(self.install_xapk_dialog)
 
         self.copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, self)
@@ -209,10 +210,10 @@ class ADBFileExplorer(QMainWindow):
                 if not has_root:
                     reset_root_access()
                     QMessageBox.warning(
-                        self, "Root Access",
-                        "Root access is not available on this device.\n\n"
+                        self, QCoreApplication.translate("ADBFileExplorer", "Root Access"),
+                        QCoreApplication.translate("ADBFileExplorer", "Root access is not available on this device.\n\n"
                         "If rooted, grant superuser permissions on the device.\n"
-                        "If not rooted, adb root may not be supported on production builds."
+                        "If not rooted, adb root may not be supported on production builds.")
                     )
                     return
                 self.use_root = True
@@ -223,7 +224,7 @@ class ADBFileExplorer(QMainWindow):
             def on_root_error():
                 reset_root_access()
                 QMessageBox.warning(
-                    self, "Root Access",
+                    self, QCoreApplication.translate("ADBFileExplorer", "Root Access"),
                     self.adb_handler.last_error or "Could not enable root access."
                 )
             self.root_checkbox.setEnabled(False)
@@ -243,10 +244,10 @@ class ADBFileExplorer(QMainWindow):
 
     def update_connection_status(self):
         if self.adb_handler.device_connected:
-            self.connection_label.setText("🟢 Connected")
+            self.connection_label.setText(self.tr("🟢 Connected"))
             self.connection_label.setStyleSheet("color: green;")
         else:
-            self.connection_label.setText("🔴 Disconnected")
+            self.connection_label.setText(self.tr("🔴 Disconnected"))
             self.connection_label.setStyleSheet("color: red;")
 
     def check_connection_periodically(self):
@@ -257,7 +258,7 @@ class ADBFileExplorer(QMainWindow):
             if not self.adb_handler.device_connected:
                 pass
             else:
-                self.status_label.setText("ADB device reconnected")
+                self.status_label.setText(self.tr("ADB device reconnected"))
                 self.refresh_files()
 
     
@@ -373,15 +374,15 @@ class ADBFileExplorer(QMainWindow):
     def show_status_message(self, text, timeout=3000):
         self.status_label.setText(text)
         if timeout:
-            QTimer.singleShot(timeout, lambda: self.status_label.setText("Ready"))
+            QTimer.singleShot(timeout, lambda: self.status_label.setText(self.tr("Ready")))
 
     def show_error_message(self, title, msg):
         QMessageBox.critical(self, title, msg)
-        self.status_label.setText(f"Error: {title}")
+        self.status_label.setText(self.tr("Error: {0}").format(title))
 
     def show_success_message(self, msg):
         self.status_label.setText(msg)
-        QTimer.singleShot(2000, lambda: self.status_label.setText("Ready"))
+        QTimer.singleShot(2000, lambda: self.status_label.setText(self.tr("Ready")))
 
     
 
@@ -389,7 +390,7 @@ class ADBFileExplorer(QMainWindow):
         if not self.adb_handler.device_connected:
             self.show_error_message("Connection Error", "No ADB device connected")
             return
-        path, _ = QFileDialog.getOpenFileName(self, "Select APK file", "", "APK (*.apk)")
+        path, _ = QFileDialog.getOpenFileName(self, QCoreApplication.translate("ADBFileExplorer", "Select APK file"), "", "APK (*.apk)")
         if not path:
             return
         self._run_modal(
@@ -406,7 +407,7 @@ class ADBFileExplorer(QMainWindow):
         if not self.adb_handler.device_connected:
             self.show_error_message("Connection Error", "No ADB device connected")
             return
-        path, _ = QFileDialog.getOpenFileName(self, "Select XAPK file", "", "XAPK (*.xapk)")
+        path, _ = QFileDialog.getOpenFileName(self, QCoreApplication.translate("ADBFileExplorer", "Select XAPK file"), "", "XAPK (*.xapk)")
         if not path:
             return
         self._run_modal(
@@ -444,8 +445,8 @@ class ADBFileExplorer(QMainWindow):
 
         btn_row = QHBoxLayout()
         btn_row.addStretch()
-        bg_btn = QPushButton("Background")
-        cancel_btn = QPushButton("Cancel")
+        bg_btn = QPushButton(QCoreApplication.translate("ADBFileExplorer", "Background"))
+        cancel_btn = QPushButton(QCoreApplication.translate("ADBFileExplorer", "Cancel"))
         btn_row.addWidget(bg_btn)
         btn_row.addWidget(cancel_btn)
         layout.addLayout(btn_row)

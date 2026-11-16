@@ -2,11 +2,12 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QPushButton,
                              QTreeView, QHeaderView, QMessageBox, QLabel, QHBoxLayout)
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QCoreApplication
 
 class SelectDirectoryDialog(QDialog):
     def __init__(self, parent, adb_handler, start_path="/storage/emulated/0", root_path="/", use_root=False):
         super().__init__(parent)
-        self.setWindowTitle("Select Destination Folder")
+        self.setWindowTitle(self.tr("Select Destination Folder"))
         self.resize(600, 400)
         self.adb_handler = adb_handler
         self.selected_path = None
@@ -16,7 +17,7 @@ class SelectDirectoryDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        self.status_label = QLabel("Ready")
+        self.status_label = QLabel(QCoreApplication.translate("SelectDirectoryDialog", "Ready"))
         layout.addWidget(self.status_label)
 
         self.tree_view = QTreeView()
@@ -28,15 +29,15 @@ class SelectDirectoryDialog(QDialog):
         layout.addWidget(self.tree_view)
 
         btn_layout = QHBoxLayout()
-        up_btn = QPushButton("Up")
+        up_btn = QPushButton(QCoreApplication.translate("SelectDirectoryDialog", "Up"))
         up_btn.clicked.connect(self.go_up)
         btn_layout.addWidget(up_btn)
 
-        select_btn = QPushButton("Select")
+        select_btn = QPushButton(QCoreApplication.translate("SelectDirectoryDialog", "Select"))
         select_btn.clicked.connect(self.accept)
         btn_layout.addWidget(select_btn)
 
-        cancel_btn = QPushButton("Cancel")
+        cancel_btn = QPushButton(QCoreApplication.translate("SelectDirectoryDialog", "Cancel"))
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
@@ -47,15 +48,15 @@ class SelectDirectoryDialog(QDialog):
         if self.adb_handler.device_connected:
             self.refresh()
         else:
-            self.status_label.setText("No ADB device connected")
-            QMessageBox.warning(self, "Connection Error", "No ADB device connected")
+            self.status_label.setText(self.tr("No ADB device connected"))
+            QMessageBox.warning(self, QCoreApplication.translate("SelectDirectoryDialog", "Connection Error"), QCoreApplication.translate("SelectDirectoryDialog", "No ADB device connected"))
 
     def refresh(self):
         if not self.adb_handler.device_connected:
-            self.status_label.setText("No ADB device connected")
+            self.status_label.setText(self.tr("No ADB device connected"))
             return
             
-        self.status_label.setText("Loading directories...")
+        self.status_label.setText(self.tr("Loading directories..."))
         self.tree_model.clear()
         self.tree_model.setHorizontalHeaderLabels(['Name', 'Path'])
 
@@ -71,7 +72,7 @@ class SelectDirectoryDialog(QDialog):
         try:
             files = self.adb_handler.list_directory(self.current_path, use_root=self.use_root)
             if files is None:
-                self.status_label.setText("Failed to load directories")
+                self.status_label.setText(self.tr("Failed to load directories"))
                 return
                 
             dirs = sorted([f for f in files if f.is_dir], key=lambda x: x.name.lower())
@@ -80,9 +81,9 @@ class SelectDirectoryDialog(QDialog):
                 path_item = QStandardItem(d.path)
                 self.tree_model.appendRow([name_item, path_item])
                 
-            self.status_label.setText(f"Found {len(dirs)} directories")
+            self.status_label.setText(self.tr("Found {0} directories").format(len(dirs)))
         except Exception as e:
-            self.status_label.setText(f"Error loading directories: {e}")
+            self.status_label.setText(self.tr("Error loading directories: {0}").format(e))
 
         self.tree_view.setColumnHidden(1, True)
         self.tree_view.resizeColumnToContents(0)
@@ -108,12 +109,12 @@ class SelectDirectoryDialog(QDialog):
 
     def accept(self):
         if not self.adb_handler.device_connected:
-            QMessageBox.warning(self, "Connection Error", "No ADB device connected")
+            QMessageBox.warning(self, QCoreApplication.translate("SelectDirectoryDialog", "Connection Error"), QCoreApplication.translate("SelectDirectoryDialog", "No ADB device connected"))
             return
             
         selection = self.tree_view.selectionModel().selectedRows()
         if not selection:
-            QMessageBox.warning(self, "No Selection", "Please select a folder.")
+            QMessageBox.warning(self, QCoreApplication.translate("SelectDirectoryDialog", "No Selection"), QCoreApplication.translate("SelectDirectoryDialog", "Please select a folder."))
             return
         index = selection[0]
         path_index = self.tree_model.index(index.row(), 1)

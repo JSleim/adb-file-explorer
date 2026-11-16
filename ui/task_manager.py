@@ -10,6 +10,7 @@ from operation_control import (
     clear_current_operation,
     set_current_operation,
 )
+from PyQt6.QtCore import QCoreApplication
 
 _logger = logging.getLogger(__name__)
 
@@ -113,7 +114,7 @@ class TaskRow(QFrame):
         title = QLabel(self.name)
         title.setObjectName("task_title")
         title.setTextFormat(Qt.TextFormat.PlainText)
-        self.status_label = QLabel("Running...")
+        self.status_label = QLabel(QCoreApplication.translate("TaskRow", "Running..."))
         self.status_label.setObjectName("task_status")
         info.addWidget(title)
         info.addWidget(self.status_label)
@@ -134,13 +135,13 @@ class TaskRow(QFrame):
 
     def _on_cancel(self):
         self.cancel_btn.setEnabled(False)
-        self.status_label.setText("Cancelling...")
+        self.status_label.setText(self.tr("Cancelling..."))
         self.task.cancel()
 
     def _on_error(self, message):
         self._failed = True
         self._spinner.setStyleSheet("color: #e53935; font-size: 14px;")
-        self.status_label.setText(f"Error: {message[:40]}")
+        self.status_label.setText(self.tr("Error: {0}").format(message[:40]))
         self.cancel_btn.setVisible(False)
         QTimer.singleShot(4000, lambda: self.removed.emit(self))
 
@@ -160,8 +161,8 @@ class TaskRow(QFrame):
         else:
             status = "Failed"
         msg = QMessageBox(self)
-        msg.setWindowTitle(f"Task: {self.name}")
-        msg.setText(f"Status: {status}")
+        msg.setWindowTitle(self.tr("Task: {0}").format(self.name))
+        msg.setText(self.tr("Status: {0}").format(status))
         detail = f"Name: {self.name}\nResult: {self._result}"
         if self.task.error_message():
             detail += f"\nError: {self.task.error_message()}"
@@ -175,7 +176,7 @@ class TaskRow(QFrame):
         if self.task.is_cancelled():
             self._spinner.setStyleSheet("color: #999; font-size: 14px;")
             self._result = result
-            self.status_label.setText("Cancelled")
+            self.status_label.setText(self.tr("Cancelled"))
             self.cancel_btn.setVisible(False)
             QTimer.singleShot(3000, lambda: self.removed.emit(self))
             return
@@ -208,7 +209,7 @@ class BackgroundTaskManager(QFrame):
         header.setObjectName("task_header")
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(10, 6, 10, 6)
-        title = QLabel("Background Tasks")
+        title = QLabel(QCoreApplication.translate("BackgroundTaskManager", "Background Tasks"))
         title.setObjectName("task_header_title")
         header_layout.addWidget(title)
         header_layout.addStretch()
@@ -231,7 +232,7 @@ class BackgroundTaskManager(QFrame):
         self._task_layout = QVBoxLayout(self._task_container)
         self._task_layout.setContentsMargins(4, 4, 4, 4)
         self._task_layout.setSpacing(6)
-        self._no_tasks_label = QLabel("No background tasks")
+        self._no_tasks_label = QLabel(QCoreApplication.translate("BackgroundTaskManager", "No background tasks"))
         self._no_tasks_label.setObjectName("task_none")
         self._task_layout.addWidget(self._no_tasks_label)
         self._task_layout.addStretch()
