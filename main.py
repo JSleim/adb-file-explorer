@@ -15,7 +15,6 @@ from ui.multi_device_window import MultiDeviceWindow
 
 
 def get_base_dir() -> Path:
-    """Возвращает базовую директорию (учитывает сборку через PyInstaller)."""
     if getattr(sys, 'frozen', False):
         return Path(getattr(sys, '_MEIPASS', Path(sys.executable).parent))
     return Path(__file__).parent
@@ -26,12 +25,10 @@ def get_app_icon_path() -> Path:
 
 
 def setup_translations(app: QApplication, logger: logging.Logger) -> list[QTranslator]:
-    """Автоматически загружает переводы под язык системы, если они доступны."""
     translators = []
     system_locale = QLocale.system()
     logger.info("System locale detected: %s", system_locale.name())
 
-    # 1. Загрузка системного перевода Qt (стандартные кнопки и диалоги)
     qt_translator = QTranslator()
     qt_translations_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
     if qt_translator.load(system_locale, "qtbase", "_", qt_translations_path):
@@ -39,7 +36,6 @@ def setup_translations(app: QApplication, logger: logging.Logger) -> list[QTrans
         translators.append(qt_translator)
         logger.info("Qt base translation loaded for locale: %s", system_locale.name())
 
-    # 2. Загрузка перевода приложения из папки i18n (ищет файлы вида ru_RU.qm или ru.qm)
     app_translator = QTranslator()
     i18n_dir = str(get_base_dir() / "i18n")
     if app_translator.load(system_locale, "", "", i18n_dir):
@@ -59,7 +55,6 @@ def main():
     try:
         app = QApplication(sys.argv)
 
-        # Сохраняем список переводчиков в переменную, чтобы их не удалил сборщик мусора
         translators = setup_translations(app, app_logger)
 
         app.setStyle("Fusion")
