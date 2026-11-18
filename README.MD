@@ -56,24 +56,82 @@ cmake --build cpp/build --config Release
 3. Launch ADB Explorer.
 
 ### Wi-Fi (wireless debugging)
-Connect the device and computer to the same network, enable **Wireless debugging**
-on the device, and pair it using ADB. Then launch ADB Explorer.
+1. Connect the device and computer to the same network.
+2. On the device, enable **Wireless debugging** and tap **Pair device with pairing code**.
+3. On your computer, run:
+   ```bash
+   adb pair <ip>:<pairing-port>
+   ```
+   and enter the pairing code shown on the device.
+4. Then connect using the IP and port shown on the main Wireless debugging screen:
+   ```bash
+   adb connect <ip>:<port>
+   ```
+5. Launch ADB Explorer.
 
 ## Using ADB Explorer
 
-Select files to copy, move, rename, delete, or transfer. Long-running tasks can
-be moved to the background and cancelled. Cancelling an ADB Explorer transfer
-removes a newly created partial destination.
+### Working with files
 
-Use **+ Add Panel** to open another connected device panel, including another
-panel for the same device. Use **+ Add Tab** or press **Ctrl+T** to open a new
-path tab in the active panel. Press **Ctrl+W** to close the active tab.
-The address bar shows clickable path breadcrumbs; click a segment to navigate
-to that folder. Press **Ctrl+L** or select the edit icon to type a path, and
-press **Escape** to return to the breadcrumbs. Long paths scroll to keep the
-current folder visible without widening the window or its device panels.
-In the address bar, type a path and press **Tab** or **Right Arrow** to accept
-a matching folder completion. Suggestions update as you enter nested folders.
+Select files and use the toolbar or right-click menu to copy, move, rename,
+delete, or transfer them. You can drag and drop files and folders in from your
+PC.
+
+Long-running tasks can be sent to the background and cancelled at any time.
+Cancelling a transfer removes any partial file it created at the destination.
+
+### Panels and tabs
+
+- Click **+ Add Panel** to open another connected device panel. You can open a
+  second panel for the same device.
+- Click **+ Add Tab** or press **Ctrl+T** to open a new path tab in the active
+  panel. Press **Ctrl+W** to close it.
+
+### Address bar
+
+The address bar shows clickable breadcrumbs. Click any segment to jump to that
+folder. Long paths scroll to keep the current folder in view, so they never
+widen the window or the device panels.
+
+To type a path instead, press **Ctrl+L** or click the edit icon. Start typing
+and press **Tab** or **Right Arrow** to accept the suggested folder completion.
+Suggestions update as you move into nested folders. Press **Esc** to go back to
+the breadcrumbs.
+
+### Sidebar and favorites
+
+The left pane lists **Favorites** first, followed by common folders under
+**Internal storage**: Downloads, Documents, Pictures, Music, Videos, and Camera.
+
+- Click a folder once to navigate. Collapse groups to keep the sidebar tidy.
+- The sidebar selection follows the active tab.
+- Right-click a folder in the file list to **add it to Favorites**.
+- Right-click a favorite to **edit** (including an optional note) or **remove** it.
+- Right-click a built-in folder in the sidebar to **pin** it.
+- Favorites persist between launches.
+
+When multiple device panels are open, the pane collapses automatically. Use the
+navigation-pane button in a panel header to show it again.
+
+### Keyboard shortcuts
+
+| Shortcut | Action |
+|---|---|
+| Ctrl+T | New tab |
+| Ctrl+W | Close active tab |
+| Ctrl+L | Edit path |
+| Esc | Return to breadcrumbs |
+| Tab / Right Arrow | Accept path completion |
+
+### Where settings are stored
+
+Favorites (`bookmarks.json`) and theme settings (`config.ini`) are saved per
+user in:
+
+- **Windows:** `%APPDATA%\ADB Explorer`
+- **macOS:** `~/Library/Application Support/ADB Explorer`
+- **Linux:** `$XDG_DATA_HOME/ADB Explorer`, or `~/.local/share/ADB Explorer` when
+  `XDG_DATA_HOME` is not set
 
 ## License
 

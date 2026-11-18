@@ -10,43 +10,35 @@ from PyQt6.QtWidgets import (
 
 
 class DeviceChooser(QDialog):
-    def __init__(self, devices, parent=None):
+    def __init__(A, devices, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(self.tr("Open device panels"))
-        self.setObjectName("device_chooser")
-        self.setMinimumWidth(400)
-
-        layout = QVBoxLayout(self)
-
-        label = QLabel(self.tr("Select device panels to open:"))
-        label.setObjectName("chooser_prompt")
-        layout.addWidget(label)
-
-        self.device_list = QListWidget()
-        self.device_list.setObjectName("device_picker")
-        self.device_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
-
-        for serial, model in devices.items():
-            item = QListWidgetItem(f"{model} ({serial})")
-            item.setData(Qt.ItemDataRole.UserRole, serial)
-            self.device_list.addItem(item)
-
-        if self.device_list.count() > 0:
-            self.device_list.setCurrentRow(0)
-
-        layout.addWidget(self.device_list)
-
-        self.button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok |
-            QDialogButtonBox.StandardButton.Cancel
+        A.setWindowTitle(A.tr("Open device panels"))
+        A.setObjectName("device_chooser")
+        A.setMinimumWidth(400)
+        B = QVBoxLayout(A)
+        C = QLabel(A.tr("Select device panels to open:"))
+        C.setObjectName("chooser_prompt")
+        B.addWidget(C)
+        A.device_list = QListWidget()
+        A.device_list.setObjectName("device_picker")
+        A.device_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        for D, F in devices.items():
+            E = QListWidgetItem(f"{F} ({D})")
+            E.setData(Qt.ItemDataRole.UserRole, D)
+            A.device_list.addItem(E)
+        if A.device_list.count() > 0:
+            A.device_list.setCurrentRow(0)
+        B.addWidget(A.device_list)
+        A.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-        layout.addWidget(self.button_box)
+        A.button_box.accepted.connect(A.accept)
+        A.button_box.rejected.connect(A.reject)
+        B.addWidget(A.button_box)
 
-    def selected_devices(self):
-        return [item.data(Qt.ItemDataRole.UserRole) for item in self.device_list.selectedItems()]
-    def selected_device(self):
-        if self.device_list.currentItem():
-            return self.device_list.currentItem().data(Qt.ItemDataRole.UserRole)
-        return None
+    def selected_devices(A):
+        return [A.data(Qt.ItemDataRole.UserRole) for A in A.device_list.selectedItems()]
+
+    def selected_device(A):
+        if A.device_list.currentItem():
+            return A.device_list.currentItem().data(Qt.ItemDataRole.UserRole)

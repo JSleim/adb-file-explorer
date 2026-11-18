@@ -1,36 +1,83 @@
-import os
-import re
-import subprocess
-import sys
-import tempfile
-import uuid
+_A4 = "This folder is already in favorites"
+_A3 = "Could not load favorites: {0}"
+_A2 = "Hide navigation pane"
+_A1 = "Documents"
+_A0 = "ScrollRightButton"
+_z = "Import cancelled"
+_y = "Create failed"
+_x = "Created '{0}'"
+_w = "Delete '{0}'?"
+_v = "Delete folder '{0}' and all of its contents, including subfolders?"
+_u = "Failed to copy {0}"
+_t = "Add to favorites"
+_s = "New Folder"
+_r = "New File"
+_q = "is_dir"
+_p = "_position_task_manager"
+_o = "color: red; font-size: 10px; padding: 0 8px 2px 8px;"
+_n = "Close device panel"
+_m = "Close this device panel"
+_l = "panel_close_btn"
+_k = "device_header"
+_j = "panel_header"
+_i = "right"
+_h = "left"
+_g = "ScrollLeftButton"
+_f = "cancel"
+_e = "Copy"
+_d = "File"
+_c = "Modified"
+_b = "Permissions"
+_a = "Size"
+_Z = "Type"
+_Y = "color: green; font-size: 10px; padding: 0 8px 2px 8px;"
+_X = "🔴 Disconnected"
+_W = "🟢 Connected"
+_V = "folder"
+_U = "existing_names_by_directory"
+_T = "directories"
+_S = "files"
+_R = "Delete"
+_Q = "Rename"
+_P = "task_manager"
+_O = "Name"
+_N = "/storage/emulated/0"
+_M = "favorite"
+_L = "note"
+_K = "operation"
+_J = "kind"
+_I = "Directory"
+_H = "name"
+_G = ".."
+_F = "items"
+_E = "path"
+_D = True
+_C = False
+_B = "/"
+_A = None
+import os, re, subprocess, sys, tempfile, uuid, logging
 from datetime import datetime
-
 from PyQt6.QtCore import (
     QCoreApplication,
     QEvent,
     QFileInfo,
+    QItemSelectionModel,
+    QPoint,
     QSize,
     QStringListModel,
     Qt,
     QTimer,
     pyqtSignal,
 )
-from PyQt6.QtGui import (
-    QKeySequence,
-    QPainter,
-    QPen,
-    QShortcut,
-    QStandardItem,
-    QStandardItemModel,
-)
 from PyQt6.QtWidgets import (
     QApplication,
     QCheckBox,
     QCompleter,
     QDialog,
+    QDialogButtonBox,
     QFileDialog,
     QFileIconProvider,
+    QFormLayout,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -41,6 +88,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QSplitter,
     QStackedWidget,
     QStyle,
     QStyleOptionButton,
@@ -48,11 +96,21 @@ from PyQt6.QtWidgets import (
     QTabWidget,
     QToolButton,
     QTreeView,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
-
+from PyQt6.QtGui import (
+    QKeySequence,
+    QPainter,
+    QPen,
+    QShortcut,
+    QStandardItem,
+    QStandardItemModel,
+)
 from handler import ADBHandler
+from ui.bookmarks import BookmarkStore
 from operation_control import is_cancelled
 from ui.task_manager import WorkerThread
 from ui.widgets import DropTreeView
@@ -64,359 +122,359 @@ from ui.windows_drag import (
     wait_for_windows_drag,
 )
 
+_logger = logging.getLogger(__name__)
+
 
 def _natural_sort_key(value):
     return tuple(
-        (1, int(part)) if part.isdigit() else (0, part)
-        for part in re.split(r"([0-9]+)", value.casefold())
+        (1, int(A)) if A.isdigit() else (0, A)
+        for A in re.split("([0-9]+)", value.casefold())
     )
 
 
 class SortableStandardItem(QStandardItem):
-    def __lt__(self, other):
-        value = self.data(Qt.ItemDataRole.UserRole)
-        other_value = other.data(Qt.ItemDataRole.UserRole)
-        if value is not None and other_value is not None:
-            return value < other_value
-        return _natural_sort_key(self.text()) < _natural_sort_key(other.text())
+    def __lt__(A, other):
+        B = other
+        C = A.data(Qt.ItemDataRole.UserRole)
+        D = B.data(Qt.ItemDataRole.UserRole)
+        if C is not _A and D is not _A:
+            return C < D
+        return _natural_sort_key(A.text()) < _natural_sort_key(B.text())
 
 
 class ApplyToAllCheckBox(QCheckBox):
-    def paintEvent(self, event):
+    def paintEvent(C, event):
         super().paintEvent(event)
-        if not self.isChecked():
+        if not C.isChecked():
             return
-
-        option = QStyleOptionButton()
-        self.initStyleOption(option)
-        indicator = self.style().subElementRect(
-            QStyle.SubElement.SE_CheckBoxIndicator, option, self
+        E = QStyleOptionButton()
+        C.initStyleOption(E)
+        A = C.style().subElementRect(QStyle.SubElement.SE_CheckBoxIndicator, E, C)
+        if not A.isValid():
+            return
+        F = A.left() + 4, A.top() + 8
+        D = A.left() + 7, A.top() + 11
+        G = A.left() + 12, A.top() + 5
+        B = QPainter(C)
+        B.setRenderHint(QPainter.RenderHint.Antialiasing)
+        B.setPen(
+            QPen(
+                Qt.GlobalColor.black,
+                3,
+                Qt.PenStyle.SolidLine,
+                Qt.PenCapStyle.RoundCap,
+                Qt.PenJoinStyle.RoundJoin,
+            )
         )
-        if not indicator.isValid():
-            return
-
-        start = (indicator.left() + 4, indicator.top() + 8)
-        middle = (indicator.left() + 7, indicator.top() + 11)
-        end = (indicator.left() + 12, indicator.top() + 5)
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setPen(QPen(
-            Qt.GlobalColor.black, 3, Qt.PenStyle.SolidLine,
-            Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin,
-        ))
-        painter.drawLine(*start, *middle)
-        painter.drawLine(*middle, *end)
-        painter.setPen(QPen(
-            Qt.GlobalColor.white, 1.5, Qt.PenStyle.SolidLine,
-            Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin,
-        ))
-        painter.drawLine(*start, *middle)
-        painter.drawLine(*middle, *end)
+        B.drawLine(*F, *D)
+        B.drawLine(*D, *G)
+        B.setPen(
+            QPen(
+                Qt.GlobalColor.white,
+                1.5,
+                Qt.PenStyle.SolidLine,
+                Qt.PenCapStyle.RoundCap,
+                Qt.PenJoinStyle.RoundJoin,
+            )
+        )
+        B.drawLine(*F, *D)
+        B.drawLine(*D, *G)
 
 
 class PathBreadcrumbs(QWidget):
-    def __init__(self, panel):
-        super().__init__(panel)
-        self._panel = panel
-        self._layout = QHBoxLayout(self)
-        self._layout.setContentsMargins(2, 0, 2, 0)
-        self._layout.setSpacing(4)
-        self._scroll_area = QScrollArea(self)
-        self._scroll_area.setObjectName("path_breadcrumb_scroll")
-        self._scroll_area.setWidgetResizable(False)
-        self._scroll_area.viewport().setObjectName("path_breadcrumb_viewport")
-        self._scroll_area.setHorizontalScrollBarPolicy(
+    def __init__(A, panel):
+        C = "Edit path"
+        B = panel
+        super().__init__(B)
+        A._panel = B
+        A._layout = QHBoxLayout(A)
+        A._layout.setContentsMargins(2, 0, 2, 0)
+        A._layout.setSpacing(4)
+        A._scroll_area = QScrollArea(A)
+        A._scroll_area.setObjectName("path_breadcrumb_scroll")
+        A._scroll_area.setWidgetResizable(_C)
+        A._scroll_area.viewport().setObjectName("path_breadcrumb_viewport")
+        A._scroll_area.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
         )
-        self._scroll_area.setVerticalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        self._scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
-        self._scroll_area.setMinimumWidth(0)
-        self._scroll_area.setSizePolicy(
+        A._scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        A._scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
+        A._scroll_area.setMinimumWidth(0)
+        A._scroll_area.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
-        self._scroll_area.setFixedHeight(24)
-        self._content = QWidget()
-        self._content.setObjectName("path_breadcrumb_content")
-        self._content_layout = QHBoxLayout(self._content)
-        self._content_layout.setContentsMargins(0, 0, 0, 0)
-        self._content_layout.setSpacing(0)
-        self._scroll_area.setWidget(self._content)
-        self._scroll_area.horizontalScrollBar().rangeChanged.connect(
-            lambda _minimum, _maximum: self._scroll_to_end()
+        A._scroll_area.setFixedHeight(24)
+        A._content = QWidget()
+        A._content.setObjectName("path_breadcrumb_content")
+        A._content_layout = QHBoxLayout(A._content)
+        A._content_layout.setContentsMargins(0, 0, 0, 0)
+        A._content_layout.setSpacing(0)
+        A._scroll_area.setWidget(A._content)
+        A._scroll_area.horizontalScrollBar().rangeChanged.connect(
+            lambda _minimum, _maximum: A._scroll_to_end()
         )
-        self._layout.addWidget(self._scroll_area, 1)
-        self._edit_button = QToolButton(self)
-        self._edit_button.setObjectName("path_breadcrumb_edit")
-        self._edit_button.setText("✎")
-        self._edit_button.setToolTip(self.tr("Edit path"))
-        self._edit_button.setAccessibleName(self.tr("Edit path"))
-        self._edit_button.setAutoRaise(True)
-        self._edit_button.clicked.connect(panel.focus_address_bar)
-        self._layout.addWidget(self._edit_button)
-        self.setMinimumWidth(0)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.set_path(panel.current_path)
+        A._layout.addWidget(A._scroll_area, 1)
+        A._edit_button = QToolButton(A)
+        A._edit_button.setObjectName("path_breadcrumb_edit")
+        A._edit_button.setText("✎")
+        A._edit_button.setToolTip(A.tr(C))
+        A._edit_button.setAccessibleName(A.tr(C))
+        A._edit_button.setAutoRaise(_D)
+        A._edit_button.clicked.connect(B.focus_address_bar)
+        A._layout.addWidget(A._edit_button)
+        A.setMinimumWidth(0)
+        A.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        A.set_path(B.current_path)
 
-    def sizeHint(self):
+    def sizeHint(A):
         return QSize(180, 24)
 
-    def minimumSizeHint(self):
+    def minimumSizeHint(A):
         return QSize(0, 24)
 
-    def set_path(self, path):
-        self._content.setMinimumSize(0, 0)
-        while self._content_layout.count():
-            item = self._content_layout.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
-
-        parts = [part for part in path.split("/") if part]
-        segments = [("/", "/")]
-        current_path = ""
-        for part in parts:
-            current_path += f"/{part}"
-            segments.append((part, current_path))
-
-        for index, (label, target) in enumerate(segments):
-            if index:
-                separator = QLabel("›", self)
-                separator.setObjectName("path_breadcrumb_separator")
-                self._content_layout.addWidget(separator)
-
-            button = QToolButton(self)
-            button.setObjectName(
+    def set_path(A, path):
+        A._content.setMinimumSize(0, 0)
+        while A._content_layout.count():
+            J = A._content_layout.takeAt(0)
+            E = J.widget()
+            if E is not _A:
+                E.deleteLater()
+        K = [A for A in path.split(_B) if A]
+        C = [(_B, _B)]
+        F = ""
+        for G in K:
+            F += f"/{G}"
+            C.append((G, F))
+        for H, (L, D) in enumerate(C):
+            if H:
+                I = QLabel("›", A)
+                I.setObjectName("path_breadcrumb_separator")
+                A._content_layout.addWidget(I)
+            B = QToolButton(A)
+            B.setObjectName(
                 "path_breadcrumb_current"
-                if index == len(segments) - 1
+                if H == len(C) - 1
                 else "path_breadcrumb_segment"
             )
-            button.setText(label)
-            button.setToolTip(target)
-            button.setAccessibleName(self.tr("Navigate to {0}").format(target))
-            button.setAutoRaise(True)
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.clicked.connect(
-                lambda _checked=False, destination=target:
-                self._panel.navigate_to(destination)
+            B.setText(L)
+            B.setToolTip(D)
+            B.setAccessibleName(A.tr("Navigate to {0}").format(D))
+            B.setAutoRaise(_D)
+            B.setCursor(Qt.CursorShape.PointingHandCursor)
+            B.clicked.connect(
+                lambda _checked=_C, destination=D: A._panel.navigate_to(destination)
             )
-            self._content_layout.addWidget(button)
+            A._content_layout.addWidget(B)
+        QTimer.singleShot(0, A._update_content_size)
 
-        QTimer.singleShot(0, self._update_content_size)
+    def _update_content_size(A):
+        A._content_layout.activate()
+        B = A._content_layout.sizeHint()
+        A._content.setMinimumSize(B)
+        A._content.resize(B)
+        A._content.updateGeometry()
+        A._scroll_to_end()
 
-    def _update_content_size(self):
-        self._content_layout.activate()
-        content_size = self._content_layout.sizeHint()
-        self._content.setMinimumSize(content_size)
-        self._content.resize(content_size)
-        self._content.updateGeometry()
-        self._scroll_to_end()
-
-    def _scroll_to_end(self):
-        scrollbar = self._scroll_area.horizontalScrollBar()
-        scrollbar.setValue(scrollbar.maximum())
+    def _scroll_to_end(B):
+        A = B._scroll_area.horizontalScrollBar()
+        A.setValue(A.maximum())
 
 
 class PathInput(QLineEdit):
-
-    def __init__(self, panel):
+    def __init__(A, panel):
         super().__init__()
-        self._panel = panel
-        self._completion_model = QStringListModel(self)
-        self._completer = QCompleter(self._completion_model, self)
-        self._completion_paths = set()
-        self._loaded_completion_paths = set()
-        self._requested_completion_paths = set()
-        self._completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        self._completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
-        self._completer.setFilterMode(Qt.MatchFlag.MatchStartsWith)
-        self._completer.activated.connect(self._accept_completion)
-        self._completer.popup().setObjectName("path_completion_popup")
-        self.setCompleter(self._completer)
-        self.installEventFilter(self)
-        self.textEdited.connect(self._show_completions)
-        self.returnPressed.connect(self._navigate)
+        A._panel = panel
+        A._completion_model = QStringListModel(A)
+        A._completer = QCompleter(A._completion_model, A)
+        A._completion_paths = set()
+        A._loaded_completion_paths = set()
+        A._requested_completion_paths = set()
+        A._completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        A._completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        A._completer.setFilterMode(Qt.MatchFlag.MatchStartsWith)
+        A._completer.activated.connect(A._accept_completion)
+        A._completer.popup().setObjectName("path_completion_popup")
+        A.setCompleter(A._completer)
+        A.installEventFilter(A)
+        A.textEdited.connect(A._show_completions)
+        A.returnPressed.connect(A._navigate)
 
-    def update_completions(self, items):
-        current_path = self._panel.current_path.rstrip("/") or "/"
-        self._loaded_completion_paths.add(current_path)
-        parts = [part for part in current_path.split("/") if part]
-        self._completion_paths.update({
-            "/" + "/".join(parts[:index]) + "/"
-            for index in range(1, len(parts) + 1)
-        })
-        self.add_directory_completions(current_path, items)
-
-    def add_directory_completions(self, path, items):
-        base_path = path.rstrip("/")
-        self._loaded_completion_paths.add(base_path or "/")
-        self._completion_paths.update(
-            f"{base_path}/{item.name}/"
-            for item in (items or [])
-            if item.is_dir and item.name != ".."
+    def update_completions(A, items):
+        B = A._panel.current_path.rstrip(_B) or _B
+        A._loaded_completion_paths.add(B)
+        C = [A for A in B.split(_B) if A]
+        A._completion_paths.update(
+            {_B + _B.join(C[:A]) + _B for A in range(1, len(C) + 1)}
         )
-        self._completion_model.setStringList(sorted(self._completion_paths))
+        A.add_directory_completions(B, items)
 
-    def _request_directory_completions(self, path):
-        path = path.rstrip("/") or "/"
+    def add_directory_completions(A, path, items):
+        B = path.rstrip(_B)
+        A._loaded_completion_paths.add(B or _B)
+        A._completion_paths.update(
+            f"{B}/{A.name}/" for A in items or [] if A.is_dir and A.name != _G
+        )
+        A._completion_model.setStringList(sorted(A._completion_paths))
+
+    def _request_directory_completions(A, path):
+        B = path
+        B = B.rstrip(_B) or _B
         if (
-            path in self._loaded_completion_paths
-            or path in self._requested_completion_paths
-            or not self._panel.adb_handler.device_connected
+            B in A._loaded_completion_paths
+            or B in A._requested_completion_paths
+            or not A._panel.adb_handler.device_connected
         ):
             return
-
-        self._requested_completion_paths.add(path)
-        task = WorkerThread(
-            self.tr("Complete path {0}").format(path),
-            self._panel.adb_handler.list_directory,
-            path,
-            self._panel.use_root,
+        A._requested_completion_paths.add(B)
+        C = WorkerThread(
+            A.tr("Complete path {0}").format(B),
+            A._panel.adb_handler.list_directory,
+            B,
+            A._panel.use_root,
         )
-        self._panel._path_completion_tasks.add(task)
+        A._panel._path_completion_tasks.add(C)
 
-        def on_items(items):
-            self._requested_completion_paths.discard(path)
-            if self._panel._closing:
+        def D(items):
+            C = items
+            A._requested_completion_paths.discard(B)
+            if A._panel._closing:
                 return
-            if items is None:
-                self._panel.status_label.setText(
-                    self.tr("Failed to load path suggestions for {0}").format(path)
+            if C is _A:
+                A._panel.status_label.setText(
+                    A.tr("Failed to load path suggestions for {0}").format(B)
                 )
                 return
-            self.add_directory_completions(path, items)
-            input_path = self.text()
-            if input_path.startswith(f"{path.rstrip('/')}/"):
-                self._completer.setCompletionPrefix(input_path)
-                self._completer.complete()
+            A.add_directory_completions(B, C)
+            D = A.text()
+            if D.startswith(f"{B.rstrip(_B)}/"):
+                A._completer.setCompletionPrefix(D)
+                A._completer.complete()
 
-        task.finished_signal.connect(on_items)
-        task.error_signal.connect(
-            lambda error: self._panel.status_label.setText(
-                self.tr("Path suggestions failed: {0}").format(error)
+        C.finished_signal.connect(D)
+        C.error_signal.connect(
+            lambda error: A._panel.status_label.setText(
+                A.tr("Path suggestions failed: {0}").format(error)
             )
         )
 
-        def on_task_finished():
-            self._panel._path_completion_tasks.discard(task)
-            self._panel._delete_after_background_tasks()
+        def E():
+            A._panel._path_completion_tasks.discard(C)
+            A._panel._delete_after_background_tasks()
 
-        task.finished.connect(on_task_finished)
-        task.start()
+        C.finished.connect(E)
+        C.start()
 
-    def _show_completions(self, text):
-        if not text:
-            self._completer.popup().hide()
+    def _show_completions(A, text):
+        B = text
+        if not B:
+            A._completer.popup().hide()
             return
-        if text.endswith("/"):
-            self._request_directory_completions(text)
-        self._completer.setCompletionPrefix(text)
-        self._completer.complete()
+        if B.endswith(_B):
+            A._request_directory_completions(B)
+        A._completer.setCompletionPrefix(B)
+        A._completer.complete()
 
-    def _accept_completion(self, completion):
-        self.setText(completion)
-        self.setCursorPosition(len(completion))
-        self._completer.popup().hide()
-        self._request_directory_completions(completion)
+    def _accept_completion(A, completion):
+        B = completion
+        A.setText(B)
+        A.setCursorPosition(len(B))
+        A._completer.popup().hide()
+        A._request_directory_completions(B)
 
-    def _try_accept_completion(self):
-        self._completer.setCompletionPrefix(self.text())
-        self._completer.setCurrentRow(0)
-        completion = self._completer.currentCompletion()
-        if not completion:
-            return False
-        self._accept_completion(completion)
-        return True
+    def _try_accept_completion(A):
+        A._completer.setCompletionPrefix(A.text())
+        A._completer.setCurrentRow(0)
+        B = A._completer.currentCompletion()
+        if not B:
+            return _C
+        A._accept_completion(B)
+        return _D
 
-    def eventFilter(self, watched, event):
+    def eventFilter(B, watched, event):
+        C = watched
+        A = event
         if (
-            watched is self
-            and event.type() == QEvent.Type.KeyPress
-            and event.key() in (Qt.Key.Key_Tab, Qt.Key.Key_Right)
-            and (event.key() == Qt.Key.Key_Tab or self.cursorPosition() == len(self.text()))
-            and self._try_accept_completion()
+            C is B
+            and A.type() == QEvent.Type.KeyPress
+            and A.key() in (Qt.Key.Key_Tab, Qt.Key.Key_Right)
+            and (A.key() == Qt.Key.Key_Tab or B.cursorPosition() == len(B.text()))
+            and B._try_accept_completion()
         ):
-            event.accept()
-            return True
-        return super().eventFilter(watched, event)
+            A.accept()
+            return _D
+        return super().eventFilter(C, A)
 
-    def keyPressEvent(self, event):
-        key = event.key()
-        if key == Qt.Key.Key_Escape:
-            self.setText(self._panel.current_path)
-            self._panel.show_breadcrumbs()
-            event.accept()
+    def keyPressEvent(A, event):
+        B = event
+        C = B.key()
+        if C == Qt.Key.Key_Escape:
+            A.setText(A._panel.current_path)
+            A._panel.show_breadcrumbs()
+            B.accept()
             return
-
         if (
-            (key == Qt.Key.Key_Tab or (key == Qt.Key.Key_Right and self.cursorPosition() == len(self.text())))
-            and self._try_accept_completion()
-        ):
-            event.accept()
+            C == Qt.Key.Key_Tab
+            or C == Qt.Key.Key_Right
+            and A.cursorPosition() == len(A.text())
+        ) and A._try_accept_completion():
+            B.accept()
             return
+        super().keyPressEvent(B)
 
-        super().keyPressEvent(event)
-
-    def _navigate(self):
-        text = self.text().strip()
-        if not text:
+    def _navigate(A):
+        B = A.text().strip()
+        if not B:
             return
-        
-        if text.startswith("/"):
-            target = text
+        if B.startswith(_B):
+            C = B
         else:
-            target = f"{self._panel.current_path.rstrip('/')}/{text}"
-        self._panel.navigate_to(target)
-        self._panel.show_breadcrumbs()
+            C = f"{A._panel.current_path.rstrip(_B)}/{B}"
+        A._panel.navigate_to(C)
+        A._panel.show_breadcrumbs()
 
 
 class DevicePanel(QWidget):
-
     cross_device_drop = pyqtSignal(str, list, str)
+    favorite_requested = pyqtSignal(str, str)
     close_requested = pyqtSignal()
     path_changed = pyqtSignal(str)
 
     def __init__(
-        self, parent, adb_handler, device_info=None, start_path=None,
-        compact_header=False, clipboard=None,
+        A,
+        parent,
+        adb_handler,
+        device_info=_A,
+        start_path=_A,
+        compact_header=_C,
+        clipboard=_A,
     ):
+        B = clipboard
         super().__init__(parent)
-        self.adb_handler = adb_handler
-        self.device_info = device_info or {}
-        
-        self.clipboard = clipboard if clipboard is not None else {
-            'items': [], 'operation': None,
-        }
-
-        
-        self.use_root = False
-        self._loading = False
-        self._refresh_pending = False
-        self._refresh_task = None
-        self._path_completion_tasks = set()
-        self._close_wait_tasks = set()
-        self._closing = False
-
-        
-        self._icon_provider = QFileIconProvider()
-        self._folder_icon = self._icon_provider.icon(QFileIconProvider.IconType.Folder)
-        self._file_icon = self._icon_provider.icon(QFileIconProvider.IconType.File)
-        self._icon_cache = {}
-
-        
-        self.root_path = "/"
-        self.current_path = start_path or "/storage/emulated/0"
-        self.path_history = [self.current_path]
-        self._history_index = 0
-        self.all_files = []
-
-        self._setup_ui()
-        self._setup_context_menu()
+        A.adb_handler = adb_handler
+        A.device_info = device_info or {}
+        A.clipboard = B if B is not _A else {_F: [], _K: _A}
+        A.use_root = _C
+        A._loading = _C
+        A._refresh_pending = _C
+        A._refresh_task = _A
+        A._path_completion_tasks = set()
+        A._close_wait_tasks = set()
+        A._closing = _C
+        A._icon_provider = QFileIconProvider()
+        A._folder_icon = A._icon_provider.icon(QFileIconProvider.IconType.Folder)
+        A._file_icon = A._icon_provider.icon(QFileIconProvider.IconType.File)
+        A._icon_cache = {}
+        A.root_path = _B
+        A.current_path = start_path or _N
+        A.path_history = [A.current_path]
+        A._history_index = 0
+        A.all_files = []
+        A._setup_ui()
+        A._setup_context_menu()
         if compact_header:
-            self.device_header.parentWidget().hide()
-            self.conn_label.hide()
-        self.update_path_display()
+            A.device_header.parentWidget().hide()
+            A.conn_label.hide()
+        A.update_path_display()
 
     @property
     def device_serial(self):
@@ -424,1518 +482,1800 @@ class DevicePanel(QWidget):
 
     @property
     def device_name(self):
-        serial = self.device_serial
-        model = self.device_info.get("model") or self.adb_handler.devices.get(serial, "")
-        return model or serial
+        A = self
+        B = A.device_serial
+        C = A.device_info.get("model") or A.adb_handler.devices.get(B, "")
+        return C or B
 
-    
-
-    def _setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
-
-        
-        header_container = QWidget()
-        header_container.setObjectName("panel_header")
-        header_layout = QHBoxLayout(header_container)
-        header_layout.setContentsMargins(6, 2, 4, 2)
-        self.device_header = QLabel(self.device_name)
-        self.device_header.setObjectName("device_header")
-        header_layout.addWidget(self.device_header)
-        header_layout.addStretch()
-        self.close_btn = QPushButton("X")
-        self.close_btn.setObjectName("panel_close_btn")
-        self.close_btn.setToolTip(self.tr("Close this device panel"))
-        self.close_btn.setAccessibleName(self.tr("Close device panel"))
-        self.close_btn.setFixedSize(24, 24)
-        self.close_btn.clicked.connect(self.close_requested.emit)
-        header_layout.addWidget(self.close_btn)
-        layout.addWidget(header_container)
-
-        
-        self.conn_label = QLabel(self.tr("🟢 Connected") if self.adb_handler.device_connected else self.tr("🔴 Disconnected"))
-        self.conn_label.setStyleSheet("color: green; font-size: 10px; padding: 0 8px 2px 8px;")
-        layout.addWidget(self.conn_label)
-
-        
-        nav_layout = QHBoxLayout()
-        nav_layout.setSpacing(4)
-
-        self.back_btn = QPushButton("<")
-        self.back_btn.setMaximumWidth(36)
-        self.back_btn.setObjectName("back_btn")
-        self.back_btn.clicked.connect(self.go_back)
-        nav_layout.addWidget(self.back_btn)
-
-        self.up_btn = QPushButton("^")
-        self.up_btn.setMaximumWidth(36)
-        self.up_btn.setObjectName("up_btn")
-        self.up_btn.clicked.connect(self.go_up)
-        nav_layout.addWidget(self.up_btn)
-
-        self.path_display = PathInput(self)
-        self.path_display.setObjectName("path_display")
-        self.path_breadcrumbs = PathBreadcrumbs(self)
-        self.path_stack = QStackedWidget()
-        self.path_stack.setObjectName("path_stack")
-        self.path_stack.addWidget(self.path_breadcrumbs)
-        self.path_stack.addWidget(self.path_display)
-        self.path_stack.setSizePolicy(
+    def _setup_ui(A):
+        J = "font-size: 10px; color: #888; padding: 0 4px;"
+        B = QVBoxLayout(A)
+        B.setContentsMargins(0, 0, 0, 0)
+        B.setSpacing(2)
+        H = QWidget()
+        H.setObjectName(_j)
+        E = QHBoxLayout(H)
+        E.setContentsMargins(6, 2, 4, 2)
+        A.device_header = QLabel(A.device_name)
+        A.device_header.setObjectName(_k)
+        E.addWidget(A.device_header)
+        E.addStretch()
+        A.close_btn = QPushButton("X")
+        A.close_btn.setObjectName(_l)
+        A.close_btn.setToolTip(A.tr(_m))
+        A.close_btn.setAccessibleName(A.tr(_n))
+        A.close_btn.setFixedSize(24, 24)
+        A.close_btn.clicked.connect(A.close_requested.emit)
+        E.addWidget(A.close_btn)
+        B.addWidget(H)
+        A.conn_label = QLabel(A.tr(_W) if A.adb_handler.device_connected else A.tr(_X))
+        A.conn_label.setStyleSheet(_Y)
+        B.addWidget(A.conn_label)
+        C = QHBoxLayout()
+        C.setSpacing(4)
+        A.back_btn = QPushButton("<")
+        A.back_btn.setMaximumWidth(36)
+        A.back_btn.setObjectName("back_btn")
+        A.back_btn.clicked.connect(A.go_back)
+        C.addWidget(A.back_btn)
+        A.up_btn = QPushButton("^")
+        A.up_btn.setMaximumWidth(36)
+        A.up_btn.setObjectName("up_btn")
+        A.up_btn.clicked.connect(A.go_up)
+        C.addWidget(A.up_btn)
+        A.path_display = PathInput(A)
+        A.path_display.setObjectName("path_display")
+        A.path_breadcrumbs = PathBreadcrumbs(A)
+        A.path_stack = QStackedWidget()
+        A.path_stack.setObjectName("path_stack")
+        A.path_stack.addWidget(A.path_breadcrumbs)
+        A.path_stack.addWidget(A.path_display)
+        A.path_stack.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
-        self.path_stack.setCurrentWidget(self.path_breadcrumbs)
-        nav_layout.addWidget(self.path_stack)
-
-        refresh_btn = QPushButton("↻")
-        refresh_btn.setMaximumWidth(32)
-        refresh_btn.clicked.connect(self.refresh_files)
-        nav_layout.addWidget(refresh_btn)
-
-        nav_container = QWidget()
-        nav_container.setObjectName("panel_nav")
-        nav_container.setSizePolicy(
-            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
+        A.path_stack.setCurrentWidget(A.path_breadcrumbs)
+        C.addWidget(A.path_stack)
+        I = QPushButton("↻")
+        I.setMaximumWidth(32)
+        I.clicked.connect(A.refresh_files)
+        C.addWidget(I)
+        F = QWidget()
+        F.setObjectName("panel_nav")
+        F.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        F.setLayout(C)
+        B.addWidget(F)
+        A.search_bar = QLineEdit()
+        A.search_bar.setPlaceholderText(A.tr("Filter files"))
+        A.search_bar.setObjectName("search_bar")
+        A.search_bar.textChanged.connect(A.apply_search_filter)
+        B.addWidget(A.search_bar)
+        A.tree_view = DropTreeView(A, A)
+        A.tree_model = QStandardItemModel()
+        A.tree_model.setHorizontalHeaderLabels(
+            [A.tr(_O), A.tr(_Z), A.tr(_a), A.tr(_b), A.tr(_c)]
         )
-        nav_container.setLayout(nav_layout)
-        layout.addWidget(nav_container)
-
-        
-        self.search_bar = QLineEdit()
-        self.search_bar.setPlaceholderText(self.tr("Filter files"))
-        self.search_bar.setObjectName("search_bar")
-        self.search_bar.textChanged.connect(self.apply_search_filter)
-        layout.addWidget(self.search_bar)
-
-        
-        self.tree_view = DropTreeView(self, self)
-        self.tree_model = QStandardItemModel()
-        self.tree_model.setHorizontalHeaderLabels([self.tr('Name'), self.tr('Type'), self.tr('Size'), self.tr('Permissions'), self.tr('Modified')])
-        self.tree_view.setModel(self.tree_model)
-        self.tree_view.selectionModel().selectionChanged.connect(
-            self.update_selection_count
-        )
-        self.tree_view.setSelectionMode(QTreeView.SelectionMode.ExtendedSelection)
-        self.tree_view.setSortingEnabled(True)
-        header = self.tree_view.header()
-        header.setStretchLastSection(False)
-        header.setSectionResizeMode(0, header.ResizeMode.Stretch)
-        for col in (1, 2, 3, 4):
-            header.setSectionResizeMode(col, header.ResizeMode.ResizeToContents)
-        self.tree_view.doubleClicked.connect(self.handle_double_click)
-        self.tree_view.activated.connect(self.handle_double_click)
-        self._setup_shortcuts()
-        layout.addWidget(self.tree_view)
-
-        
-        self.status_label = QLabel(self.tr( "Ready"))
-        self.status_label.setStyleSheet("font-size: 10px; color: #888; padding: 0 4px;")
-        self.selection_count_label = QLabel(self.tr( "0 items selected"))
-        self.selection_count_label.setObjectName("selection_count_label")
-        self.selection_count_label.setStyleSheet(
-            "font-size: 10px; color: #888; padding: 0 4px;"
-        )
-        status_layout = QHBoxLayout()
-        status_layout.addWidget(self.status_label)
-        status_layout.addStretch()
-        status_layout.addWidget(self.selection_count_label)
-        layout.addLayout(status_layout)
-
-        if self.adb_handler.device_connected:
-            self.refresh_files()
+        A.tree_view.setModel(A.tree_model)
+        A.tree_view.selectionModel().selectionChanged.connect(A.update_selection_count)
+        A.tree_view.setSelectionMode(QTreeView.SelectionMode.ExtendedSelection)
+        A.tree_view.setSortingEnabled(_D)
+        D = A.tree_view.header()
+        D.setStretchLastSection(_C)
+        D.setSectionResizeMode(0, D.ResizeMode.Stretch)
+        for K in (1, 2, 3, 4):
+            D.setSectionResizeMode(K, D.ResizeMode.ResizeToContents)
+        A.tree_view.doubleClicked.connect(A.handle_double_click)
+        A.tree_view.activated.connect(A.handle_double_click)
+        A._setup_shortcuts()
+        B.addWidget(A.tree_view)
+        A.status_label = QLabel(A.tr("Ready"))
+        A.status_label.setStyleSheet(J)
+        A.selection_count_label = QLabel(A.tr("0 items selected"))
+        A.selection_count_label.setObjectName("selection_count_label")
+        A.selection_count_label.setStyleSheet(J)
+        G = QHBoxLayout()
+        G.addWidget(A.status_label)
+        G.addStretch()
+        G.addWidget(A.selection_count_label)
+        B.addLayout(G)
+        if A.adb_handler.device_connected:
+            A.refresh_files()
         else:
-            self.status_label.setText(self.tr("No ADB device connected"))
+            A.status_label.setText(A.tr("No ADB device connected"))
 
-    def _setup_context_menu(self):
-        self.tree_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tree_view.customContextMenuRequested.connect(self.show_context_menu)
+    def _setup_context_menu(A):
+        A.tree_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        A.tree_view.customContextMenuRequested.connect(A.show_context_menu)
 
-    def _setup_shortcuts(self):
-        self._shortcuts = []
-        bindings = (
-            (QKeySequence.StandardKey.Copy, self.copy_selected),
-            (QKeySequence.StandardKey.Cut, self.cut_selected),
-            (QKeySequence.StandardKey.Paste, self.paste_items),
-            (QKeySequence(Qt.Key.Key_Delete), self._shortcut_delete),
-            (QKeySequence(Qt.Key.Key_F2), self._shortcut_rename),
-            (QKeySequence("Alt+Left"), self.go_back),
-            (QKeySequence("Alt+Right"), self.go_forward),
-            (QKeySequence("Alt+Up"), self.go_up),
-            (QKeySequence(Qt.Key.Key_F5), self.refresh_files),
-            (QKeySequence("Ctrl+F"), self.focus_filter),
-            (QKeySequence("Ctrl+L"), self.focus_address_bar),
+    def _setup_shortcuts(A):
+        A._shortcuts = []
+        D = (
+            (QKeySequence.StandardKey.Copy, A.copy_selected),
+            (QKeySequence.StandardKey.Cut, A.cut_selected),
+            (QKeySequence.StandardKey.Paste, A.paste_items),
+            (QKeySequence(Qt.Key.Key_Delete), A._shortcut_delete),
+            (QKeySequence(Qt.Key.Key_F2), A._shortcut_rename),
+            (QKeySequence("Alt+Left"), A.go_back),
+            (QKeySequence("Alt+Right"), A.go_forward),
+            (QKeySequence("Alt+Up"), A.go_up),
+            (QKeySequence(Qt.Key.Key_F5), A.refresh_files),
+            (QKeySequence("Ctrl+F"), A.focus_filter),
+            (QKeySequence("Ctrl+L"), A.focus_address_bar),
         )
-        for key, handler in bindings:
-            shortcut = QShortcut(key, self)
-            shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
-            shortcut.activated.connect(handler)
-            self._shortcuts.append(shortcut)
+        for E, F in D:
+            B = QShortcut(E, A)
+            B.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+            B.activated.connect(F)
+            A._shortcuts.append(B)
+        C = QShortcut(QKeySequence(Qt.Key.Key_Backspace), A.tree_view)
+        C.setContext(Qt.ShortcutContext.WidgetShortcut)
+        C.activated.connect(A.go_back)
+        A._shortcuts.append(C)
 
-        backspace = QShortcut(QKeySequence(Qt.Key.Key_Backspace), self.tree_view)
-        backspace.setContext(Qt.ShortcutContext.WidgetShortcut)
-        backspace.activated.connect(self.go_back)
-        self._shortcuts.append(backspace)
-
-    def update_connection_status(self):
-        if self.adb_handler.device_connected:
-            self.conn_label.setText(self.tr("🟢 Connected"))
-            self.conn_label.setStyleSheet("color: green; font-size: 10px; padding: 0 8px 2px 8px;")
+    def update_connection_status(A):
+        if A.adb_handler.device_connected:
+            A.conn_label.setText(A.tr(_W))
+            A.conn_label.setStyleSheet(_Y)
         else:
-            self.conn_label.setText(self.tr("🔴 Disconnected"))
-            self.conn_label.setStyleSheet("color: red; font-size: 10px; padding: 0 8px 2px 8px;")
+            A.conn_label.setText(A.tr(_X))
+            A.conn_label.setStyleSheet(_o)
 
-    
+    def update_path_display(A):
+        A.path_display.setText(A.current_path)
+        A.path_breadcrumbs.set_path(A.current_path)
+        A.path_stack.setCurrentWidget(A.path_breadcrumbs)
+        A.back_btn.setEnabled(A._history_index > 0)
+        A.path_changed.emit(A.current_path)
 
-    def update_path_display(self):
-        self.path_display.setText(self.current_path)
-        self.path_breadcrumbs.set_path(self.current_path)
-        self.path_stack.setCurrentWidget(self.path_breadcrumbs)
-        self.back_btn.setEnabled(self._history_index > 0)
-        self.path_changed.emit(self.current_path)
-
-    def navigate_to(self, path):
-        if path == self.current_path:
+    def navigate_to(A, path):
+        B = path
+        if B == A.current_path:
             return
-        self.path_history = self.path_history[:self._history_index + 1]
-        self.path_history.append(path)
-        self._history_index = len(self.path_history) - 1
-        self.current_path = path
-        self.clear_search_on_navigation()
-        self.update_path_display()
-        self.refresh_files()
+        A.path_history = A.path_history[: A._history_index + 1]
+        A.path_history.append(B)
+        A._history_index = len(A.path_history) - 1
+        A.current_path = B
+        A.clear_search_on_navigation()
+        A.update_path_display()
+        A.refresh_files()
 
-    def go_up(self):
-        parent = "/".join(self.current_path.rstrip("/").split("/")[:-1]) or self.root_path
-        if parent != self.current_path:
-            self.navigate_to(parent)
+    def go_up(A):
+        B = _B.join(A.current_path.rstrip(_B).split(_B)[:-1]) or A.root_path
+        if B != A.current_path:
+            A.navigate_to(B)
 
-    def go_back(self):
-        if self._history_index > 0:
-            self._history_index -= 1
-            self._navigate_history()
+    def go_back(A):
+        if A._history_index > 0:
+            A._history_index -= 1
+            A._navigate_history()
 
-    def go_forward(self):
-        if self._history_index < len(self.path_history) - 1:
-            self._history_index += 1
-            self._navigate_history()
+    def go_forward(A):
+        if A._history_index < len(A.path_history) - 1:
+            A._history_index += 1
+            A._navigate_history()
 
-    def _navigate_history(self):
-        self.current_path = self.path_history[self._history_index]
-        self.clear_search_on_navigation()
-        self.update_path_display()
-        self.refresh_files()
+    def _navigate_history(A):
+        A.current_path = A.path_history[A._history_index]
+        A.clear_search_on_navigation()
+        A.update_path_display()
+        A.refresh_files()
 
-    def focus_filter(self):
-        self.search_bar.setFocus()
-        self.search_bar.selectAll()
+    def focus_filter(A):
+        A.search_bar.setFocus()
+        A.search_bar.selectAll()
 
-    def focus_address_bar(self):
-        self.path_stack.setCurrentWidget(self.path_display)
-        self.path_display.setFocus()
-        self.path_display.selectAll()
+    def focus_address_bar(A):
+        A.path_stack.setCurrentWidget(A.path_display)
+        A.path_display.setFocus()
+        A.path_display.selectAll()
 
-    def show_breadcrumbs(self):
-        self.path_display.setText(self.current_path)
-        self.path_display.completer().popup().hide()
-        self.path_breadcrumbs.set_path(self.current_path)
-        self.path_stack.setCurrentWidget(self.path_breadcrumbs)
+    def show_breadcrumbs(A):
+        A.path_display.setText(A.current_path)
+        A.path_display.completer().popup().hide()
+        A.path_breadcrumbs.set_path(A.current_path)
+        A.path_stack.setCurrentWidget(A.path_breadcrumbs)
 
-    def clear_search_on_navigation(self):
-        if self.search_bar.text():
-            self.search_bar.blockSignals(True)
-            self.search_bar.setText("")
-            self.search_bar.blockSignals(False)
-        self.apply_search_filter()
+    def clear_search_on_navigation(A):
+        if A.search_bar.text():
+            A.search_bar.blockSignals(_D)
+            A.search_bar.setText("")
+            A.search_bar.blockSignals(_C)
+        A.apply_search_filter()
 
-    def start_native_drag(self, paths):
+    def start_native_drag(A, paths):
         if not native_drag_available():
-            return False
-        manifest = build_manifest_for_paths(
-            self.adb_handler,
-            self.all_files,
-            paths,
-            use_root=self.use_root,
+            return _C
+        E = build_manifest_for_paths(
+            A.adb_handler, A.all_files, paths, use_root=A.use_root
         )
-        operation_id = start_windows_drag(
-            self.device_serial,
-            manifest,
-            use_su=self.use_root and self.adb_handler.root_mode == "su",
+        B = start_windows_drag(
+            A.device_serial, E, use_su=A.use_root and A.adb_handler.root_mode == "su"
         )
-        if operation_id is None:
-            return True
-        if operation_id:
-            task_manager = getattr(self.window(), "task_manager", None)
-            if task_manager is not None:
-                task = WorkerThread(
-                    self.tr("Copying files to Windows"),
-                    wait_for_windows_drag,
-                    operation_id,
+        if B is _A:
+            return _D
+        if B:
+            D = getattr(A.window(), _P, _A)
+            if D is not _A:
+                C = WorkerThread(
+                    A.tr("Copying files to Windows"), wait_for_windows_drag, B
                 )
-                task.add_cancel_callback(
-                    lambda: cancel_windows_drag(operation_id)
-                )
-                task_manager.add_task(task, name=task.name)
-                task.start()
-                if hasattr(self.window(), "_position_task_manager"):
-                    self.window()._position_task_manager()
-        return True
+                C.add_cancel_callback(lambda: cancel_windows_drag(B))
+                D.add_task(C, name=C.name)
+                C.start()
+                if hasattr(A.window(), _p):
+                    A.window()._position_task_manager()
+        return _D
 
-    
-
-    def refresh_files(self):
-        if self._closing:
+    def refresh_files(A):
+        if A._closing:
             return
-        if not self.adb_handler.device_connected:
-            self.status_label.setText(self.tr("No ADB device"))
+        if not A.adb_handler.device_connected:
+            A.status_label.setText(A.tr("No ADB device"))
             return
-        if self._loading:
-            self._refresh_pending = True
+        if A._loading:
+            A._refresh_pending = _D
             return
+        A._loading = _D
+        A.status_label.setText(A.tr("Loading {0}...").format(A.current_path))
+        A.tree_model.clear()
+        A.tree_model.setHorizontalHeaderLabels(
+            [A.tr(_O), A.tr(_Z), A.tr(_a), A.tr(_b), A.tr(_c)]
+        )
+        C = QStandardItem(A.tr("Loading..."))
+        C.setEnabled(_C)
+        A.tree_model.appendRow([C])
 
-        self._loading = True
-        self.status_label.setText(self.tr("Loading {0}...").format(self.current_path))
-        self.tree_model.clear()
-        self.tree_model.setHorizontalHeaderLabels([self.tr('Name'), self.tr('Type'), self.tr('Size'), self.tr('Permissions'), self.tr('Modified')])
-        loading_item = QStandardItem(self.tr("Loading..."))
-        loading_item.setEnabled(False)
-        self.tree_model.appendRow([loading_item])
-
-        def on_files(files):
-            self._loading = False
-            if self._closing:
+        def D(files):
+            B = files
+            A._loading = _C
+            if A._closing:
                 return
-            if files is not None:
-                self.all_files = files
-                self.apply_search_filter()
-                self.status_label.setText(self.tr("Found {0} items").format(len(self.all_files)))
+            if B is not _A:
+                A.all_files = B
+                A.apply_search_filter()
+                A.status_label.setText(A.tr("Found {0} items").format(len(A.all_files)))
             else:
-                self.status_label.setText(self.tr("Failed to list directory"))
-            if self._refresh_pending:
-                self._refresh_pending = False
-                self.refresh_files()
+                A.status_label.setText(A.tr("Failed to list directory"))
+            if A._refresh_pending:
+                A._refresh_pending = _C
+                A.refresh_files()
 
-        task = WorkerThread(
-            f"List {os.path.basename(self.current_path.rstrip('/')) or '/'}",
-            self.adb_handler.list_directory, self.current_path, self.use_root,
+        B = WorkerThread(
+            f"List {os.path.basename(A.current_path.rstrip(_B))or _B}",
+            A.adb_handler.list_directory,
+            A.current_path,
+            A.use_root,
         )
-        self._refresh_task = task
+        A._refresh_task = B
 
-        def clear_refresh_task(_=None):
-            if getattr(self, '_refresh_task', None) is task:
-                self._refresh_task = None
+        def E(_=_A):
+            if getattr(A, "_refresh_task", _A) is B:
+                A._refresh_task = _A
 
-        task.finished_signal.connect(on_files)
-        task.finished_signal.connect(clear_refresh_task)
-        task.start()
+        B.finished_signal.connect(D)
+        B.finished_signal.connect(E)
+        B.start()
 
-    def prepare_for_close(self):
-        """Keep the panel alive until its refresh worker has stopped."""
-        if self._closing:
+    def prepare_for_close(A):
+        "Keep the panel alive until its refresh worker has stopped."
+        if A._closing:
             return
+        A._closing = _D
+        A._refresh_pending = _C
+        A.hide()
+        A._delete_after_background_tasks()
 
-        self._closing = True
-        self._refresh_pending = False
-        self.hide()
-
-        self._delete_after_background_tasks()
-
-    def _delete_after_background_tasks(self):
-        tasks = [self._refresh_task, *self._path_completion_tasks]
-        running_tasks = [
-            task for task in tasks if task is not None and task.isRunning()
-        ]
-        if running_tasks:
-            for task in running_tasks:
-                if task not in self._close_wait_tasks:
-                    self._close_wait_tasks.add(task)
-                    task.finished.connect(self._delete_after_background_tasks)
+    def _delete_after_background_tasks(A):
+        D = [A._refresh_task, *A._path_completion_tasks]
+        C = [A for A in D if A is not _A and A.isRunning()]
+        if C:
+            for B in C:
+                if B not in A._close_wait_tasks:
+                    A._close_wait_tasks.add(B)
+                    B.finished.connect(A._delete_after_background_tasks)
             return
-        if self._closing:
-            self.deleteLater()
+        if A._closing:
+            A.deleteLater()
 
-
-    def apply_search_filter(self):
-        if not hasattr(self, 'all_files') or self.all_files is None:
+    def apply_search_filter(A):
+        if not hasattr(A, "all_files") or A.all_files is _A:
             return
-        search_text = self.search_bar.text().lower()
-        filtered = [f for f in self.all_files if search_text in f.name.lower()]
-        self.populate_view(filtered)
+        B = A.search_bar.text().lower()
+        C = [A for A in A.all_files if B in A.name.lower()]
+        A.populate_view(C)
 
-    def populate_view(self, files):
-        self.tree_model.clear()
-        self.tree_model.setHorizontalHeaderLabels([self.tr('Name'), self.tr('Type'), self.tr('Size'), self.tr('Permissions'), self.tr('Modified')])
-        self.update_selection_count()
-        if files is None:
-            return
-
-        current_normalized = "/" if self.current_path == "/" else self.current_path.rstrip("/")
-        if current_normalized != self.root_path:
-            parent_item = QStandardItem("..")
-            parent_item.setIcon(self._folder_icon)
-            self.tree_model.appendRow([parent_item, QStandardItem(self.tr("Directory")),
-                                       QStandardItem(""), QStandardItem(""), QStandardItem("")])
-
-        dirs = sorted(
-            [f for f in files if f.is_dir], key=lambda x: _natural_sort_key(x.name)
+    def populate_view(A, files):
+        C = files
+        A.tree_model.clear()
+        A.tree_model.setHorizontalHeaderLabels(
+            [A.tr(_O), A.tr(_Z), A.tr(_a), A.tr(_b), A.tr(_c)]
         )
-        regular_files = sorted(
-            [f for f in files if not f.is_dir], key=lambda x: _natural_sort_key(x.name)
+        A.update_selection_count()
+        if C is _A:
+            return
+        J = _B if A.current_path == _B else A.current_path.rstrip(_B)
+        if J != A.root_path:
+            F = QStandardItem(_G)
+            F.setIcon(A._folder_icon)
+            A.tree_model.appendRow(
+                [
+                    F,
+                    QStandardItem(A.tr(_I)),
+                    QStandardItem(""),
+                    QStandardItem(""),
+                    QStandardItem(""),
+                ]
+            )
+        K = sorted([A for A in C if A.is_dir], key=lambda x: _natural_sort_key(x.name))
+        L = sorted(
+            [A for A in C if not A.is_dir], key=lambda x: _natural_sort_key(x.name)
         )
-        for file_item in dirs + regular_files:
-            name_item = SortableStandardItem(file_item.name)
-            name_item.setData(
-                (0 if file_item.is_dir else 1, _natural_sort_key(file_item.name)),
+        for B in K + L:
+            D = SortableStandardItem(B.name)
+            D.setData(
+                (0 if B.is_dir else 1, _natural_sort_key(B.name)),
                 Qt.ItemDataRole.UserRole,
             )
-            if file_item.is_dir:
-                name_item.setIcon(self._folder_icon)
+            if B.is_dir:
+                D.setIcon(A._folder_icon)
             else:
-                ext = os.path.splitext(file_item.name)[1].lower()
-                if ext not in self._icon_cache:
-                    icon = self._icon_provider.icon(QFileInfo(f"x{ext}"))
-                    self._icon_cache[ext] = icon if not icon.isNull() else self._file_icon
-                name_item.setIcon(self._icon_cache[ext])
-            size_item = SortableStandardItem(
-                str(file_item.size) if not file_item.is_dir else ""
+                E = os.path.splitext(B.name)[1].lower()
+                if E not in A._icon_cache:
+                    G = A._icon_provider.icon(QFileInfo(f"x{E}"))
+                    A._icon_cache[E] = G if not G.isNull() else A._file_icon
+                D.setIcon(A._icon_cache[E])
+            H = SortableStandardItem(str(B.size) if not B.is_dir else "")
+            H.setData(B.size if not B.is_dir else _A, Qt.ItemDataRole.UserRole)
+            I = SortableStandardItem(B.date_modified)
+            I.setData(B.date_modified, Qt.ItemDataRole.UserRole)
+            A.tree_model.appendRow(
+                [
+                    D,
+                    SortableStandardItem(A.tr(_I) if B.is_dir else A.tr(_d)),
+                    H,
+                    SortableStandardItem(B.permissions),
+                    I,
+                ]
             )
-            size_item.setData(
-                file_item.size if not file_item.is_dir else None,
-                Qt.ItemDataRole.UserRole,
-            )
-            modified_item = SortableStandardItem(file_item.date_modified)
-            modified_item.setData(
-                file_item.date_modified, Qt.ItemDataRole.UserRole
-            )
-            self.tree_model.appendRow([
-                name_item,
-                SortableStandardItem(self.tr("Directory") if file_item.is_dir else self.tr("File")),
-                size_item,
-                SortableStandardItem(file_item.permissions),
-                modified_item,
-            ])
-        for i in range(5):
-            self.tree_view.resizeColumnToContents(i)
-        self.path_display.update_completions(files)
+        for M in range(5):
+            A.tree_view.resizeColumnToContents(M)
+        A.path_display.update_completions(C)
 
-    def handle_double_click(self, index):
-        name_index = self.tree_model.index(index.row(), 0)
-        type_index = self.tree_model.index(index.row(), 1)
-        item_name = self.tree_model.data(name_index)
-        item_type = self.tree_model.data(type_index)
-        if not item_name:
+    def handle_double_click(A, index):
+        D = index
+        G = A.tree_model.index(D.row(), 0)
+        H = A.tree_model.index(D.row(), 1)
+        C = A.tree_model.data(G)
+        E = A.tree_model.data(H)
+        if not C:
             return
-        if item_type == self.tr("Directory"):
-            new_path = ""
-            if item_name == "..":
-                parent_path = "/".join(self.current_path.rstrip("/").split("/")[:-1])
-                new_path = parent_path if parent_path else self.root_path
+        if E == A.tr(_I):
+            B = ""
+            if C == _G:
+                F = _B.join(A.current_path.rstrip(_B).split(_B)[:-1])
+                B = F if F else A.root_path
             else:
-                new_path = f"{self.current_path.rstrip('/')}/{item_name}"
-            if new_path and new_path != self.current_path:
-                self.navigate_to(new_path)
-        elif item_type == self.tr("File"):
-            self.open_file_on_host(item_name)
+                B = f"{A.current_path.rstrip(_B)}/{C}"
+            if B and B != A.current_path:
+                A.navigate_to(B)
+        elif E == A.tr(_d):
+            A.open_file_on_host(C)
 
-    
+    def get_selected_items(A):
+        B = []
+        for C in A.tree_view.selectionModel().selectedRows():
+            D = A.tree_model.itemFromIndex(C.siblingAtColumn(0)).text()
+            E = A.tree_model.itemFromIndex(C.siblingAtColumn(1)).text()
+            B.append(
+                {
+                    _H: D,
+                    _E: f"{A.current_path.rstrip(_B)}/{D}",
+                    _q: E.lower() == "directory",
+                }
+            )
+        return B
 
-    def get_selected_items(self):
-        selected_items = []
-        for index in self.tree_view.selectionModel().selectedRows():
-            name = self.tree_model.itemFromIndex(index.siblingAtColumn(0)).text()
-            item_type = self.tree_model.itemFromIndex(index.siblingAtColumn(1)).text()
-            selected_items.append({
-                'name': name,
-                'path': f"{self.current_path.rstrip('/')}/{name}",
-                'is_dir': item_type.lower() == 'directory'
-            })
-        return selected_items
-
-    def update_selection_count(self, *_):
-        selected_rows = {
-            index.row()
-            for index in self.tree_view.selectionModel().selectedIndexes()
-            if self.tree_model.item(index.row(), 0).text() != ".."
+    def update_selection_count(A, *D):
+        B = {
+            B.row()
+            for B in A.tree_view.selectionModel().selectedIndexes()
+            if A.tree_model.item(B.row(), 0).text() != _G
         }
-        count = len(selected_rows)
-        self.selection_count_label.setText(self.tr("Selected items: {0}").format(count))
+        C = len(B)
+        A.selection_count_label.setText(A.tr("Selected items: {0}").format(C))
 
-    def copy_selected(self):
-        items = self.get_selected_items()
-        if not items:
+    def copy_selected(A):
+        B = A.get_selected_items()
+        if not B:
             return
-        self.clipboard.update({'items': items, 'operation': 'copy'})
-        self.status_label.setText(self.tr("Copied {0} item(s)").format(len(items)))
+        A.clipboard.update({_F: B, _K: "copy"})
+        A.status_label.setText(A.tr("Copied {0} item(s)").format(len(B)))
 
-    def cut_selected(self):
-        items = self.get_selected_items()
-        if not items:
+    def cut_selected(A):
+        B = A.get_selected_items()
+        if not B:
             return
-        self.clipboard.update({'items': items, 'operation': 'cut'})
-        self.status_label.setText(self.tr("Cut {0} item(s)").format(len(items)))
+        A.clipboard.update({_F: B, _K: "cut"})
+        A.status_label.setText(A.tr("Cut {0} item(s)").format(len(B)))
 
-    def paste_items(self):
-        if not self.clipboard or not self.clipboard['items']:
-            self.status_label.setText(self.tr("Clipboard is empty"))
+    def paste_items(A):
+        if not A.clipboard or not A.clipboard[_F]:
+            A.status_label.setText(A.tr("Clipboard is empty"))
             return
-        dest_dir = self.current_path
-        conflicts = []
-        for item in self.clipboard['items']:
-            dest_path = f"{dest_dir}/{os.path.basename(item['path'])}"
-            if self.adb_handler.path_exists(dest_path):
-                conflicts.append(os.path.basename(item['path']))
-        if conflicts:
-            names = "\n".join(conflicts[:10])
-            more = f"\n...and {len(conflicts) - 10} more" if len(conflicts) > 10 else ""
-            reply = QMessageBox.question(
-                self, self.tr( "Item(s) Already Exist"),
-                self.tr( "The following already exist in the destination:\n\n{0}{1}\n\nOverwrite?").format(names, more),
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        D = A.current_path
+        B = []
+        for C in A.clipboard[_F]:
+            F = f"{D}/{os.path.basename(C[_E])}"
+            if A.adb_handler.path_exists(F):
+                B.append(os.path.basename(C[_E]))
+        if B:
+            G = "\n".join(B[:10])
+            H = f"\n...and {len(B)-10} more" if len(B) > 10 else ""
+            I = QMessageBox.question(
+                A,
+                A.tr("Item(s) Already Exist"),
+                A.tr(
+                    "The following already exist in the destination:\n\n{0}{1}\n\nOverwrite?"
+                ).format(G, H),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
-            if reply == QMessageBox.StandardButton.No:
-                self.status_label.setText(self.tr("Paste canceled"))
+            if I == QMessageBox.StandardButton.No:
+                A.status_label.setText(A.tr("Paste canceled"))
                 return
+        E = A.clipboard[_K]
+        J = E == "cut"
 
-        operation = self.clipboard['operation']
-        cut_mode = operation == 'cut'
-
-        def run_paste():
-            count = 0
-            for item in self.clipboard['items']:
+        def K():
+            B = 0
+            for H in A.clipboard[_F]:
                 if is_cancelled():
-                    return count
-                src = item['path']
-                dst = f"{dest_dir}/{os.path.basename(src)}"
-                if operation == 'copy':
-                    ok = self.adb_handler.copy_on_device(src, dst)
+                    return B
+                C = H[_E]
+                F = f"{D}/{os.path.basename(C)}"
+                if E == "copy":
+                    G = A.adb_handler.copy_on_device(C, F)
                 else:
-                    ok = self.adb_handler.move_on_device(src, dst)
-                if ok:
-                    count += 1
-            return count
+                    G = A.adb_handler.move_on_device(C, F)
+                if G:
+                    B += 1
+            return B
 
-        def on_paste_done(count):
-            if count > 0:
-                if cut_mode:
-                    self.clipboard.update({'items': [], 'operation': None})
-                self.status_label.setText(self.tr("Pasted {0} item(s)").format(count))
-                self.refresh_files()
+        def L(count):
+            B = count
+            if B > 0:
+                if J:
+                    A.clipboard.update({_F: [], _K: _A})
+                A.status_label.setText(A.tr("Pasted {0} item(s)").format(B))
+                A.refresh_files()
             else:
-                self.status_label.setText(self.tr("Paste failed"))
+                A.status_label.setText(A.tr("Paste failed"))
 
-        self._run_modal(self.tr("Paste {0} items").format(len(self.clipboard['items'])), run_paste, on_done=on_paste_done)
+        A._run_modal(A.tr("Paste {0} items").format(len(A.clipboard[_F])), K, on_done=L)
 
-    
-
-    def show_context_menu(self, position):
-        index = self.tree_view.indexAt(position)
-        if not index.isValid():
-            self.tree_view.clearSelection()
-            indexes = []
+    def show_context_menu(A, position):
+        K = "Save to PC..."
+        J = "Cut"
+        G = position
+        F = A.tree_view.indexAt(G)
+        if not F.isValid():
+            A.tree_view.clearSelection()
+            D = []
         else:
-            indexes = self.tree_view.selectionModel().selectedRows()
-        menu = QMenu()
-
-        if self.clipboard and self.clipboard['items']:
-            paste_action = menu.addAction(self.tr("Paste"))
-            paste_action.triggered.connect(self.paste_items)
-            menu.addSeparator()
-
-        if not indexes:
-            menu.addAction(self.tr("New File"), self.create_new_file)
-            menu.addAction(self.tr("New Folder"), self.create_new_folder)
-            menu.addAction(self.tr("Upload to Device"), self.upload_file_to_device)
-            menu.addAction(self.tr("Import Folder from PC..."), self.import_folder_from_pc)
-        elif len(indexes) > 1:
-            menu.addAction(self.tr("Copy"), self.copy_selected)
-            menu.addAction(self.tr("Cut"), self.cut_selected)
-            menu.addSeparator()
-            menu.addAction(self.tr("Delete Selected"), self.delete_selected_items)
-            menu.addAction(self.tr("Download to PC"), self.download_selected_items)
-            menu.addAction(self.tr("Copy to Device Folder..."), self.copy_selected_to)
-            menu.addAction(self.tr("Batch Rename..."), self.batch_rename_selected)
-            total_size = sum(
-                self.get_file_size_from_row(idx.row())
-                for idx in indexes
-                if not self.is_dir_from_row(idx.row())
+            E = A.tree_view.selectionModel()
+            L = E.selectedRows()
+            if not any(A.row() == F.row() for A in L):
+                E.clearSelection()
+                E.select(
+                    F,
+                    QItemSelectionModel.SelectionFlag.Select
+                    | QItemSelectionModel.SelectionFlag.Rows,
+                )
+                E.setCurrentIndex(F, QItemSelectionModel.SelectionFlag.NoUpdate)
+            D = E.selectedRows()
+        B = QMenu()
+        if A.clipboard and A.clipboard[_F]:
+            M = B.addAction(A.tr("Paste"))
+            M.triggered.connect(A.paste_items)
+            B.addSeparator()
+        if not D:
+            B.addAction(A.tr(_r), A.create_new_file)
+            B.addAction(A.tr(_s), A.create_new_folder)
+            B.addAction(A.tr("Upload to Device"), A.upload_file_to_device)
+            B.addAction(A.tr("Import Folder from PC..."), A.import_folder_from_pc)
+        elif len(D) > 1:
+            B.addAction(A.tr(_e), A.copy_selected)
+            B.addAction(A.tr(J), A.cut_selected)
+            B.addSeparator()
+            B.addAction(A.tr("Delete Selected"), A.delete_selected_items)
+            B.addAction(A.tr("Download to PC"), A.download_selected_items)
+            B.addAction(A.tr("Copy to Device Folder..."), A.copy_selected_to)
+            B.addAction(A.tr("Batch Rename..."), A.batch_rename_selected)
+            N = sum(
+                A.get_file_size_from_row(B.row())
+                for B in D
+                if not A.is_dir_from_row(B.row())
             )
-            menu.addSeparator()
-            sz_lbl = menu.addAction(self.tr("Total Size: {0}").format(self.format_size(total_size)))
-            sz_lbl.setEnabled(False)
+            B.addSeparator()
+            O = B.addAction(A.tr("Total Size: {0}").format(A.format_size(N)))
+            O.setEnabled(_C)
         else:
-            idx = indexes[0]
-            item_name = self.tree_model.data(self.tree_model.index(idx.row(), 0))
-            item_type = self.tree_model.data(self.tree_model.index(idx.row(), 1))
+            H = D[0]
+            C = A.tree_model.data(A.tree_model.index(H.row(), 0))
+            I = A.tree_model.data(A.tree_model.index(H.row(), 1))
+            B.addAction(A.tr(_e), A.copy_selected)
+            B.addAction(A.tr(J), A.cut_selected)
+            B.addSeparator()
+            if I == A.tr(_d):
+                B.addAction(A.tr("Open"), lambda n=C: A.open_file_on_host(n))
+                B.addAction(A.tr(K), lambda n=C: A.copy_file_to(n))
+                B.addSeparator()
+                B.addAction(A.tr(_Q), lambda n=C: A.rename_item(n))
+                B.addAction(A.tr(_R), lambda n=C: A.delete_item(n, is_dir=_C))
+            elif I == A.tr(_I):
+                if C != _G:
+                    P = f"{A.current_path.rstrip(_B)}/{C}"
+                    B.addAction(
+                        A.tr(_t), lambda n=C, p=P: A.favorite_requested.emit(n, p)
+                    )
+                    B.addSeparator()
+                B.addAction(A.tr(K), lambda n=C: A.copy_folder_to(n))
+                B.addSeparator()
+                B.addAction(A.tr(_Q), lambda n=C: A.rename_item(n))
+                B.addAction(A.tr(_R), lambda n=C: A.delete_item(n, is_dir=_D))
+        B.addSeparator()
+        Q = B.addMenu(A.tr("Send to Device..."))
+        A._populate_send_to_menu(Q, D, G)
+        B.exec(A.tree_view.viewport().mapToGlobal(G))
 
-            menu.addAction(self.tr("Copy"), self.copy_selected)
-            menu.addAction(self.tr("Cut"), self.cut_selected)
-            menu.addSeparator()
-
-            if item_type == self.tr("File"):
-                menu.addAction(self.tr("Open"), lambda n=item_name: self.open_file_on_host(n))
-                menu.addAction(self.tr("Save to PC..."), lambda n=item_name: self.copy_file_to(n))
-                menu.addSeparator()
-                menu.addAction(self.tr("Rename"), lambda n=item_name: self.rename_item(n))
-                menu.addAction(self.tr("Delete"), lambda n=item_name: self.delete_item(n, is_dir=False))
-            elif item_type == self.tr("Directory"):
-                menu.addAction(self.tr("Save to PC..."), lambda n=item_name: self.copy_folder_to(n))
-                menu.addSeparator()
-                menu.addAction(self.tr("Rename"), lambda n=item_name: self.rename_item(n))
-                menu.addAction(self.tr("Delete"), lambda n=item_name: self.delete_item(n, is_dir=True))
-
-        
-        menu.addSeparator()
-        send_menu = menu.addMenu(self.tr("Send to Device..."))
-        self._populate_send_to_menu(send_menu, indexes, position)
-
-        menu.exec(self.tree_view.viewport().mapToGlobal(position))
-
-    def _populate_send_to_menu(self, menu, indexes, position):
+    def _populate_send_to_menu(A, menu, indexes, position):
+        I = "No other devices"
+        H = "No items selected"
+        C = menu
         if not indexes:
-            menu.addAction(self.tr("No items selected")).setEnabled(False)
+            C.addAction(A.tr(H)).setEnabled(_C)
             return
-        items = self.get_selected_items()
-        if not items:
-            menu.addAction(self.tr("No items selected")).setEnabled(False)
+        E = A.get_selected_items()
+        if not E:
+            C.addAction(A.tr(H)).setEnabled(_C)
             return
-
-        parent = self.window()
-        if not hasattr(parent, 'device_panels'):
-            menu.addAction(self.tr("No other devices")).setEnabled(False)
+        F = A.window()
+        if not hasattr(F, "device_panels"):
+            C.addAction(A.tr(I)).setEnabled(_C)
             return
-
-        target_devices = []
-        for panel in parent.device_panels:
-            contains_view = getattr(panel, "contains_view", None)
-            is_current_panel = (
-                panel is self
-                or (contains_view is not None and contains_view(self))
-            )
-            if not is_current_panel and panel.adb_handler.device_connected:
-                target_devices.append(panel)
-
-        if not target_devices:
-            menu.addAction(self.tr("No other devices")).setEnabled(False)
+        D = []
+        for B in F.device_panels:
+            G = getattr(B, "contains_view", _A)
+            J = B is A or G is not _A and G(A)
+            if not J and B.adb_handler.device_connected:
+                D.append(B)
+        if not D:
+            C.addAction(A.tr(I)).setEnabled(_C)
             return
-
-        for panel in target_devices:
-            action = menu.addAction(panel.device_name)
-            action.triggered.connect(
-                lambda checked=False, p=panel, its=items: self._send_items_to_device(its, p)
+        for B in D:
+            K = C.addAction(B.device_name)
+            K.triggered.connect(
+                lambda checked=_C, p=B, its=E: A._send_items_to_device(its, p)
             )
 
-    def _send_items_to_device(self, items, target_panel):
-        def run_stream():
-            for item in items:
+    def _send_items_to_device(A, items, target_panel):
+        D = items
+        B = target_panel
+
+        def C():
+            for C in D:
                 if is_cancelled():
-                    return False
-                dest = f"{target_panel.current_path.rstrip('/')}/{item['name']}"
-                if item['is_dir']:
-                    ok = self.adb_handler.stream_directory(
-                        self.device_serial, item['path'],
-                        target_panel.device_serial, dest,
-                        line_callback=lambda msg: None,
+                    return _C
+                E = f"{B.current_path.rstrip(_B)}/{C[_H]}"
+                if C[_q]:
+                    F = A.adb_handler.stream_directory(
+                        A.device_serial,
+                        C[_E],
+                        B.device_serial,
+                        E,
+                        line_callback=lambda msg: _A,
                     )
                 else:
-                    ok = self.adb_handler.stream_file(
-                        self.device_serial, item['path'],
-                        target_panel.device_serial, dest,
+                    F = A.adb_handler.stream_file(
+                        A.device_serial, C[_E], B.device_serial, E
                     )
-                if not ok:
-                    return False
-            return True
+                if not F:
+                    return _C
+            return _D
 
-        def on_done(ok):
+        def E(ok):
             if ok:
-                self.status_label.setText(self.tr("Sent {0} item(s) to {1}").format(len(items), target_panel.device_name))
-                target_panel.refresh_files()
+                A.status_label.setText(
+                    A.tr("Sent {0} item(s) to {1}").format(len(D), B.device_name)
+                )
+                B.refresh_files()
             else:
-                self.status_label.setText(self.tr("Stream failed"))
+                A.status_label.setText(A.tr("Stream failed"))
 
-        self._run_modal(self.tr("Streaming to {0}").format(target_panel.device_name), run_stream, on_done=on_done)
+        A._run_modal(A.tr("Streaming to {0}").format(B.device_name), C, on_done=E)
 
-    
+    def get_file_size_from_row(B, row):
+        C = B.tree_model.index(row, 2)
+        A = B.tree_model.data(C)
+        return int(A) if A and A.isdigit() else 0
 
-    def get_file_size_from_row(self, row):
-        size_index = self.tree_model.index(row, 2)
-        size_text = self.tree_model.data(size_index)
-        return int(size_text) if size_text and size_text.isdigit() else 0
+    def is_dir_from_row(A, row):
+        B = A.tree_model.index(row, 1)
+        return A.tree_model.data(B) == A.tr(_I)
 
-    def is_dir_from_row(self, row):
-        type_index = self.tree_model.index(row, 1)
-        return self.tree_model.data(type_index) == self.tr("Directory")
+    def format_size(C, bytes_size):
+        A = bytes_size
+        for B in ["B", "KB", "MB", "GB"]:
+            if A < 1024.0:
+                return f"{A:.1f} {B}"
+            A /= 1024.0
+        return f"{A:.1f} TB"
 
-    def format_size(self, bytes_size):
-        for unit in ['B', 'KB', 'MB', 'GB']:
-            if bytes_size < 1024.0:
-                return f"{bytes_size:.1f} {unit}"
-            bytes_size /= 1024.0
-        return f"{bytes_size:.1f} TB"
-
-    def open_file_on_host(self, filename):
-        if not self.adb_handler.device_connected:
-            self.status_label.setText(self.tr("No connection"))
+    def open_file_on_host(A, filename):
+        B = filename
+        if not A.adb_handler.device_connected:
+            A.status_label.setText(A.tr("No connection"))
             return
-        remote_path = f"{self.current_path.rstrip('/')}/{filename}"
-        temp_dir = tempfile.gettempdir()
-        local_path = os.path.join(temp_dir, filename)
+        D = f"{A.current_path.rstrip(_B)}/{B}"
+        E = tempfile.gettempdir()
+        C = os.path.join(E, B)
 
-        def run_pull():
-            return self.adb_handler.pull_file(remote_path, local_path)
+        def F():
+            return A.adb_handler.pull_file(D, C)
 
-        def on_pulled(ok):
+        def G(ok):
             if not ok:
-                self.status_label.setText(self.tr("Failed to open {0}").format(filename))
+                A.status_label.setText(A.tr("Failed to open {0}").format(B))
                 return
             try:
-                if sys.platform.startswith('win'):
-                    os.startfile(local_path)
-                elif sys.platform.startswith('darwin'):
-                    subprocess.run(['open', local_path])
+                if sys.platform.startswith("win"):
+                    os.startfile(C)
+                elif sys.platform.startswith("darwin"):
+                    subprocess.run(["open", C])
                 else:
-                    subprocess.run(['xdg-open', local_path])
-                self.status_label.setText(self.tr("Opened {0}").format(filename))
+                    subprocess.run(["xdg-open", C])
+                A.status_label.setText(A.tr("Opened {0}").format(B))
             except Exception:
-                self.status_label.setText(self.tr("Failed to open file"))
+                A.status_label.setText(A.tr("Failed to open file"))
 
-        self._run_modal(self.tr("Downloading file"), run_pull, on_done=on_pulled)
+        A._run_modal(A.tr("Downloading file"), F, on_done=G)
 
-    def copy_file_to(self, filename):
-        if not self.adb_handler.device_connected:
+    def copy_file_to(A, filename):
+        B = filename
+        if not A.adb_handler.device_connected:
             return
-        remote_path = f"{self.current_path.rstrip('/')}/{filename}"
-        save_path, _ = QFileDialog.getSaveFileName(self, self.tr( "Save File As"), filename)
-        if not save_path:
+        D = f"{A.current_path.rstrip(_B)}/{B}"
+        C, E = QFileDialog.getSaveFileName(A, A.tr("Save File As"), B)
+        if not C:
             return
-        self._run_transfer(self.tr("Copying file"), remote_path, save_path,
-                           self.tr("File copied: {0}").format(save_path), self.tr("Failed to copy {0}").format(filename))
-
-    def copy_folder_to(self, foldername):
-        if not self.adb_handler.device_connected:
-            return
-        remote_path = f"{self.current_path.rstrip('/')}/{foldername}"
-        save_dir = QFileDialog.getExistingDirectory(self, self.tr( "Select Destination"))
-        if not save_dir:
-            return
-        local_path = os.path.join(save_dir, foldername)
-        self._run_transfer(self.tr("Copying folder"), remote_path, local_path,
-                           self.tr("Folder copied: {0}").format(local_path), self.tr("Failed to copy {0}").format(foldername))
-
-    def _run_transfer(self, title, src, dst, success_msg, error_msg):
-        fn = self.adb_handler.pull_file
-        self._run_modal(
-            title, fn, src, dst,
-            on_done=lambda _: self.status_label.setText(success_msg),
-            on_error=lambda: self.status_label.setText(error_msg),
+        A._run_transfer(
+            A.tr("Copying file"),
+            D,
+            C,
+            A.tr("File copied: {0}").format(C),
+            A.tr(_u).format(B),
         )
 
-    def rename_item(self, old_name):
-        if not self.adb_handler.device_connected:
+    def copy_folder_to(A, foldername):
+        B = foldername
+        if not A.adb_handler.device_connected:
             return
-        new_name, ok = QInputDialog.getText(
-            self,
-            self.tr("Rename"),
-            self.tr("New name for '{0}':").format(old_name),
-            text=old_name,
+        E = f"{A.current_path.rstrip(_B)}/{B}"
+        C = QFileDialog.getExistingDirectory(A, A.tr("Select Destination"))
+        if not C:
+            return
+        D = os.path.join(C, B)
+        A._run_transfer(
+            A.tr("Copying folder"),
+            E,
+            D,
+            A.tr("Folder copied: {0}").format(D),
+            A.tr(_u).format(B),
         )
-        if ok and new_name and new_name != old_name:
-            old_path = f"{self.current_path.rstrip('/')}/{old_name}"
-            new_path = f"{self.current_path.rstrip('/')}/{new_name}"
 
-            def on_done(_):
-                self.status_label.setText(self.tr("Renamed to '{0}'").format(new_name))
-                self.refresh_files()
+    def _run_transfer(A, title, src, dst, success_msg, error_msg):
+        B = A.adb_handler.pull_file
+        A._run_modal(
+            title,
+            B,
+            src,
+            dst,
+            on_done=lambda _: A.status_label.setText(success_msg),
+            on_error=lambda: A.status_label.setText(error_msg),
+        )
 
-            def on_error():
-                self.status_label.setText(self.tr("Rename failed"))
+    def rename_item(A, old_name):
+        B = old_name
+        if not A.adb_handler.device_connected:
+            return
+        C, D = QInputDialog.getText(
+            A, A.tr(_Q), A.tr("New name for '{0}':").format(B), text=B
+        )
+        if D and C and C != B:
+            E = f"{A.current_path.rstrip(_B)}/{B}"
+            F = f"{A.current_path.rstrip(_B)}/{C}"
 
-            self._run_modal(
-                self.tr("Rename {0}").format(old_name),
-                self.adb_handler.rename_item,
-                old_path,
-                new_path,
-                on_done=on_done,
-                on_error=on_error,
+            def G(_):
+                A.status_label.setText(A.tr("Renamed to '{0}'").format(C))
+                A.refresh_files()
+
+            def H():
+                A.status_label.setText(A.tr("Rename failed"))
+
+            A._run_modal(
+                A.tr("Rename {0}").format(B),
+                A.adb_handler.rename_item,
+                E,
+                F,
+                on_done=G,
+                on_error=H,
             )
 
-    def delete_item(self, name, is_dir=False):
-        if not self.adb_handler.device_connected:
+    def delete_item(A, name, is_dir=_C):
+        C = is_dir
+        B = name
+        if not A.adb_handler.device_connected:
             return
-        confirmation = (
-            self.tr("Delete folder '{0}' and all of its contents, including "
-            "subfolders?").format(name)
-            if is_dir
-            else self.tr("Delete '{0}'?").format(name)
+        D = A.tr(_v).format(B) if C else A.tr(_w).format(B)
+        E = QMessageBox.question(
+            A,
+            A.tr(_R),
+            D,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
-        reply = QMessageBox.question(
-            self, self.tr( "Delete"), confirmation,
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply == QMessageBox.StandardButton.Yes:
-            path = f"{self.current_path.rstrip('/')}/{name}"
+        if E == QMessageBox.StandardButton.Yes:
+            F = f"{A.current_path.rstrip(_B)}/{B}"
 
-            def on_done(_):
-                self.status_label.setText(self.tr("Deleted '{0}'").format(name))
-                self.refresh_files()
+            def G(_):
+                A.status_label.setText(A.tr("Deleted '{0}'").format(B))
+                A.refresh_files()
 
-            def on_error():
-                self.status_label.setText(self.tr("Delete failed"))
+            def H():
+                A.status_label.setText(A.tr("Delete failed"))
 
-            self._run_modal(
-                self.tr("Delete {0}").format(name),
-                self.adb_handler.delete_item,
-                path,
-                is_dir,
-                on_done=on_done,
-                on_error=on_error,
+            A._run_modal(
+                A.tr("Delete {0}").format(B),
+                A.adb_handler.delete_item,
+                F,
+                C,
+                on_done=G,
+                on_error=H,
             )
 
-    def _shortcut_delete(self):
-        indexes = self.tree_view.selectionModel().selectedRows()
-        if indexes:
-            self.delete_selected_items()
+    def _shortcut_delete(A):
+        B = A.tree_view.selectionModel().selectedRows()
+        if B:
+            A.delete_selected_items()
 
-    def _shortcut_rename(self):
-        indexes = self.tree_view.selectionModel().selectedRows()
-        if len(indexes) != 1:
+    def _shortcut_rename(A):
+        C = A.tree_view.selectionModel().selectedRows()
+        if len(C) != 1:
             return
-        name = self.tree_model.data(self.tree_model.index(indexes[0].row(), 0))
-        if not name or name == "..":
+        B = A.tree_model.data(A.tree_model.index(C[0].row(), 0))
+        if not B or B == _G:
             return
-        self.rename_item(name)
+        A.rename_item(B)
 
-    def delete_selected_items(self):
-        if not self.adb_handler.device_connected:
+    def delete_selected_items(A):
+        if not A.adb_handler.device_connected:
             return
-        indexes = self.tree_view.selectionModel().selectedRows()
-        if not indexes:
+        E = A.tree_view.selectionModel().selectedRows()
+        if not E:
             return
-        names_types = []
-        for index in indexes:
-            name = self.tree_model.data(self.tree_model.index(index.row(), 0))
-            typ = self.tree_model.data(self.tree_model.index(index.row(), 1))
-            if name and name != "..":
-                names_types.append((name, typ == self.tr("Directory")))
-        if not names_types:
+        B = []
+        for F in E:
+            C = A.tree_model.data(A.tree_model.index(F.row(), 0))
+            G = A.tree_model.data(A.tree_model.index(F.row(), 1))
+            if C and C != _G:
+                B.append((C, G == A.tr(_I)))
+        if not B:
             return
-        has_directories = any(is_dir for _, is_dir in names_types)
-        if len(names_types) == 1:
-            name, is_dir = names_types[0]
-            confirmation = (
-                self.tr("Delete folder '{0}' and all of its contents, including "
-                "subfolders?").format(name)
-                if is_dir
-                else self.tr("Delete '{0}'?").format(name)
-            )
+        H = any(A for (B, A) in B)
+        if len(B) == 1:
+            C, I = B[0]
+            D = A.tr(_v).format(C) if I else A.tr(_w).format(C)
         else:
-            confirmation = self.tr("Delete {0} selected items?").format(len(names_types))
-            if has_directories:
-                confirmation += (
-                    self.tr("\nAny selected folders and all their contents, including "
-                    "subfolders, will also be deleted.")
+            D = A.tr("Delete {0} selected items?").format(len(B))
+            if H:
+                D += A.tr(
+                    "\nAny selected folders and all their contents, including subfolders, will also be deleted."
                 )
-        reply = QMessageBox.question(
-            self, self.tr( "Delete"),
-            confirmation,
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        J = QMessageBox.question(
+            A,
+            A.tr(_R),
+            D,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
-        if reply == QMessageBox.StandardButton.Yes:
-            def run_delete():
-                count = 0
-                for name, is_dir in names_types:
+        if J == QMessageBox.StandardButton.Yes:
+
+            def K():
+                C = 0
+                for D, E in B:
                     if is_cancelled():
-                        return count
-                    path = f"{self.current_path.rstrip('/')}/{name}"
-                    if self.adb_handler.delete_item(path, is_dir):
-                        count += 1
-                return count
+                        return C
+                    F = f"{A.current_path.rstrip(_B)}/{D}"
+                    if A.adb_handler.delete_item(F, E):
+                        C += 1
+                return C
 
-            def on_done(count):
-                self.status_label.setText(self.tr("Deleted {0} items").format(count))
-                self.refresh_files()
+            def L(count):
+                A.status_label.setText(A.tr("Deleted {0} items").format(count))
+                A.refresh_files()
 
-            self._run_modal(self.tr("Delete {0} items").format(len(names_types)), run_delete, on_done=on_done)
+            A._run_modal(A.tr("Delete {0} items").format(len(B)), K, on_done=L)
 
-    def create_new_file(self):
-        if not self.adb_handler.device_connected:
+    def create_new_file(A):
+        if not A.adb_handler.device_connected:
             return
-        name, ok = QInputDialog.getText(self, self.tr("New File"), self.tr("File name:"))
-        if ok and name:
-            path = f"{self.current_path.rstrip('/')}/{name}"
+        B, C = QInputDialog.getText(A, A.tr(_r), A.tr("File name:"))
+        if C and B:
+            D = f"{A.current_path.rstrip(_B)}/{B}"
 
-            def on_done(_):
-                self.status_label.setText(self.tr("Created '{0}'").format(name))
-                self.refresh_files()
+            def E(_):
+                A.status_label.setText(A.tr(_x).format(B))
+                A.refresh_files()
 
-            def on_error():
-                self.status_label.setText(self.tr("Create failed"))
+            def F():
+                A.status_label.setText(A.tr(_y))
 
-            self._run_modal(
-                self.tr("Create file {0}").format(name),
-                self.adb_handler.create_file,
-                path,
-                on_done=on_done,
-                on_error=on_error,
+            A._run_modal(
+                A.tr("Create file {0}").format(B),
+                A.adb_handler.create_file,
+                D,
+                on_done=E,
+                on_error=F,
             )
 
-    def create_new_folder(self):
-        if not self.adb_handler.device_connected:
+    def create_new_folder(A):
+        if not A.adb_handler.device_connected:
             return
-        name, ok = QInputDialog.getText(self, self.tr("New Folder"), self.tr("Folder name:"))
-        if ok and name:
-            path = f"{self.current_path.rstrip('/')}/{name}"
+        B, C = QInputDialog.getText(A, A.tr(_s), A.tr("Folder name:"))
+        if C and B:
+            D = f"{A.current_path.rstrip(_B)}/{B}"
 
-            def on_done(_):
-                self.status_label.setText(self.tr("Created '{0}'").format(name))
-                self.refresh_files()
+            def E(_):
+                A.status_label.setText(A.tr(_x).format(B))
+                A.refresh_files()
 
-            def on_error():
-                self.status_label.setText(self.tr("Create failed"))
+            def F():
+                A.status_label.setText(A.tr(_y))
 
-            self._run_modal(
-                self.tr("Create folder {0}").format(name),
-                self.adb_handler.create_folder,
-                path,
-                on_done=on_done,
-                on_error=on_error,
+            A._run_modal(
+                A.tr("Create folder {0}").format(B),
+                A.adb_handler.create_folder,
+                D,
+                on_done=E,
+                on_error=F,
             )
 
-    def upload_file_to_device(self):
-        if not self.adb_handler.device_connected:
+    def upload_file_to_device(A):
+        if not A.adb_handler.device_connected:
             return
-        file_path, _ = QFileDialog.getOpenFileName(self, self.tr( "Select File to Upload"))
-        if not file_path:
+        B, C = QFileDialog.getOpenFileName(A, A.tr("Select File to Upload"))
+        if not B:
             return
-        self.upload_files_and_folders([file_path])
+        A.upload_files_and_folders([B])
 
-    def import_folder_from_pc(self):
-        if not self.adb_handler.device_connected:
+    def import_folder_from_pc(A):
+        if not A.adb_handler.device_connected:
             return
-        folder_path = QFileDialog.getExistingDirectory(self, self.tr( "Select Folder to Import"))
-        if folder_path:
-            self.upload_files_and_folders([folder_path])
+        B = QFileDialog.getExistingDirectory(A, A.tr("Select Folder to Import"))
+        if B:
+            A.upload_files_and_folders([B])
 
-    def upload_files_and_folders(self, files):
-        if not self.adb_handler.device_connected:
+    def upload_files_and_folders(A, files):
+        if not A.adb_handler.device_connected:
             return
-
-        target_path = self.current_path.rstrip("/") or "/"
+        C = A.current_path.rstrip(_B) or _B
         try:
-            plan = self._build_upload_plan(files, target_path)
-        except (OSError, RuntimeError) as error:
-            self.status_label.setText(self.tr("Import from PC failed: {0}").format(error))
+            B = A._build_upload_plan(files, C)
+        except (OSError, RuntimeError) as D:
+            A.status_label.setText(A.tr("Import from PC failed: {0}").format(D))
             return
-        if not plan["files"] and not plan["directories"]:
-            self.status_label.setText(self.tr("No files to upload"))
+        if not B[_S] and not B[_T]:
+            A.status_label.setText(A.tr("No files to upload"))
             return
-
-        self._run_modal(
-            self.tr("Checking destination files"),
-            self._inspect_upload_conflicts,
-            plan,
-            on_done=lambda result: self._resolve_upload_conflicts(
-                plan, result[0]
+        A._run_modal(
+            A.tr("Checking destination files"),
+            A._inspect_upload_conflicts,
+            B,
+            on_done=lambda result: A._resolve_upload_conflicts(B, result[0]),
+            on_error=lambda: A.status_label.setText(
+                A.tr("Could not verify destination files; import was not started")
             ),
-            on_error=lambda: self.status_label.setText(
-                self.tr("Could not verify destination files; import was not started")
-            ),
-            on_cancel=lambda: self.status_label.setText(self.tr("Import cancelled")),
+            on_cancel=lambda: A.status_label.setText(A.tr(_z)),
         )
 
     @staticmethod
     def _next_renamed_destination(remote_path, occupied_names):
-        directory, filename = remote_path.rsplit("/", 1)
-        stem, extension = os.path.splitext(filename)
-        if not stem:
-            stem, extension = filename, ""
-        index = 1
-        while True:
-            candidate_name = f"{stem} ({index}){extension}"
-            if candidate_name not in occupied_names:
-                occupied_names.add(candidate_name)
-                return f"{directory}/{candidate_name}"
-            index += 1
+        C = occupied_names
+        G, D = remote_path.rsplit(_B, 1)
+        A, E = os.path.splitext(D)
+        if not A:
+            A, E = D, ""
+        F = 1
+        while _D:
+            B = f"{A} ({F}){E}"
+            if B not in C:
+                C.add(B)
+                return f"{G}/{B}"
+            F += 1
 
     @staticmethod
     def _build_upload_plan(files, target_path):
-        directories = []
-        uploads = []
+        K = "DevicePanel"
+        E = target_path
+        G = []
+        F = []
 
-        def raise_walk_error(error):
+        def L(error):
             raise error
 
-        for path in files:
-            if os.path.isdir(path):
-                folder_name = os.path.basename(os.path.normpath(path))
-                if not folder_name:
+        for A in files:
+            if os.path.isdir(A):
+                H = os.path.basename(os.path.normpath(A))
+                if not H:
                     raise RuntimeError(
-                        QCoreApplication.translate("DevicePanel", "Cannot determine the folder name for '{0}'.").format(path)
+                        QCoreApplication.translate(
+                            K, "Cannot determine the folder name for '{0}'."
+                        ).format(A)
                     )
-                remote_root = f"{target_path.rstrip('/')}/{folder_name}"
-                for root, _, filenames in os.walk(path, onerror=raise_walk_error):
-                    relative_dir = os.path.relpath(root, path)
-                    remote_dir = remote_root
-                    if relative_dir != ".":
-                        relative_dir = relative_dir.replace(os.sep, "/")
-                        remote_dir = f"{remote_root}/{relative_dir}"
-                    directories.append(remote_dir)
-                    for filename in filenames:
-                        local_path = os.path.join(root, filename)
-                        uploads.append((
-                            local_path,
-                            remote_dir,
-                            f"{remote_dir.rstrip('/')}/{filename}",
-                        ))
-            elif os.path.isfile(path):
-                filename = os.path.basename(path)
-                uploads.append((
-                    path,
-                    target_path,
-                    f"{target_path.rstrip('/')}/{filename}",
-                ))
+                I = f"{E.rstrip(_B)}/{H}"
+                for J, O, M in os.walk(A, onerror=L):
+                    B = os.path.relpath(J, A)
+                    C = I
+                    if B != ".":
+                        B = B.replace(os.sep, _B)
+                        C = f"{I}/{B}"
+                    G.append(C)
+                    for D in M:
+                        N = os.path.join(J, D)
+                        F.append((N, C, f"{C.rstrip(_B)}/{D}"))
+            elif os.path.isfile(A):
+                D = os.path.basename(A)
+                F.append((A, E, f"{E.rstrip(_B)}/{D}"))
             else:
-                raise RuntimeError(QCoreApplication.translate("DevicePanel", "'{0}' is not a file or folder.").format(path))
+                raise RuntimeError(
+                    QCoreApplication.translate(
+                        K, "'{0}' is not a file or folder."
+                    ).format(A)
+                )
+        return {_T: list(dict.fromkeys(G)), _S: F}
 
-        return {
-            "directories": list(dict.fromkeys(directories)),
-            "files": uploads,
-        }
-
-    def _inspect_upload_conflicts(self, plan):
-        conflicts = {}
-        plan["existing_names_by_directory"] = {}
-        files_by_directory = {}
-        for upload in plan["files"]:
-            files_by_directory.setdefault(upload[1], []).append(upload)
-        remote_directories = list(dict.fromkeys(
-            [*plan["directories"], *files_by_directory]
-        ))
-        for remote_dir in remote_directories:
+    def _inspect_upload_conflicts(A, plan):
+        O = "last_error"
+        C = plan
+        D = {}
+        C[_U] = {}
+        E = {}
+        for I in C[_S]:
+            E.setdefault(I[1], []).append(I)
+        P = list(dict.fromkeys([*C[_T], *E]))
+        for B in P:
             if is_cancelled():
-                return (conflicts,)
-
-            self.adb_handler.last_error = None
-            exists = self.adb_handler._remote_path_exists(
-                remote_dir, use_root=self.use_root
-            )
-            if exists is None:
-                error = getattr(self.adb_handler, "last_error", None)
+                return (D,)
+            A.adb_handler.last_error = _A
+            J = A.adb_handler._remote_path_exists(B, use_root=A.use_root)
+            if J is _A:
+                K = getattr(A.adb_handler, O, _A)
                 raise RuntimeError(
-                    self.tr("Could not verify destination folder '{0}'").format(remote_dir)
-                    + (f": {error}" if error else ".")
+                    A.tr("Could not verify destination folder '{0}'").format(B)
+                    + (f": {K}" if K else ".")
                 )
-            if not exists:
-                plan["existing_names_by_directory"][remote_dir] = set()
+            if not J:
+                C[_U][B] = set()
                 continue
-
-            self.adb_handler.last_error = None
-            entries = self.adb_handler.list_directory(remote_dir, self.use_root)
-            listing_error = getattr(self.adb_handler, "last_error", None)
-            if entries is None or listing_error:
+            A.adb_handler.last_error = _A
+            L = A.adb_handler.list_directory(B, A.use_root)
+            F = getattr(A.adb_handler, O, _A)
+            if L is _A or F:
                 raise RuntimeError(
-                    self.tr("Could not list destination folder '{0}'").format(remote_dir)
-                    + (f": {listing_error}" if listing_error else ".")
+                    A.tr("Could not list destination folder '{0}'").format(B)
+                    + (f": {F}" if F else ".")
                 )
-
-            existing_entries = {entry.name: entry for entry in entries}
-            plan["existing_names_by_directory"][remote_dir] = set(
-                existing_entries
-            )
-            for local_path, _, remote_path in files_by_directory.get(remote_dir, ()):
-                existing = existing_entries.get(os.path.basename(local_path))
-                if existing is None:
+            M = {A.name: A for A in L}
+            C[_U][B] = set(M)
+            for G, Q, N in E.get(B, ()):
+                H = M.get(os.path.basename(G))
+                if H is _A:
                     continue
-                if existing.is_dir:
+                if H.is_dir:
                     raise RuntimeError(
-                        self.tr("Cannot upload file '{0}': a folder already "
-                        "exists at '{1}'.").format(local_path, remote_path)
+                        A.tr(
+                            "Cannot upload file '{0}': a folder already exists at '{1}'."
+                        ).format(G, N)
                     )
-                conflicts[remote_path] = (local_path, existing)
-        return (conflicts,)
+                D[N] = G, H
+        return (D,)
 
     @staticmethod
     def _format_upload_size(size):
-        value = float(size)
-        for unit in ("Bytes", "KB", "MB", "GB", "TB"):
-            if value < 1024 or unit == "TB":
-                return f"{int(value)} {unit}" if unit == "Bytes" else f"{value:.1f} {unit}"
-            value /= 1024
+        C = "Bytes"
+        A = float(size)
+        for B in (C, "KB", "MB", "GB", "TB"):
+            if A < 1024 or B == "TB":
+                return f"{int(A)} {B}" if B == C else f"{A:.1f} {B}"
+            A /= 1024
 
-    def _confirm_upload_conflict(self, remote_path, local_path, existing):
-        source_info = os.stat(local_path)
-        source_modified = datetime.fromtimestamp(source_info.st_mtime).strftime(
-            "%d/%m/%Y %H:%M:%S"
-        )
+    def _confirm_upload_conflict(A, remote_path, local_path, existing):
+        E = existing
+        G = os.stat(local_path)
+        K = datetime.fromtimestamp(G.st_mtime).strftime("%d/%m/%Y %H:%M:%S")
         try:
-            destination_modified = datetime.strptime(
-                existing.date_modified, "%Y-%m-%d %H:%M"
-            ).strftime("%d/%m/%Y %H:%M")
+            H = datetime.strptime(E.date_modified, "%Y-%m-%d %H:%M").strftime(
+                "%d/%m/%Y %H:%M"
+            )
         except ValueError:
-            destination_modified = existing.date_modified
-
-        box = QMessageBox(self)
-        box.setWindowTitle(self.tr("File already exists"))
-        box.setText(self.tr("The following file already exists:"))
-        box.setInformativeText(
-            self.tr("{0}\n\n"
-            "Source: {1}, "
-            "Modified {2}\n"
-            "Destination: {3}, "
-            "Modified {4}\n\n"
-            "Overwrite replaces the existing content. Rename Destination keeps "
-            "the existing file under a numbered name before uploading.").format(remote_path, self._format_upload_size(source_info.st_size), source_modified, self._format_upload_size(existing.size), destination_modified )
+            H = E.date_modified
+        B = QMessageBox(A)
+        B.setWindowTitle(A.tr("File already exists"))
+        B.setText(A.tr("The following file already exists:"))
+        B.setInformativeText(
+            A.tr(
+                "{0}\n\nSource: {1}, Modified {2}\nDestination: {3}, Modified {4}\n\nOverwrite replaces the existing content. Rename Destination keeps the existing file under a numbered name before uploading."
+            ).format(
+                remote_path,
+                A._format_upload_size(G.st_size),
+                K,
+                A._format_upload_size(E.size),
+                H,
+            )
         )
-        overwrite = box.addButton(self.tr("Overwrite"), QMessageBox.ButtonRole.AcceptRole)
-        rename = box.addButton(self.tr("Rename"), QMessageBox.ButtonRole.ActionRole)
-        rename.setMinimumWidth(130)
-        skip = box.addButton(self.tr("Skip"), QMessageBox.ButtonRole.ActionRole)
-        skip.setMinimumWidth(100)
-        box.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
-        apply_to_all = ApplyToAllCheckBox(self.tr("Apply to all conflicts"))
-        apply_to_all.setObjectName("apply_to_all_conflicts")
-        apply_to_all.setAccessibleName(self.tr("Apply to all file conflicts"))
-        apply_to_all.setToolTip(
-            self.tr("Use this choice for every remaining file conflict in this import.")
+        L = B.addButton(A.tr("Overwrite"), QMessageBox.ButtonRole.AcceptRole)
+        I = B.addButton(A.tr(_Q), QMessageBox.ButtonRole.ActionRole)
+        I.setMinimumWidth(130)
+        J = B.addButton(A.tr("Skip"), QMessageBox.ButtonRole.ActionRole)
+        J.setMinimumWidth(100)
+        B.addButton(A.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
+        C = ApplyToAllCheckBox(A.tr("Apply to all conflicts"))
+        C.setObjectName("apply_to_all_conflicts")
+        C.setAccessibleName(A.tr("Apply to all file conflicts"))
+        C.setToolTip(
+            A.tr("Use this choice for every remaining file conflict in this import.")
         )
-        box.setCheckBox(apply_to_all)
-        box.exec()
-        clicked = box.clickedButton()
-        if clicked is overwrite:
-            choice = "overwrite"
-        elif clicked is rename:
-            choice = "rename"
-        elif clicked is skip:
-            choice = "skip"
+        B.setCheckBox(C)
+        B.exec()
+        F = B.clickedButton()
+        if F is L:
+            D = "overwrite"
+        elif F is I:
+            D = "rename"
+        elif F is J:
+            D = "skip"
         else:
-            choice = "cancel"
-        return choice, apply_to_all.isChecked()
+            D = _f
+        return D, C.isChecked()
 
-    def _resolve_upload_conflicts(self, plan, conflicts):
-        choices = {}
-        renamed_destinations = {}
-        occupied_names = plan.get("existing_names_by_directory", {})
-        apply_choice = None
-        for remote_path, (local_path, existing) in conflicts.items():
-            if apply_choice is None:
+    def _resolve_upload_conflicts(A, plan, conflicts):
+        F = plan
+        H = {}
+        I = {}
+        G = F.get(_U, {})
+        D = _A
+        for C, (E, J) in conflicts.items():
+            if D is _A:
                 try:
-                    choice, apply_to_all = self._confirm_upload_conflict(
-                        remote_path, local_path, existing
-                    )
-                except (OSError, OverflowError, ValueError) as error:
-                    self.status_label.setText(
-                        self.tr("Could not read source file '{0}': {1}; import was not started").format(local_path, error)
+                    B, K = A._confirm_upload_conflict(C, E, J)
+                except (OSError, OverflowError, ValueError) as L:
+                    A.status_label.setText(
+                        A.tr(
+                            "Could not read source file '{0}': {1}; import was not started"
+                        ).format(E, L)
                     )
                     return
-                if apply_to_all and choice != "cancel":
-                    apply_choice = choice
+                if K and B != _f:
+                    D = B
             else:
-                choice = apply_choice
-            if choice == "cancel":
-                self.status_label.setText(self.tr("Import cancelled; no files were uploaded"))
+                B = D
+            if B == _f:
+                A.status_label.setText(A.tr("Import cancelled; no files were uploaded"))
                 return
-            choices[remote_path] = choice
-            if choice == "rename":
-                directory = remote_path.rsplit("/", 1)[0] or "/"
-                names = occupied_names.setdefault(directory, set())
-                renamed_destinations[remote_path] = (
-                    DevicePanel._next_renamed_destination(remote_path, names)
-                )
+            H[C] = B
+            if B == "rename":
+                M = C.rsplit(_B, 1)[0] or _B
+                N = G.setdefault(M, set())
+                I[C] = DevicePanel._next_renamed_destination(C, N)
 
-        def run_upload():
-            uploaded = 0
-            skipped = 0
-            renamed = 0
-            for remote_dir in plan["directories"]:
+        def O():
+            C = 0
+            D = 0
+            E = 0
+            for J in F[_T]:
                 if is_cancelled():
-                    return uploaded, skipped, renamed
-                if not self.adb_handler.create_folder(remote_dir):
+                    return C, D, E
+                if not A.adb_handler.create_folder(J):
                     raise RuntimeError(
-                        self.tr("Failed to create device folder '{0}'.").format(remote_dir)
+                        A.tr("Failed to create device folder '{0}'.").format(J)
                     )
-            for local_path, _, remote_path in plan["files"]:
+            for K, L, B in F[_S]:
                 if is_cancelled():
-                    return uploaded, skipped, renamed
-                if choices.get(remote_path) == "skip":
-                    skipped += 1
+                    return C, D, E
+                if H.get(B) == "skip":
+                    D += 1
                     continue
-                renamed_path = renamed_destinations.get(remote_path)
-                if renamed_path is not None:
-                    if not self.adb_handler.rename_item(
-                        remote_path, renamed_path, use_root=self.use_root
-                    ):
+                G = I.get(B)
+                if G is not _A:
+                    if not A.adb_handler.rename_item(B, G, use_root=A.use_root):
                         raise RuntimeError(
-                            self.tr("Failed to preserve existing file '{0}' "
-                            f"as '{1}'.").format(remote_path, renamed_path)
+                            A.tr(
+                                f"Failed to preserve existing file '{{0}}' as '{1}'."
+                            ).format(B, G)
                         )
-                    renamed += 1
-                if not self.adb_handler.push_file(local_path, remote_path):
+                    E += 1
+                if not A.adb_handler.push_file(K, B):
                     raise RuntimeError(
-                        self.tr("Failed to upload '{0}' to '{1}'.").format(local_path, remote_path)
+                        A.tr("Failed to upload '{0}' to '{1}'.").format(K, B)
                     )
-                uploaded += 1
-            return uploaded, skipped, renamed
+                C += 1
+            return C, D, E
 
-        def on_done(result):
-            uploaded, skipped, renamed = result
-            self.status_label.setText(
-                self.tr("Uploaded {0} files; skipped {1}; preserved {2} existing files").format(uploaded, skipped, renamed)
+        def P(result):
+            B, C, D = result
+            A.status_label.setText(
+                A.tr(
+                    "Uploaded {0} files; skipped {1}; preserved {2} existing files"
+                ).format(B, C, D)
             )
-            self.refresh_files()
+            A.refresh_files()
 
-        self._run_modal(
-            self.tr("Importing files from PC"),
-            run_upload,
-            on_done=on_done,
-            on_error=lambda: self.status_label.setText(self.tr("Import from PC failed")),
-            on_cancel=lambda: self.status_label.setText(self.tr("Import cancelled")),
+        A._run_modal(
+            A.tr("Importing files from PC"),
+            O,
+            on_done=P,
+            on_error=lambda: A.status_label.setText(A.tr("Import from PC failed")),
+            on_cancel=lambda: A.status_label.setText(A.tr(_z)),
         )
 
-    def download_selected_items(self):
-        if not self.adb_handler.device_connected:
+    def download_selected_items(A):
+        if not A.adb_handler.device_connected:
             return
-        indexes = self.tree_view.selectionModel().selectedRows()
-        if not indexes:
+        D = A.tree_view.selectionModel().selectedRows()
+        if not D:
             return
-        save_dir = QFileDialog.getExistingDirectory(self, self.tr( "Download Location"))
-        if not save_dir:
+        E = QFileDialog.getExistingDirectory(A, A.tr("Download Location"))
+        if not E:
             return
-        pairs = []
-        for index in indexes:
-            name = self.tree_model.data(self.tree_model.index(index.row(), 0))
-            typ = self.tree_model.data(self.tree_model.index(index.row(), 1))
-            if not name or name == "..":
+        C = []
+        for F in D:
+            B = A.tree_model.data(A.tree_model.index(F.row(), 0))
+            K = A.tree_model.data(A.tree_model.index(F.row(), 1))
+            if not B or B == _G:
                 continue
-            remote = f"{self.current_path.rstrip('/')}/{name}"
-            local = os.path.join(save_dir, name)
-            pairs.append((remote, local))
+            G = f"{A.current_path.rstrip(_B)}/{B}"
+            H = os.path.join(E, B)
+            C.append((G, H))
 
-        def run_dl():
-            count = 0
-            for remote, local in pairs:
+        def I():
+            B = 0
+            for D, E in C:
                 if is_cancelled():
-                    return count
-                if self.adb_handler.pull_file(remote, local):
-                    count += 1
-            return count
+                    return B
+                if A.adb_handler.pull_file(D, E):
+                    B += 1
+            return B
 
-        def on_done(count):
-            self.status_label.setText(self.tr("Downloaded {0} files").format(count))
+        def J(count):
+            A.status_label.setText(A.tr("Downloaded {0} files").format(count))
 
-        self._run_modal(self.tr("Download {0} files").format(len(pairs)), run_dl, on_done=on_done)
+        A._run_modal(A.tr("Download {0} files").format(len(C)), I, on_done=J)
 
-    def copy_selected_to(self):
-        if not self.adb_handler.device_connected:
+    def copy_selected_to(A):
+        if not A.adb_handler.device_connected:
             return
-        indexes = self.tree_view.selectionModel().selectedRows()
-        if not indexes:
+        D = A.tree_view.selectionModel().selectedRows()
+        if not D:
             return
-        names = []
-        for index in indexes:
-            name = self.tree_model.data(self.tree_model.index(index.row(), 0))
-            is_dir = self.tree_model.data(self.tree_model.index(index.row(), 1)) == self.tr("Directory")
-            if name and name != "..":
-                names.append((name, is_dir))
-        if not names:
+        C = []
+        for E in D:
+            B = A.tree_model.data(A.tree_model.index(E.row(), 0))
+            H = A.tree_model.data(A.tree_model.index(E.row(), 1)) == A.tr(_I)
+            if B and B != _G:
+                C.append((B, H))
+        if not C:
             return
+        from select_directory_dialog import SelectDirectoryDialog as I
 
-        from select_directory_dialog import SelectDirectoryDialog
-        dialog = SelectDirectoryDialog(
-            self, self.adb_handler, self.current_path, self.root_path, self.use_root
-        )
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            target = dialog.get_selected_path()
-            if not target:
+        G = I(A, A.adb_handler, A.current_path, A.root_path, A.use_root)
+        if G.exec() == QDialog.DialogCode.Accepted:
+            F = G.get_selected_path()
+            if not F:
                 return
-            if QMessageBox.question(self, self.tr( "Copy"), self.tr( "Copy {0} items to '{1}'?").format(len(names), target),
-                                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.No:
+            if (
+                QMessageBox.question(
+                    A,
+                    A.tr(_e),
+                    A.tr("Copy {0} items to '{1}'?").format(len(C), F),
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                )
+                == QMessageBox.StandardButton.No
+            ):
                 return
 
-            def run_copy():
-                count = 0
-                for name, is_dir in names:
+            def J():
+                G = 0
+                for H, K in C:
                     if is_cancelled():
-                        return count
-                    src = f"{self.current_path.rstrip('/')}/{name}"
-                    dst = f"{target.rstrip('/')}/{name}"
-                    backup = None
-                    copied = False
+                        return G
+                    J = f"{A.current_path.rstrip(_B)}/{H}"
+                    B = f"{F.rstrip(_B)}/{H}"
+                    D = _A
+                    E = _C
                     try:
-                        if self.adb_handler.path_exists(dst):
-                            backup_path = (
-                                f"{dst.rsplit('/', 1)[0]}/"
-                                f".adb-explorer-backup-{uuid.uuid4().hex}"
-                            )
-                            if not self.adb_handler._move_remote_path_for_recovery(
-                                dst, backup_path
-                            ):
+                        if A.adb_handler.path_exists(B):
+                            I = f"{B.rsplit(_B,1)[0]}/.adb-explorer-backup-{uuid.uuid4().hex}"
+                            if not A.adb_handler._move_remote_path_for_recovery(B, I):
                                 continue
-                            backup = backup_path
-                        copied = self.adb_handler.copy_on_device(src, dst)
-                        if copied:
-                            count += 1
+                            D = I
+                        E = A.adb_handler.copy_on_device(J, B)
+                        if E:
+                            G += 1
                     except Exception:
-                        copied = False
+                        E = _C
                     finally:
-                        if backup:
-                            if copied:
-                                self.adb_handler._remove_remote_partial(backup)
+                        if D:
+                            if E:
+                                A.adb_handler._remove_remote_partial(D)
                             else:
-                                self.adb_handler._remove_remote_partial(dst)
-                                self.adb_handler._move_remote_path_for_recovery(
-                                    backup, dst
-                                )
-                return count
+                                A.adb_handler._remove_remote_partial(B)
+                                A.adb_handler._move_remote_path_for_recovery(D, B)
+                return G
 
-            def on_done(count):
-                self.status_label.setText(self.tr("Copied {0} items").format(count))
-                self.refresh_files()
+            def K(count):
+                A.status_label.setText(A.tr("Copied {0} items").format(count))
+                A.refresh_files()
 
-            self._run_modal(self.tr("Copy {0} items").format(len(names)), run_copy, on_done=on_done)
+            A._run_modal(A.tr("Copy {0} items").format(len(C)), J, on_done=K)
 
-    def batch_rename_selected(self):
-        if not self.adb_handler.device_connected:
+    def batch_rename_selected(A):
+        if not A.adb_handler.device_connected:
             return
-        indexes = self.tree_view.selectionModel().selectedRows()
-        if len(indexes) < 2:
-            QMessageBox.information(self, self.tr( "Info"), self.tr( "Select 2+ items to batch rename."))
+        B = A.tree_view.selectionModel().selectedRows()
+        if len(B) < 2:
+            QMessageBox.information(
+                A, A.tr("Info"), A.tr("Select 2+ items to batch rename.")
+            )
             return
-        base, ok = QInputDialog.getText(self, self.tr("Batch Rename"), self.tr("Base name:"))
-        if not ok or not base:
+        D, C = QInputDialog.getText(A, A.tr("Batch Rename"), A.tr("Base name:"))
+        if not C or not D:
             return
-        padding = len(str(len(indexes)))
+        E = len(str(len(B)))
 
-        def run():
-            count = 0
-            for i, index in enumerate(indexes):
+        def F():
+            C = 0
+            for F, G in enumerate(B):
                 if is_cancelled():
-                    return count
-                old = self.tree_model.data(self.tree_model.index(index.row(), 0))
-                new = f"{base}{str(i+1).zfill(padding)}"
-                old_path = f"{self.current_path.rstrip('/')}/{old}"
-                new_path = f"{self.current_path.rstrip('/')}/{new}"
-                if self.adb_handler.rename_item(old_path, new_path):
-                    count += 1
-            return count
+                    return C
+                H = A.tree_model.data(A.tree_model.index(G.row(), 0))
+                I = f"{D}{str(F+1).zfill(E)}"
+                J = f"{A.current_path.rstrip(_B)}/{H}"
+                K = f"{A.current_path.rstrip(_B)}/{I}"
+                if A.adb_handler.rename_item(J, K):
+                    C += 1
+            return C
 
-        def on_done(count):
-            self.status_label.setText(self.tr("Renamed {0} items").format(count))
-            self.refresh_files()
+        def G(count):
+            A.status_label.setText(A.tr("Renamed {0} items").format(count))
+            A.refresh_files()
 
-        self._run_modal(self.tr("Rename {0} items").format(len(indexes)), run, on_done=on_done)
+        A._run_modal(A.tr("Rename {0} items").format(len(B)), F, on_done=G)
 
-    
-
-    def handle_drop_event(self, event):
-        if not self.adb_handler.device_connected:
+    def handle_drop_event(A, event):
+        if not A.adb_handler.device_connected:
             return
-        urls = event.mimeData().urls()
-        if not urls:
+        B = event.mimeData().urls()
+        if not B:
             return
-        paths = [u.toLocalFile() for u in urls]
-        self.upload_files_and_folders(paths)
+        C = [A.toLocalFile() for A in B]
+        A.upload_files_and_folders(C)
 
-    
+    def _run_modal(C, title, fn, *P, on_done=_A, on_error=_A, on_cancel=_A, refresh=_C):
+        J = on_cancel
+        I = on_done
+        E = on_error
+        D = title
+        B = WorkerThread(D, fn, *P)
+        A = QDialog(C)
+        A.setWindowTitle(D)
+        A.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, _C)
+        A.setWindowModality(Qt.WindowModality.WindowModal)
+        A.setFixedSize(360, 130)
+        F = QVBoxLayout(A)
+        F.setContentsMargins(16, 16, 16, 16)
+        Q = QLabel(f"{D}...")
+        F.addWidget(Q)
+        K = QProgressBar()
+        K.setRange(0, 0)
+        F.addWidget(K)
+        G = QHBoxLayout()
+        G.addStretch()
+        H = QPushButton(C.tr("Background"))
+        L = QPushButton(C.tr("Cancel"))
+        G.addWidget(H)
+        G.addWidget(L)
+        F.addLayout(G)
+        M = [_C]
+        N = [_C]
+        O = [_C]
 
-    def _run_modal(
-        self, title, fn, *args, on_done=None, on_error=None, on_cancel=None,
-        refresh=False,
-    ):
-        task = WorkerThread(title, fn, *args)
-
-        dlg = QDialog(self)
-        dlg.setWindowTitle(title)
-        dlg.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, False)
-        dlg.setWindowModality(Qt.WindowModality.WindowModal)
-        dlg.setFixedSize(360, 130)
-        layout = QVBoxLayout(dlg)
-        layout.setContentsMargins(16, 16, 16, 16)
-
-        label = QLabel(f"{title}...")
-        layout.addWidget(label)
-
-        bar = QProgressBar()
-        bar.setRange(0, 0)
-        layout.addWidget(bar)
-
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-        bg_btn = QPushButton(self.tr( "Background"))
-        cancel_btn = QPushButton(self.tr( "Cancel"))
-        btn_row.addWidget(bg_btn)
-        btn_row.addWidget(cancel_btn)
-        layout.addLayout(btn_row)
-
-        sent_to_background = [False]
-        completed = [False]
-        failed = [False]
-
-        def reopen_dialog():
-            if completed[0]:
+        def R():
+            if N[0]:
                 return
-            dlg.show()
-            dlg.raise_()
-            dlg.activateWindow()
+            A.show()
+            A.raise_()
+            A.activateWindow()
 
-        def send_to_background():
-            if sent_to_background[0]:
-                dlg.hide()
+        def S():
+            if M[0]:
+                A.hide()
                 return
-            parent_window = self.window()
-            task_manager = getattr(parent_window, "task_manager", None)
-            if task_manager is None:
+            E = C.window()
+            F = getattr(E, _P, _A)
+            if F is _A:
                 return
-            sent_to_background[0] = True
-            dlg.hide()
-            task_manager.add_task(task, name=title, on_reopen=reopen_dialog)
-            if hasattr(parent_window, "_position_task_manager"):
-                parent_window._position_task_manager()
+            M[0] = _D
+            A.hide()
+            F.add_task(B, name=D, on_reopen=R)
+            if hasattr(E, _p):
+                E._position_task_manager()
 
-        bg_btn.setEnabled(hasattr(self.window(), "task_manager"))
-        bg_btn.clicked.connect(send_to_background)
+        H.setEnabled(hasattr(C.window(), _P))
+        H.clicked.connect(S)
 
-        def cancel_task():
-            task.cancel()
-            dlg.close()
+        def T():
+            B.cancel()
+            A.close()
 
-        cancel_btn.clicked.connect(cancel_task)
+        L.clicked.connect(T)
 
-        def handle_finished(val):
-            completed[0] = True
-            if dlg.isVisible():
-                dlg.close()
-            if task.is_cancelled():
-                if on_cancel:
-                    on_cancel()
+        def U(val):
+            D = val
+            N[0] = _D
+            if A.isVisible():
+                A.close()
+            if B.is_cancelled():
+                if J:
+                    J()
                 return
-            if failed[0]:
+            if O[0]:
                 return
-            is_ok = bool(val) if val is not None else False
-            if is_ok:
-                if on_done:
-                    on_done(val)
+            F = bool(D) if D is not _A else _C
+            if F:
+                if I:
+                    I(D)
                 if refresh:
-                    self.refresh_files()
-            else:
-                if on_error:
-                    on_error()
+                    C.refresh_files()
+            elif E:
+                E()
 
-        def handle_error(msg):
-            failed[0] = True
-            if dlg.isVisible():
-                dlg.close()
-            if on_error:
-                on_error()
+        def V(msg):
+            O[0] = _D
+            if A.isVisible():
+                A.close()
+            if E:
+                E()
 
-        task.finished_signal.connect(handle_finished)
-        task.error_signal.connect(handle_error)
-        dlg.show()
-        task.start()
-        return task
+        B.finished_signal.connect(U)
+        B.error_signal.connect(V)
+        A.show()
+        B.start()
+        return B
 
-    def _run_background(self, name, fn, *args, on_done=None, on_error=None, refresh=False):
-        parent_window = self.window()
-        if hasattr(parent_window, 'task_manager'):
-            task = parent_window.task_manager.submit(name, fn, *args)
+    def _run_background(C, name, fn, *D, on_done=_A, on_error=_A, refresh=_C):
+        E = on_done
+        B = on_error
+        F = C.window()
+        if hasattr(F, _P):
+            A = F.task_manager.submit(name, fn, *D)
         else:
-            task = WorkerThread(name, fn, *args)
-            task.start()
+            A = WorkerThread(name, fn, *D)
+            A.start()
 
-        def handle_result(val):
-            is_ok = bool(val) if val is not None else False
-            if is_ok:
-                if on_done:
-                    on_done(val)
+        def G(val):
+            A = val
+            D = bool(A) if A is not _A else _C
+            if D:
+                if E:
+                    E(A)
                 if refresh:
-                    self.refresh_files()
-            else:
-                if on_error:
-                    on_error()
+                    C.refresh_files()
+            elif B:
+                B()
 
-        task.finished_signal.connect(handle_result)
-        task.error_signal.connect(lambda msg: (on_error() if on_error else None))
-        return task
+        A.finished_signal.connect(G)
+        A.error_signal.connect(lambda msg: B() if B else _A)
+        return A
 
 
 class NonOverlappingTabBar(QTabBar):
-    def resizeEvent(self, event):
+    def resizeEvent(A, event):
         super().resizeEvent(event)
-        self.separate_scroll_buttons()
+        A.separate_scroll_buttons()
 
-    def separate_scroll_buttons(self, buttons=None):
-        if buttons is None:
-            buttons = {
-                "left" if button.objectName() == "ScrollLeftButton" else "right": button
-                for button in self.findChildren(QToolButton)
-                if button.objectName() in {"ScrollLeftButton", "ScrollRightButton"}
+    def separate_scroll_buttons(A, buttons=_A):
+        B = buttons
+        if B is _A:
+            B = {
+                _h if A.objectName() == _g else _i: A
+                for A in A.findChildren(QToolButton)
+                if A.objectName() in {_g, _A0}
             }
-        left = buttons.get("left")
-        right = buttons.get("right")
-        if left is None or right is None:
+        D = B.get(_h)
+        E = B.get(_i)
+        if D is _A or E is _A:
             return
-        button_width = 14
-        button_height = 24
-        gap = 3
-        y = (self.height() - button_height) // 2
-        left.setFixedSize(button_width, button_height)
-        right.setFixedSize(button_width, button_height)
-        left.move(self.width() - (button_width * 2 + gap), y)
-        right.move(self.width() - button_width, y)
+        C = 14
+        F = 24
+        H = 3
+        G = (A.height() - F) // 2
+        D.setFixedSize(C, F)
+        E.setFixedSize(C, F)
+        D.move(A.width() - (C * 2 + H), G)
+        E.move(A.width() - C, G)
+
+
+class BookmarkDialog(QDialog):
+    def __init__(A, parent, bookmark, title):
+        C = bookmark
+        super().__init__(parent)
+        A.setWindowTitle(title)
+        E = QVBoxLayout(A)
+        B = QFormLayout()
+        A.name_input = QLineEdit(C.get(_H, ""))
+        A.path_input = QLineEdit(C.get(_E, ""))
+        A.path_input.setReadOnly(_D)
+        A.note_input = QLineEdit(C.get(_L, ""))
+        B.addRow(A.tr(_O), A.name_input)
+        B.addRow(A.tr("Path"), A.path_input)
+        B.addRow(A.tr("Note"), A.note_input)
+        E.addLayout(B)
+        D = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        D.accepted.connect(A.accept)
+        D.rejected.connect(A.reject)
+        E.addWidget(D)
+
+    def bookmark(A):
+        return {
+            _H: A.name_input.text().strip(),
+            _E: A.path_input.text(),
+            _L: A.note_input.text().strip(),
+        }
+
+
+_DEVICE_FOLDER_SHORTCUTS = (
+    ("Downloads", "Download"),
+    (_A1, _A1),
+    ("Pictures", "Pictures"),
+    ("Music", "Music"),
+    ("Videos", "Movies"),
+    ("Camera", "DCIM"),
+)
 
 
 class DevicePanelGroup(QWidget):
     cross_device_drop = pyqtSignal(str, list, str)
     close_requested = pyqtSignal()
 
-    def __init__(self, parent, adb_handler, device_info=None):
+    def __init__(
+        A, parent, adb_handler, device_info=_A, bookmarks_path=_A, bookmark_store=_A
+    ):
         super().__init__(parent)
-        self.adb_handler = adb_handler
-        self.device_info = device_info or {}
-        self.clipboard = {'items': [], 'operation': None}
-        self._views = []
-        self._closing = False
-        self._last_path = "/storage/emulated/0"
+        A.adb_handler = adb_handler
+        A.device_info = device_info or {}
+        A.clipboard = {_F: [], _K: _A}
+        A._views = []
+        A._navigation_items = []
+        A._closing = _C
+        A._last_path = _N
+        A._multi_panel_mode = _C
+        A._navigation_pane_open = _D
+        A._restore_navigation_pane_open = _D
+        A._bookmark_store = bookmark_store or BookmarkStore(bookmarks_path)
+        A._bookmark_store.bookmarks_changed.connect(A._on_bookmarks_changed)
+        try:
+            A._bookmarks = A._bookmark_store.load(A.device_serial)
+            A._bookmark_load_error = _A
+        except (OSError, ValueError) as E:
+            A._bookmarks = []
+            A._bookmark_load_error = str(E)
+        C = QVBoxLayout(A)
+        C.setContentsMargins(0, 0, 0, 0)
+        C.setSpacing(2)
+        D = QWidget()
+        D.setObjectName(_j)
+        B = QHBoxLayout(D)
+        B.setContentsMargins(6, 2, 4, 2)
+        B.setSpacing(6)
+        A.navigation_toggle_btn = QToolButton()
+        A.navigation_toggle_btn.setObjectName("navigation_toggle_btn")
+        A.navigation_toggle_btn.setText("◧")
+        A.navigation_toggle_btn.setCheckable(_D)
+        A.navigation_toggle_btn.setChecked(_D)
+        A.navigation_toggle_btn.setToolTip(A.tr(_A2))
+        A.navigation_toggle_btn.setAccessibleName(A.tr("Toggle navigation pane"))
+        A.navigation_toggle_btn.clicked.connect(A.toggle_navigation_pane)
+        B.addWidget(A.navigation_toggle_btn)
+        A.device_header = QLabel(A.device_name)
+        A.device_header.setObjectName(_k)
+        B.addWidget(A.device_header)
+        B.addStretch()
+        A.conn_label = QLabel()
+        B.addWidget(A.conn_label)
+        A.close_btn = QPushButton("X")
+        A.close_btn.setObjectName(_l)
+        A.close_btn.setToolTip(A.tr(_m))
+        A.close_btn.setAccessibleName(A.tr(_n))
+        A.close_btn.setFixedSize(30, 30)
+        A.close_btn.clicked.connect(A.close_requested.emit)
+        B.addWidget(A.close_btn)
+        A.add_tab_btn = QPushButton("+")
+        A.add_tab_btn.setObjectName("add_path_tab_btn")
+        A.add_tab_btn.setToolTip(A.tr("Add a path tab"))
+        A.add_tab_btn.setAccessibleName(A.tr("Add path tab"))
+        A.add_tab_btn.setFixedSize(30, 30)
+        A.add_tab_btn.clicked.connect(lambda: A.add_tab())
+        B.insertWidget(B.count() - 1, A.add_tab_btn)
+        C.addWidget(D)
+        A.content_splitter = QSplitter(Qt.Orientation.Horizontal)
+        A.content_splitter.setObjectName("panel_content_splitter")
+        A.content_splitter.setChildrenCollapsible(_C)
+        A.favorites_pane = A._create_favorites_pane()
+        A.content_splitter.addWidget(A.favorites_pane)
+        A.tabs = QTabWidget(A.content_splitter)
+        A.tabs.setObjectName("path_tabs")
+        A.tabs.setTabBar(NonOverlappingTabBar())
+        A.tabs.setDocumentMode(_D)
+        A.tabs.tabBar().setElideMode(Qt.TextElideMode.ElideMiddle)
+        A.tabs.currentChanged.connect(A._on_active_tab_changed)
+        A.tabs.tabBar().setObjectName("path_tab_bar")
+        A.content_splitter.addWidget(A.tabs)
+        A.content_splitter.setStretchFactor(0, 0)
+        A.content_splitter.setStretchFactor(1, 1)
+        A.content_splitter.setSizes([180, 640])
+        C.addWidget(A.content_splitter, 1)
+        A.add_tab()
+        A.update_connection_status()
+        if A._bookmark_load_error:
+            A._show_bookmark_error(A.tr(_A3).format(A._bookmark_load_error))
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
+    def _create_favorites_pane(A):
+        B = QWidget(A.content_splitter)
+        B.setObjectName("favorites_pane")
+        B.setMinimumWidth(140)
+        B.setMaximumWidth(240)
+        C = QVBoxLayout(B)
+        C.setContentsMargins(6, 8, 6, 6)
+        C.setSpacing(6)
+        D = QHBoxLayout()
+        E = QLabel(A.tr("Folders"), B)
+        E.setObjectName("navigation_title")
+        D.addWidget(E)
+        D.addStretch()
+        C.addLayout(D)
+        A.navigation_tree = QTreeWidget(B)
+        A.navigation_tree.setObjectName("navigation_tree")
+        A.navigation_tree.setHeaderHidden(_D)
+        A.navigation_tree.setRootIsDecorated(_D)
+        A.navigation_tree.setUniformRowHeights(_D)
+        A.navigation_tree.setIndentation(16)
+        A.navigation_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        A.navigation_tree.customContextMenuRequested.connect(
+            A._show_bookmark_context_menu
+        )
+        A.navigation_tree.itemClicked.connect(A._activate_navigation_item)
+        A.navigation_tree.itemActivated.connect(A._activate_navigation_item)
+        C.addWidget(A.navigation_tree)
+        A._refresh_navigation_tree()
+        return B
 
-        header_container = QWidget()
-        header_container.setObjectName("panel_header")
-        header = QHBoxLayout(header_container)
-        header.setContentsMargins(6, 2, 4, 2)
-        header.setSpacing(6)
-        self.device_header = QLabel(self.device_name)
-        self.device_header.setObjectName("device_header")
-        header.addWidget(self.device_header)
-        header.addStretch()
-        self.conn_label = QLabel()
-        header.addWidget(self.conn_label)
-        self.close_btn = QPushButton("X")
-        self.close_btn.setObjectName("panel_close_btn")
-        self.close_btn.setToolTip(self.tr("Close this device panel"))
-        self.close_btn.setAccessibleName(self.tr("Close device panel"))
-        self.close_btn.setFixedSize(30, 30)
-        self.close_btn.clicked.connect(self.close_requested.emit)
-        header.addWidget(self.close_btn)
-        self.add_tab_btn = QPushButton("+")
-        self.add_tab_btn.setObjectName("add_path_tab_btn")
-        self.add_tab_btn.setToolTip(self.tr("Add a path tab"))
-        self.add_tab_btn.setAccessibleName(self.tr("Add path tab"))
-        self.add_tab_btn.setFixedSize(30, 30)
-        self.add_tab_btn.clicked.connect(lambda: self.add_tab())
-        header.insertWidget(header.count() - 1, self.add_tab_btn)
-        layout.addWidget(header_container)
+    def _refresh_navigation_tree(A):
+        N = "storage"
+        M = "favorites"
+        I = "section"
+        G = {}
+        for O in range(A.navigation_tree.topLevelItemCount()):
+            B = A.navigation_tree.topLevelItem(O)
+            P = B.data(0, Qt.ItemDataRole.UserRole) or {}
+            J = P.get(I)
+            if J:
+                G[J] = B.isExpanded()
+        A.navigation_tree.clear()
+        A._navigation_items = []
+        F = QFileIconProvider().icon(QFileIconProvider.IconType.Folder)
+        C = QTreeWidgetItem([A.tr("Favorites")])
+        C.setFont(0, A._navigation_group_font())
+        C.setIcon(0, F)
+        C.setData(0, Qt.ItemDataRole.UserRole, {_J: "group", I: M})
+        A.navigation_tree.addTopLevelItem(C)
+        for D in A._bookmarks:
+            B = QTreeWidgetItem([D[_H]])
+            B.setIcon(0, F)
+            B.setData(0, Qt.ItemDataRole.UserRole, {_J: _M, _E: D[_E], "bookmark": D})
+            H = D[_E]
+            if D.get(_L):
+                H = f"{D[_L]}\n{H}"
+            B.setToolTip(0, H)
+            C.addChild(B)
+            A._navigation_items.append((B, D[_E]))
+        if not A._bookmarks:
+            K = QTreeWidgetItem([A.tr("No favorites yet")])
+            K.setFlags(Qt.ItemFlag.NoItemFlags)
+            C.addChild(K)
+        C.setExpanded(G.get(M, _D))
+        E = QTreeWidgetItem([A.tr("Internal storage")])
+        E.setFont(0, A._navigation_group_font())
+        E.setIcon(0, F)
+        E.setData(0, Qt.ItemDataRole.UserRole, {_J: _V, _E: _N, I: N})
+        A.navigation_tree.addTopLevelItem(E)
+        A._navigation_items.append((E, _N))
+        for Q, R in _DEVICE_FOLDER_SHORTCUTS:
+            L = f"/storage/emulated/0/{R}"
+            B = QTreeWidgetItem([A.tr(Q)])
+            B.setIcon(0, F)
+            B.setData(0, Qt.ItemDataRole.UserRole, {_J: _V, _E: L})
+            E.addChild(B)
+            A._navigation_items.append((B, L))
+        E.setExpanded(G.get(N, _D))
+        if hasattr(A, "tabs"):
+            A._update_navigation_selection(A.current_path)
 
-        self.tabs = QTabWidget()
-        self.tabs.setObjectName("path_tabs")
-        self.tabs.setTabBar(NonOverlappingTabBar())
-        self.tabs.setDocumentMode(True)
-        self.tabs.tabBar().setElideMode(Qt.TextElideMode.ElideMiddle)
-        self.tabs.currentChanged.connect(self._update_connection_status)
-        self.tabs.tabBar().setObjectName("path_tab_bar")
-        layout.addWidget(self.tabs)
+    def _navigation_group_font(B):
+        A = B.navigation_tree.font()
+        A.setBold(_D)
+        return A
 
-        self.add_tab()
-        self.update_connection_status()
+    def _activate_navigation_item(A, item, _column=0):
+        B = item.data(0, Qt.ItemDataRole.UserRole) or {}
+        if B.get(_J) in {_V, _M}:
+            if A.active_view is not _A:
+                A.active_view.navigate_to(B[_E])
+
+    def _on_bookmarks_changed(A, device_id):
+        if device_id != A.device_serial:
+            return
+        try:
+            A._bookmarks = A._bookmark_store.load(A.device_serial)
+        except (OSError, ValueError) as B:
+            A._show_bookmark_error(A.tr(_A3).format(B))
+            return
+        A._refresh_navigation_tree()
+
+    def _show_bookmark_error(C, message, view=_A):
+        A = message
+        _logger.warning(A)
+        B = view if view is not _A else C.active_view
+        if B is not _A:
+            B.status_label.setText(A)
+
+    def _save_bookmarks(A, bookmarks):
+        B = bookmarks
+        try:
+            A._bookmark_store.save(A.device_serial, B)
+        except (OSError, ValueError) as C:
+            A._show_bookmark_error(A.tr("Could not save favorites: {0}").format(C))
+            return _C
+        A._bookmarks = B
+        A._refresh_navigation_tree()
+        return _D
+
+    def add_bookmark(B, name, path, note=""):
+        A = {_H: name.strip(), _E: path, _L: note.strip()}
+        if not A[_H] or not A[_E].startswith(_B):
+            raise ValueError("A favorite needs a name and absolute device path")
+        if any(B[_E] == A[_E] for B in B._bookmarks):
+            return _C
+        return B._save_bookmarks([*B._bookmarks, A])
+
+    def _edit_bookmark_dialog(A, bookmark, title):
+        C = bookmark
+        E = BookmarkDialog(A, C, title)
+        if E.exec() != QDialog.DialogCode.Accepted:
+            return
+        B = E.bookmark()
+        if not B[_H]:
+            A._show_bookmark_error(A.tr("Favorite name cannot be empty"))
+            return
+        if C in A._bookmarks:
+            F = A._bookmarks.index(C)
+            D = list(A._bookmarks)
+            D[F] = B
+        else:
+            if any(A[_E] == B[_E] for A in A._bookmarks):
+                A._show_bookmark_error(A.tr(_A4))
+                return
+            D = [*A._bookmarks, B]
+        A._save_bookmarks(D)
+
+    def _selected_bookmark(C):
+        B = C.navigation_tree.currentItem()
+        A = B.data(0, Qt.ItemDataRole.UserRole) if B else _A
+        if A and A.get(_J) == _M:
+            return A.get("bookmark")
+
+    def _remove_bookmark(A):
+        B = A._selected_bookmark()
+        if B is _A:
+            return
+        A._save_bookmarks([A for A in A._bookmarks if A != B])
+
+    def _edit_selected_bookmark(A):
+        B = A._selected_bookmark()
+        if B is not _A:
+            A._edit_bookmark_dialog(B, A.tr("Edit favorite"))
+
+    def _show_bookmark_context_menu(A, position):
+        D = position
+        B = A.navigation_tree.itemAt(D)
+        if B is _A:
+            return
+        F = B.data(0, Qt.ItemDataRole.UserRole) or {}
+        E = F.get(_J)
+        if E not in {_V, _M}:
+            return
+        A.navigation_tree.setCurrentItem(B)
+        C = QMenu(A)
+        C.addAction(A.tr("Open"), lambda: A._activate_navigation_item(B))
+        if E == _M:
+            C.addAction(A.tr("Edit"), A._edit_selected_bookmark)
+            C.addAction(A.tr("Remove from favorites"), A._remove_bookmark)
+        else:
+            C.addAction(A.tr(_t), lambda: A._pin_navigation_item(B))
+        C.exec(A.navigation_tree.viewport().mapToGlobal(D))
+
+    def _pin_navigation_item(A, item):
+        B = item.data(0, Qt.ItemDataRole.UserRole) or {}
+        A._add_folder_to_favorites(item.text(0), B[_E], A.active_view)
+
+    def _add_folder_to_favorites(A, name, path, source_view=_A):
+        B = source_view
+        if any(A[_E] == path for A in A._bookmarks):
+            A._show_bookmark_error(A.tr(_A4), B)
+            return
+        if A.add_bookmark(name, path) and B is not _A:
+            B.status_label.setText(A.tr("Added '{0}' to favorites").format(name))
+
+    def _update_navigation_selection(B, path):
+        D = path.rstrip(_B) or _B
+        A = _A
+        E = -1
+        for F, G in B._navigation_items:
+            C = G.rstrip(_B) or _B
+            if (D == C or D.startswith(C + _B)) and len(C) > E:
+                A = F
+                E = len(C)
+        if A is _A:
+            B.navigation_tree.clearSelection()
+            B.navigation_tree.setCurrentItem(_A)
+            return
+        if A.parent() is not _A:
+            A.parent().setExpanded(_D)
+        B.navigation_tree.setCurrentItem(A)
+        B.navigation_tree.scrollToItem(A)
+
+    def toggle_navigation_pane(A, _checked=_C):
+        A._set_navigation_pane_open(not A._navigation_pane_open)
+        A._restore_navigation_pane_open = A._navigation_pane_open
+
+    def _set_navigation_pane_open(A, is_open):
+        B = is_open
+        A._navigation_pane_open = B
+        A.favorites_pane.setVisible(B)
+        A.navigation_toggle_btn.setChecked(B)
+        A.navigation_toggle_btn.setToolTip(
+            A.tr(_A2) if B else A.tr("Show navigation pane")
+        )
+
+    def set_multi_panel_mode(A, enabled):
+        B = enabled
+        if B == A._multi_panel_mode:
+            return
+        if B:
+            A._restore_navigation_pane_open = A._navigation_pane_open
+            A._multi_panel_mode = _D
+            A._set_navigation_pane_open(_C)
+            return
+        A._multi_panel_mode = _C
+        A._set_navigation_pane_open(A._restore_navigation_pane_open)
 
     @property
     def active_view(self):
@@ -1947,158 +2287,165 @@ class DevicePanelGroup(QWidget):
 
     @property
     def device_name(self):
-        serial = self.device_serial
-        model = self.device_info.get("model") or self.adb_handler.devices.get(serial, "")
-        return model or serial
+        A = self
+        B = A.device_serial
+        C = A.device_info.get("model") or A.adb_handler.devices.get(B, "")
+        return C or B
 
     @property
     def current_path(self):
-        return (
-            self.active_view.current_path
-            if self.active_view else self._last_path
-        )
+        A = self
+        return A.active_view.current_path if A.active_view else A._last_path
 
     @current_path.setter
     def current_path(self, path):
         if self.active_view:
             self.active_view.current_path = path
 
-    def __getattr__(self, name):
-        views = self.__dict__.get("_views")
-        if views:
-            active_view = self.active_view
-            if active_view is not None:
-                return getattr(active_view, name)
-        raise AttributeError(f"{type(self).__name__!s} has no attribute {name!r}")
+    def __getattr__(A, name):
+        C = A.__dict__.get("_views")
+        if C:
+            B = A.active_view
+            if B is not _A:
+                return getattr(B, name)
+        raise AttributeError(f"{type(A).__name__!s} has no attribute {name!r}")
 
-    def add_tab(self, path=None):
-        if self._closing:
-            return None
-        start_path = path or self.current_path
-        view = DevicePanel(
-            self.tabs,
-            self.adb_handler,
-            self.device_info,
-            start_path=start_path,
-            compact_header=True,
-            clipboard=self.clipboard,
+    def add_tab(A, path=_A):
+        F = "Close tab"
+        if A._closing:
+            return
+        D = path or A.current_path
+        B = DevicePanel(
+            A.tabs,
+            A.adb_handler,
+            A.device_info,
+            start_path=D,
+            compact_header=_D,
+            clipboard=A.clipboard,
         )
-        self._views.append(view)
-        view.path_changed.connect(
-            lambda changed_path, panel=view: self._on_view_path_changed(
-                panel, changed_path
-            )
+        A._views.append(B)
+        B.path_changed.connect(
+            lambda changed_path, panel=B: A._on_view_path_changed(panel, changed_path)
         )
-        view.cross_device_drop.connect(self.cross_device_drop)
-        index = self.tabs.addTab(view, self._tab_title(start_path))
-        close_button = QToolButton(self.tabs.tabBar())
-        close_button.setObjectName("close_path_tab_btn")
-        close_button.setText("x")
-        close_button.setToolTip(self.tr("Close tab"))
-        close_button.setAccessibleName(self.tr("Close tab"))
-        close_button.setAutoRaise(True)
-        close_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        close_button.clicked.connect(
-            lambda _checked=False, tab=view: self._close_view(tab)
+        B.favorite_requested.connect(
+            lambda name, path, source=B: A._add_folder_to_favorites(name, path, source)
         )
-        self.tabs.tabBar().setTabButton(
-            index, self.tabs.tabBar().ButtonPosition.RightSide, close_button
-        )
-        self.tabs.setCurrentIndex(index)
-        self._enable_click_activation()
-        QTimer.singleShot(0, self._style_tab_scroll_buttons)
-        self._update_connection_status()
-        return view
+        B.cross_device_drop.connect(A.cross_device_drop)
+        E = A.tabs.addTab(B, A._tab_title(D))
+        C = QToolButton(A.tabs.tabBar())
+        C.setObjectName("close_path_tab_btn")
+        C.setText("x")
+        C.setToolTip(A.tr(F))
+        C.setAccessibleName(A.tr(F))
+        C.setAutoRaise(_D)
+        C.setCursor(Qt.CursorShape.PointingHandCursor)
+        C.clicked.connect(lambda _checked=_C, tab=B: A._close_view(tab))
+        A.tabs.tabBar().setTabButton(E, A.tabs.tabBar().ButtonPosition.RightSide, C)
+        A.tabs.setCurrentIndex(E)
+        A._enable_click_activation()
+        QTimer.singleShot(0, A._style_tab_scroll_buttons)
+        A._update_connection_status()
+        return B
 
-    def _enable_click_activation(self):
-        widgets = [self, *self.findChildren(QWidget)]
-        for widget in widgets:
-            if widget.focusPolicy() == Qt.FocusPolicy.NoFocus:
-                widget.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+    def _enable_click_activation(A):
+        C = [A, *A.findChildren(QWidget)]
+        for B in C:
+            if B.focusPolicy() == Qt.FocusPolicy.NoFocus:
+                B.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
 
-    def _style_tab_scroll_buttons(self):
-        buttons = self.tabs.tabBar().findChildren(QToolButton)
-        scroll_buttons = {}
-        for button in buttons:
-            if button.objectName() == "ScrollLeftButton":
-                button.setText("<")
-                button.setToolTip(self.tr("Scroll tabs left"))
-                button.setAccessibleName(self.tr("Scroll tabs left"))
-                scroll_buttons["left"] = button
-            elif button.objectName() == "ScrollRightButton":
-                button.setText(">")
-                button.setToolTip(self.tr("Scroll tabs right"))
-                button.setAccessibleName(self.tr("Scroll tabs right"))
-                scroll_buttons["right"] = button
+    def _style_tab_scroll_buttons(B):
+        E = "Scroll tabs right"
+        D = "Scroll tabs left"
+        F = B.tabs.tabBar().findChildren(QToolButton)
+        C = {}
+        for A in F:
+            if A.objectName() == _g:
+                A.setText("<")
+                A.setToolTip(B.tr(D))
+                A.setAccessibleName(B.tr(D))
+                C[_h] = A
+            elif A.objectName() == _A0:
+                A.setText(">")
+                A.setToolTip(B.tr(E))
+                A.setAccessibleName(B.tr(E))
+                C[_i] = A
             else:
                 continue
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.tabs.tabBar().separate_scroll_buttons(scroll_buttons)
+            A.setCursor(Qt.CursorShape.PointingHandCursor)
+        B.tabs.tabBar().separate_scroll_buttons(C)
 
     @staticmethod
     def _tab_title(path):
-        return path.rstrip("/").rsplit("/", 1)[-1] or "/"
+        return path.rstrip(_B).rsplit(_B, 1)[-1] or _B
 
-    def _update_tab_title(self, view, path):
-        index = self.tabs.indexOf(view)
-        if index >= 0:
-            self.tabs.setTabText(index, self._tab_title(path))
+    def _update_tab_title(A, view, path):
+        B = A.tabs.indexOf(view)
+        if B >= 0:
+            A.tabs.setTabText(B, A._tab_title(path))
 
-    def _on_view_path_changed(self, view, path):
-        self._last_path = path
-        self._update_tab_title(view, path)
+    def _on_view_path_changed(A, view, path):
+        B = path
+        A._last_path = B
+        A._update_tab_title(view, B)
+        if view is A.active_view:
+            A._update_navigation_selection(B)
 
-    def _close_view(self, view):
-        index = self.tabs.indexOf(view)
-        if index < 0:
+    def _close_view(A, view):
+        B = view
+        C = A.tabs.indexOf(B)
+        if C < 0:
             return
-        self._last_path = view.current_path
-        self._views.remove(view)
-        self.tabs.removeTab(index)
-        view.prepare_for_close()
-        if self._views:
-            self._update_connection_status()
+        A._last_path = B.current_path
+        A._views.remove(B)
+        A.tabs.removeTab(C)
+        B.prepare_for_close()
+        if A._views:
+            A._update_connection_status()
 
-    def _close_tab(self, index):
-        if not 0 <= index < len(self._views):
+    def _close_tab(A, index):
+        B = index
+        if not 0 <= B < len(A._views):
             return
-        self._close_view(self._views[index])
+        A._close_view(A._views[B])
 
-    def close_active_tab(self):
-        if self.active_view is not None:
-            self._close_view(self.active_view)
+    def close_active_tab(A):
+        if A.active_view is not _A:
+            A._close_view(A.active_view)
 
-    def _update_connection_status(self, _index=None):
-        if not self._views:
+    def _update_connection_status(A, _index=_A):
+        if not A._views:
             return
-        self.device_header.setText(self.device_name)
-        if self.adb_handler.device_connected:
-            self.conn_label.setText(self.tr("🟢 Connected"))
-            self.conn_label.setStyleSheet("color: green; font-size: 10px; padding: 0 8px 2px 8px;")
+        A.device_header.setText(A.device_name)
+        if A.adb_handler.device_connected:
+            A.conn_label.setText(A.tr(_W))
+            A.conn_label.setStyleSheet(_Y)
         else:
-            self.conn_label.setText(self.tr("🔴 Disconnected"))
-            self.conn_label.setStyleSheet("color: red; font-size: 10px; padding: 0 8px 2px 8px;")
+            A.conn_label.setText(A.tr(_X))
+            A.conn_label.setStyleSheet(_o)
 
-    def update_connection_status(self):
-        for view in self._views:
-            view.update_connection_status()
-        self._update_connection_status()
+    def _on_active_tab_changed(A, _index=_A):
+        A._update_connection_status()
+        if A.active_view is not _A:
+            A._update_navigation_selection(A.active_view.current_path)
 
-    def contains_focus(self):
-        focus_widget = QApplication.focusWidget()
-        return focus_widget is not None and (
-            focus_widget is self or self.isAncestorOf(focus_widget)
-        )
+    def update_connection_status(A):
+        for B in A._views:
+            B.update_connection_status()
+        A._update_connection_status()
 
-    def contains_view(self, view):
-        return view in self._views
+    def contains_focus(B):
+        A = QApplication.focusWidget()
+        return A is not _A and (A is B or B.isAncestorOf(A))
 
-    def prepare_for_close(self):
-        if self._closing:
+    def contains_view(A, view):
+        return view in A._views
+
+    def prepare_for_close(A):
+        if A._closing:
             return
-        self._closing = True
-        self.hide()
-        for view in self._views:
-            view.prepare_for_close()
-        self._views.clear()
-        self.deleteLater()
+        A._closing = _D
+        A.hide()
+        for B in A._views:
+            B.prepare_for_close()
+        A._views.clear()
+        A.deleteLater()

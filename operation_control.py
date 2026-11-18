@@ -1,51 +1,51 @@
-import logging
-import socket
-import subprocess
-import threading
+_B = "A cancelled operation resource was already closed: %s"
+_A = None
+import logging, socket, subprocess, threading
 
 _current = threading.local()
 _logger = logging.getLogger(__name__)
 
 
 class OperationControl:
-    def __init__(self):
-        self._cancelled = threading.Event()
-        self._lock = threading.Lock()
-        self._resources = {}
+    def __init__(A):
+        A._cancelled = threading.Event()
+        A._lock = threading.Lock()
+        A._resources = {}
 
     @property
     def cancelled(self):
         return self._cancelled.is_set()
 
-    def cancel(self):
-        with self._lock:
-            if self._cancelled.is_set():
+    def cancel(A):
+        with A._lock:
+            if A._cancelled.is_set():
                 return
-            self._cancelled.set()
-            resources = list(self._resources.items())
-        for resource, stop in resources:
+            A._cancelled.set()
+            B = list(A._resources.items())
+        for C, D in B:
             try:
-                stop(resource)
-            except OSError as error:
-                _logger.debug("A cancelled operation resource was already closed: %s", error)
+                D(C)
+            except OSError as E:
+                _logger.debug(_B, E)
 
-    def register(self, resource, stop):
-        with self._lock:
-            if not self.cancelled:
-                self._resources[resource] = stop
+    def register(A, resource, stop):
+        B = resource
+        with A._lock:
+            if not A.cancelled:
+                A._resources[B] = stop
                 return
-        self._stop_resource(resource, stop)
+        A._stop_resource(B, stop)
 
-    def unregister(self, resource):
-        with self._lock:
-            self._resources.pop(resource, None)
+    def unregister(A, resource):
+        with A._lock:
+            A._resources.pop(resource, _A)
 
     @staticmethod
     def _stop_resource(resource, stop):
         try:
             stop(resource)
-        except OSError as error:
-            _logger.debug("A cancelled operation resource was already closed: %s", error)
+        except OSError as A:
+            _logger.debug(_B, A)
 
 
 def set_current_operation(operation):
@@ -53,50 +53,51 @@ def set_current_operation(operation):
 
 
 def clear_current_operation():
-    _current.operation = None
+    _current.operation = _A
 
 
 def current_operation():
-    return getattr(_current, "operation", None)
+    return getattr(_current, "operation", _A)
 
 
 def is_cancelled():
-    operation = current_operation()
-    return operation is not None and operation.cancelled
+    A = current_operation()
+    return A is not _A and A.cancelled
 
 
 def register_process(process):
-    operation = current_operation()
-    if operation is not None:
-        operation.register(process, _stop_process)
+    A = current_operation()
+    if A is not _A:
+        A.register(process, _stop_process)
 
 
 def unregister_process(process):
-    operation = current_operation()
-    if operation is not None:
-        operation.unregister(process)
+    A = current_operation()
+    if A is not _A:
+        A.unregister(process)
 
 
 def register_socket(sock):
-    operation = current_operation()
-    if operation is not None:
-        operation.register(sock, _stop_socket)
+    A = current_operation()
+    if A is not _A:
+        A.register(sock, _stop_socket)
 
 
 def unregister_socket(sock):
-    operation = current_operation()
-    if operation is not None:
-        operation.unregister(sock)
+    A = current_operation()
+    if A is not _A:
+        A.unregister(sock)
 
 
 def _stop_process(process):
-    if process.poll() is None:
-        process.kill()
+    A = process
+    if A.poll() is _A:
+        A.kill()
 
 
 def _stop_socket(sock):
     try:
         sock.shutdown(socket.SHUT_RDWR)
     except OSError:
-        pass
+        0
     sock.close()

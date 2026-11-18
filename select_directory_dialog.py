@@ -1,3 +1,6 @@
+_C = "Connection Error"
+_B = "No ADB device connected"
+_A = "/"
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import (
     QDialog,
@@ -11,121 +14,115 @@ from PyQt6.QtWidgets import (
 
 
 class SelectDirectoryDialog(QDialog):
-    def __init__(self, parent, adb_handler, start_path="/storage/emulated/0", root_path="/", use_root=False):
+    def __init__(
+        A,
+        parent,
+        adb_handler,
+        start_path="/storage/emulated/0",
+        root_path=_A,
+        use_root=False,
+    ):
+        E = root_path
+        D = start_path
         super().__init__(parent)
-        self.setWindowTitle(self.tr("Select Destination Folder"))
-        self.resize(600, 400)
-        self.adb_handler = adb_handler
-        self.selected_path = None
-        self.root_path = "/" if root_path == "/" else root_path.rstrip("/")
-        self.current_path = "/" if start_path == "/" else start_path.rstrip("/")
-        self.use_root = use_root
-
-        layout = QVBoxLayout(self)
-
-        self.status_label = QLabel(self.tr( "Ready"))
-        layout.addWidget(self.status_label)
-
-        self.tree_view = QTreeView()
-        self.tree_model = QStandardItemModel()
-        self.tree_model.setHorizontalHeaderLabels(['Name', 'Path'])
-        self.tree_view.setModel(self.tree_model)
-        self.tree_view.setHeaderHidden(False)
-        self.tree_view.setSelectionMode(QTreeView.SelectionMode.SingleSelection)
-        layout.addWidget(self.tree_view)
-
-        btn_layout = QHBoxLayout()
-        up_btn = QPushButton(self.tr( "Up"))
-        up_btn.clicked.connect(self.go_up)
-        btn_layout.addWidget(up_btn)
-
-        select_btn = QPushButton(self.tr( "Select"))
-        select_btn.clicked.connect(self.accept)
-        btn_layout.addWidget(select_btn)
-
-        cancel_btn = QPushButton(self.tr( "Cancel"))
-        cancel_btn.clicked.connect(self.reject)
-        btn_layout.addWidget(cancel_btn)
-
-        layout.addLayout(btn_layout)
-
-        self.tree_view.doubleClicked.connect(self.on_double_click)
-
-        if self.adb_handler.device_connected:
-            self.refresh()
+        A.setWindowTitle(A.tr("Select Destination Folder"))
+        A.resize(600, 400)
+        A.adb_handler = adb_handler
+        A.selected_path = None
+        A.root_path = _A if E == _A else E.rstrip(_A)
+        A.current_path = _A if D == _A else D.rstrip(_A)
+        A.use_root = use_root
+        C = QVBoxLayout(A)
+        A.status_label = QLabel(A.tr("Ready"))
+        C.addWidget(A.status_label)
+        A.tree_view = QTreeView()
+        A.tree_model = QStandardItemModel()
+        A.tree_model.setHorizontalHeaderLabels(["Name", "Path"])
+        A.tree_view.setModel(A.tree_model)
+        A.tree_view.setHeaderHidden(False)
+        A.tree_view.setSelectionMode(QTreeView.SelectionMode.SingleSelection)
+        C.addWidget(A.tree_view)
+        B = QHBoxLayout()
+        F = QPushButton(A.tr("Up"))
+        F.clicked.connect(A.go_up)
+        B.addWidget(F)
+        G = QPushButton(A.tr("Select"))
+        G.clicked.connect(A.accept)
+        B.addWidget(G)
+        H = QPushButton(A.tr("Cancel"))
+        H.clicked.connect(A.reject)
+        B.addWidget(H)
+        C.addLayout(B)
+        A.tree_view.doubleClicked.connect(A.on_double_click)
+        if A.adb_handler.device_connected:
+            A.refresh()
         else:
-            self.status_label.setText(self.tr("No ADB device connected"))
-            QMessageBox.warning(self, self.tr( "Connection Error"), self.tr( "No ADB device connected"))
+            A.status_label.setText(A.tr(_B))
+            QMessageBox.warning(A, A.tr(_C), A.tr(_B))
 
-    def refresh(self):
-        if not self.adb_handler.device_connected:
-            self.status_label.setText(self.tr("No ADB device connected"))
+    def refresh(A):
+        if not A.adb_handler.device_connected:
+            A.status_label.setText(A.tr(_B))
             return
-            
-        self.status_label.setText(self.tr("Loading directories..."))
-        self.tree_model.clear()
-        self.tree_model.setHorizontalHeaderLabels([self.tr('Name'), self.tr('Path')])
-
-        
-        if self.current_path != self.root_path:
-            parent = "/".join(self.current_path.split("/")[:-1])
-            if not parent:
-                parent = self.root_path
-            item = QStandardItem("..")
-            path_item = QStandardItem(parent)
-            self.tree_model.appendRow([item, path_item])
-
+        A.status_label.setText(A.tr("Loading directories..."))
+        A.tree_model.clear()
+        A.tree_model.setHorizontalHeaderLabels([A.tr("Name"), A.tr("Path")])
+        if A.current_path != A.root_path:
+            B = _A.join(A.current_path.split(_A)[:-1])
+            if not B:
+                B = A.root_path
+            G = QStandardItem("..")
+            C = QStandardItem(B)
+            A.tree_model.appendRow([G, C])
         try:
-            files = self.adb_handler.list_directory(self.current_path, use_root=self.use_root)
-            if files is None:
-                self.status_label.setText(self.tr("Failed to load directories"))
+            D = A.adb_handler.list_directory(A.current_path, use_root=A.use_root)
+            if D is None:
+                A.status_label.setText(A.tr("Failed to load directories"))
                 return
-                
-            dirs = sorted([f for f in files if f.is_dir], key=lambda x: x.name.lower())
-            for d in dirs:
-                name_item = QStandardItem(d.name)
-                path_item = QStandardItem(d.path)
-                self.tree_model.appendRow([name_item, path_item])
-                
-            self.status_label.setText(self.tr("Found {0} directories").format(len(dirs)))
-        except Exception as e:  # noqa: BLE001
-            self.status_label.setText(self.tr("Error loading directories: {0}").format(e))
+            E = sorted([A for A in D if A.is_dir], key=lambda x: x.name.lower())
+            for F in E:
+                H = QStandardItem(F.name)
+                C = QStandardItem(F.path)
+                A.tree_model.appendRow([H, C])
+            A.status_label.setText(A.tr("Found {0} directories").format(len(E)))
+        except Exception as I:
+            A.status_label.setText(A.tr("Error loading directories: {0}").format(I))
+        A.tree_view.setColumnHidden(1, True)
+        A.tree_view.resizeColumnToContents(0)
 
-        self.tree_view.setColumnHidden(1, True)
-        self.tree_view.resizeColumnToContents(0)
+    def go_up(A):
+        if A.current_path == A.root_path:
+            return
+        B = _A.join(A.current_path.split(_A)[:-1])
+        if not B:
+            B = A.root_path
+        A.current_path = B
+        A.refresh()
 
-    def go_up(self):
-        if self.current_path == self.root_path:
+    def on_double_click(A, index):
+        B = index
+        if not A.adb_handler.device_connected:
             return
-        parent = "/".join(self.current_path.split("/")[:-1])
-        if not parent:
-            parent = self.root_path
-        self.current_path = parent
-        self.refresh()
+        D = A.tree_model.itemFromIndex(B)
+        C = A.tree_model.item(B.row(), 1)
+        if C and D.text() != "..":
+            A.current_path = C.text()
+            A.refresh()
 
-    def on_double_click(self, index):
-        if not self.adb_handler.device_connected:
+    def accept(A):
+        if not A.adb_handler.device_connected:
+            QMessageBox.warning(A, A.tr(_C), A.tr(_B))
             return
-            
-        item = self.tree_model.itemFromIndex(index)
-        path_item = self.tree_model.item(index.row(), 1)
-        if path_item and item.text() != "..":
-            self.current_path = path_item.text()
-            self.refresh()
-
-    def accept(self):
-        if not self.adb_handler.device_connected:
-            QMessageBox.warning(self, self.tr( "Connection Error"), self.tr( "No ADB device connected"))
+        B = A.tree_view.selectionModel().selectedRows()
+        if not B:
+            QMessageBox.warning(
+                A, A.tr("No Selection"), A.tr("Please select a folder.")
+            )
             return
-            
-        selection = self.tree_view.selectionModel().selectedRows()
-        if not selection:
-            QMessageBox.warning(self, self.tr( "No Selection"), self.tr( "Please select a folder."))
-            return
-        index = selection[0]
-        path_index = self.tree_model.index(index.row(), 1)
-        self.selected_path = self.tree_model.data(path_index)
+        C = B[0]
+        D = A.tree_model.index(C.row(), 1)
+        A.selected_path = A.tree_model.data(D)
         super().accept()
 
-    def get_selected_path(self):
-        return self.selected_path
+    def get_selected_path(A):
+        return A.selected_path

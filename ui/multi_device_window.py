@@ -1,8 +1,16 @@
-import configparser
-import os
-import sys
+_J = "No connected device panel to install to."
+_I = "No Device"
+_H = "dark_mode"
+_G = "config.ini"
+_F = "task_manager"
+_E = "app"
+_D = "utf-8"
+_C = True
+_B = False
+_A = None
+import configparser, os, sys
 from pathlib import Path
-
+import logging
 from PyQt6.QtCore import Qt, QTimer, QUrl
 from PyQt6.QtGui import QDesktopServices, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
@@ -20,10 +28,10 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
 from device_chooser import DeviceChooser
 from handler import ADBHandler
 from operation_control import is_cancelled
+from ui.bookmarks import BookmarkStore, get_app_data_directory
 from ui.device_panel import DevicePanelGroup
 from ui.task_manager import BackgroundTaskManager
 from ui.theme import DARK, LIGHT
@@ -31,519 +39,512 @@ from ui.widgets import ADB_MIME
 
 
 def get_base_dir():
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", _B):
         return Path(sys.executable).parent
     return Path(os.path.abspath(__file__)).parent
 
-CONFIG_PATH = get_base_dir() / "config.ini"
+
+def _config_path():
+    return get_app_data_directory() / _G
+
+
+def _legacy_config_path():
+    return get_base_dir() / _G
+
 
 def _load_theme():
-    cp = configparser.ConfigParser()
-    cp.read(CONFIG_PATH)
+    B = configparser.ConfigParser()
+    A = _config_path()
+    D = not A.exists()
+    C = _legacy_config_path() if D else A
     try:
-        return cp.getboolean("app", "dark_mode")
-    except Exception: # noqa: BLE001
-        return False
+        B.read(C, encoding=_D)
+        E = B.getboolean(_E, _H)
+    except (configparser.Error, ValueError):
+        return _B
+    if D and C.exists():
+        try:
+            A.parent.mkdir(parents=_C, exist_ok=_C)
+            with A.open("w", encoding=_D) as F:
+                B.write(F)
+        except OSError:
+            logging.getLogger(__name__).exception(
+                "Could not migrate theme settings from %s to %s", C, A
+            )
+    return E
 
 
-def _save_theme(dark: bool):
-    cp = configparser.ConfigParser()
-    cp.read(CONFIG_PATH)
-    if "app" not in cp:
-        cp["app"] = {}
-    cp["app"]["dark_mode"] = "yes" if dark else "no"
-    try:
-        with open(CONFIG_PATH, "w") as f:
-            cp.write(f)
-    except OSError as e:
-        logger.warning("Failed to save theme to %s: %s", CONFIG_PATH, e)
+def _save_theme(dark):
+    A = configparser.ConfigParser()
+    B = _config_path()
+    A.read(B, encoding=_D)
+    if _E not in A:
+        A[_E] = {}
+    A[_E][_H] = "yes" if dark else "no"
+    B.parent.mkdir(parents=_C, exist_ok=_C)
+    with B.open("w", encoding=_D) as C:
+        A.write(C)
 
 
 class MultiDeviceWindow(QMainWindow):
-
-    def __init__(self):
+    def __init__(A):
         super().__init__()
-        self.setWindowTitle(self.tr("ADB Explorer"))
-        self.setGeometry(100, 100, 1100, 600)
+        A.setWindowTitle(A.tr("ADB Explorer"))
+        A.setGeometry(100, 100, 1100, 600)
+        A.device_panels = []
+        A._last_active_panel = _A
+        A.bookmark_store = BookmarkStore()
+        A._dark = _load_theme()
+        QApplication.instance().setStyleSheet(DARK if A._dark else LIGHT)
+        A._setup_ui()
+        A._initialize_panels()
+        A.connection_timer = QTimer()
+        A.connection_timer.timeout.connect(A._check_connections)
+        A.connection_timer.start(10000)
 
-        self.device_panels = []
-        self._last_active_panel = None
-        self._dark = _load_theme()
-        QApplication.instance().setStyleSheet(DARK if self._dark else LIGHT)
+    def _setup_ui(A):
+        H = QApplication.instance()
+        H.focusChanged.connect(A._remember_active_panel)
+        E = QWidget()
+        A.setCentralWidget(E)
+        F = QVBoxLayout(E)
+        F.setContentsMargins(0, 0, 0, 0)
+        F.setSpacing(0)
+        B = QToolBar("Main")
+        B.setMovable(_B)
+        A.addToolBar(B)
+        A.add_panel_btn = QPushButton(A.tr("+ Add Panel"))
+        A.add_panel_btn.setObjectName("add_panel_btn")
+        A.add_panel_btn.clicked.connect(A._add_panel)
+        B.addWidget(A.add_panel_btn)
+        A.add_tab_btn = QPushButton(A.tr("+ Add Tab"))
+        A.add_tab_btn.setObjectName("add_tab_btn")
+        A.add_tab_btn.clicked.connect(A._add_tab)
+        B.addWidget(A.add_tab_btn)
+        A.add_tab_shortcut = QShortcut(QKeySequence("Ctrl+T"), A)
+        A.add_tab_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        A.add_tab_shortcut.activated.connect(A._add_tab)
+        A.close_tab_shortcut = QShortcut(QKeySequence("Ctrl+W"), A)
+        A.close_tab_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        A.close_tab_shortcut.activated.connect(A._close_active_tab)
+        B.addSeparator()
+        A.device_status_label = QLabel(A.tr("Detecting devices..."))
+        B.addWidget(A.device_status_label)
+        D = A.menuBar()
+        D.setObjectName("main_menu")
+        C = D.addMenu(A.tr("Edit"))
+        C.addAction(A.tr("Cut"), A._broadcast_cut)
+        C.addAction(A.tr("Copy"), A._broadcast_copy)
+        C.addAction(A.tr("Paste"), A._broadcast_paste)
+        C.addSeparator()
+        C.addAction(A.tr("Delete"), A._broadcast_delete)
+        C.addAction(A.tr("Rename"), A._broadcast_rename)
+        I = D.addMenu(A.tr("View"))
+        A.dark_mode_action = I.addAction(A.tr("Dark Mode"))
+        A.dark_mode_action.setCheckable(_C)
+        A.dark_mode_action.setChecked(A._dark)
+        A.dark_mode_action.toggled.connect(A._toggle_theme)
+        G = D.addMenu(A.tr("Tools"))
+        G.addAction(A.tr("Install APK..."), A._install_apk_dialog)
+        G.addAction(A.tr("Install XAPK..."), A._install_xapk_dialog)
+        J = D.addMenu(A.tr("Help"))
+        J.addAction(A.tr("Check for Updates..."), A._open_updates)
+        A.splitter = QSplitter(Qt.Orientation.Horizontal)
+        A.splitter.setChildrenCollapsible(_C)
+        F.addWidget(A.splitter)
+        A.status_bar = QStatusBar()
+        A.setStatusBar(A.status_bar)
+        A.status_label = QLabel(A.tr("Ready"))
+        A.status_bar.addWidget(A.status_label)
+        A.task_manager = BackgroundTaskManager(E)
 
-        
-        self._setup_ui()
-
-        
-        self._initialize_panels()
-
-        
-        self.connection_timer = QTimer()
-        self.connection_timer.timeout.connect(self._check_connections)
-        self.connection_timer.start(10000)
-
-    def _setup_ui(self):
-        app = QApplication.instance()
-        app.focusChanged.connect(self._remember_active_panel)
-        central = QWidget()
-        self.setCentralWidget(central)
-        layout = QVBoxLayout(central)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-
-        
-        toolbar = QToolBar("Main")
-        toolbar.setMovable(False)
-        self.addToolBar(toolbar)
-
-        self.add_panel_btn = QPushButton(self.tr( "+ Add Panel"))
-        self.add_panel_btn.setObjectName("add_panel_btn")
-        self.add_panel_btn.clicked.connect(self._add_panel)
-        toolbar.addWidget(self.add_panel_btn)
-
-        self.add_tab_btn = QPushButton(self.tr( "+ Add Tab"))
-        self.add_tab_btn.setObjectName("add_tab_btn")
-        self.add_tab_btn.clicked.connect(self._add_tab)
-        toolbar.addWidget(self.add_tab_btn)
-        self.add_tab_shortcut = QShortcut(QKeySequence("Ctrl+T"), self)
-        self.add_tab_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        self.add_tab_shortcut.activated.connect(self._add_tab)
-        self.close_tab_shortcut = QShortcut(QKeySequence("Ctrl+W"), self)
-        self.close_tab_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        self.close_tab_shortcut.activated.connect(self._close_active_tab)
-
-
-        toolbar.addSeparator()
-
-        self.device_status_label = QLabel(self.tr( "Detecting devices..."))
-        toolbar.addWidget(self.device_status_label)
-
-        
-        menubar = self.menuBar()
-        menubar.setObjectName("main_menu")
-        edit_menu = menubar.addMenu(self.tr("Edit"))
-        edit_menu.addAction(self.tr("Cut"), self._broadcast_cut)
-        edit_menu.addAction(self.tr("Copy"), self._broadcast_copy)
-        edit_menu.addAction(self.tr("Paste"), self._broadcast_paste)
-        edit_menu.addSeparator()
-        edit_menu.addAction(self.tr("Delete"), self._broadcast_delete)
-        edit_menu.addAction(self.tr("Rename"), self._broadcast_rename)
-        view_menu = menubar.addMenu(self.tr("View"))
-        self.dark_mode_action = view_menu.addAction(self.tr("Dark Mode"))
-        self.dark_mode_action.setCheckable(True)
-        self.dark_mode_action.setChecked(self._dark)
-        self.dark_mode_action.toggled.connect(self._toggle_theme)
-        tools_menu = menubar.addMenu(self.tr("Tools"))
-        tools_menu.addAction(self.tr("Install APK..."), self._install_apk_dialog)
-        tools_menu.addAction(self.tr("Install XAPK..."), self._install_xapk_dialog)
-        help_menu = menubar.addMenu(self.tr("Help"))
-        help_menu.addAction(self.tr("Check for Updates..."), self._open_updates)
-
-        
-        self.splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.splitter.setChildrenCollapsible(True)
-        layout.addWidget(self.splitter)
-
-        
-        self.status_bar = QStatusBar()
-        self.setStatusBar(self.status_bar)
-        self.status_label = QLabel(self.tr( "Ready"))
-        self.status_bar.addWidget(self.status_label)
-
-        
-        self.task_manager = BackgroundTaskManager(central)
-
-    def resizeEvent(self, event):
+    def resizeEvent(A, event):
         super().resizeEvent(event)
-        if hasattr(self, 'task_manager') and self.task_manager.isVisible():
-            self._position_task_manager()
+        if hasattr(A, _F) and A.task_manager.isVisible():
+            A._position_task_manager()
 
-    def showEvent(self, event):
+    def showEvent(A, event):
         super().showEvent(event)
-        if hasattr(self, 'task_manager'):
-            self._position_task_manager()
+        if hasattr(A, _F):
+            A._position_task_manager()
 
-    def closeEvent(self, event):
-        if hasattr(self, 'task_manager'):
-            self.task_manager.setParent(None)
-        self.device_panels.clear()
+    def closeEvent(A, event):
+        if hasattr(A, _F):
+            A.task_manager.setParent(_A)
+        A.device_panels.clear()
         event.accept()
 
-    def _position_task_manager(self):
-        if not hasattr(self, 'task_manager'):
+    def _position_task_manager(C):
+        if not hasattr(C, _F):
             return
-        mgr = self.task_manager
-        parent = mgr.parentWidget() or self
-        margin = 15
-        x = max(margin, parent.width() - mgr.width() - margin)
-        y = max(margin, parent.height() - mgr.height() - margin)
-        mgr.move(x, y)
-        mgr.raise_()
+        A = C.task_manager
+        D = A.parentWidget() or C
+        B = 15
+        E = max(B, D.width() - A.width() - B)
+        F = max(B, D.height() - A.height() - B)
+        A.move(E, F)
+        A.raise_()
 
-    
-
-    def _initialize_panels(self):
-        initial_devices = ADBHandler().get_unique_devices()
-
-        if not initial_devices:
-            self.device_status_label.setText(self.tr("No devices connected"))
-            self.status_label.setText(
-                self.tr("No ADB devices found. Connect a device and use + Add Panel.")
+    def _initialize_panels(A):
+        E = ADBHandler().get_unique_devices()
+        if not E:
+            A.device_status_label.setText(A.tr("No devices connected"))
+            A.status_label.setText(
+                A.tr("No ADB devices found. Connect a device and use + Add Panel.")
             )
             return
+        B = list(E.items())
+        A.device_status_label.setText(A.tr("{0} device(s) connected").format(len(B)))
+        C, D = B[0]
+        A._add_panel_for_device(C, D)
+        if len(B) >= 2:
+            C, D = B[1]
+            A._add_panel_for_device(C, D)
 
-        devices_list = list(initial_devices.items())
-        self.device_status_label.setText(self.tr("{0} device(s) connected").format(len(devices_list)))
-
-        
-        serial, model = devices_list[0]
-        self._add_panel_for_device(serial, model)
-
-        
-        if len(devices_list) >= 2:
-            serial, model = devices_list[1]
-            self._add_panel_for_device(serial, model)
-
-    def _add_panel_for_device(self, serial, model):
+    def _add_panel_for_device(A, serial, model):
+        D = model
+        C = serial
         try:
-            handler = ADBHandler(device_serial=serial)
-            panel = DevicePanelGroup(
-                self.splitter, handler, device_info={"model": model}
+            E = ADBHandler(device_serial=C)
+            B = DevicePanelGroup(
+                A.splitter, E, device_info={"model": D}, bookmark_store=A.bookmark_store
             )
-            self.splitter.addWidget(panel)
-            self.device_panels.append(panel)
-            self._last_active_panel = panel
-            panel.cross_device_drop.connect(self._on_cross_device_drop)
-            panel.close_requested.connect(lambda p=panel: self._close_panel(p))
-            panel.tabs.tabBar().tabBarClicked.connect(
-                lambda _index, p=panel: self._remember_panel(p)
+            A.splitter.addWidget(B)
+            A.device_panels.append(B)
+            A._last_active_panel = B
+            B.cross_device_drop.connect(A._on_cross_device_drop)
+            B.close_requested.connect(lambda p=B: A._close_panel(p))
+            B.tabs.tabBar().tabBarClicked.connect(
+                lambda _index, p=B: A._remember_panel(p)
             )
-
-            
-            idx = len(self.device_panels)
-            self.status_label.setText(self.tr("Added panel {0}: {1} ({2})").format(idx, model, serial))
-            self._update_panel_count_ui()
-            self._reconnect_drop_signals()
-            return panel
-        except Exception as e:
-            self.status_label.setText(self.tr("Failed to add panel: {0}").format(e))
-            return None
-
-    def _add_panel(self):
-        handler = ADBHandler()
-        devices = handler.get_unique_devices()
-        if not devices:
-            QMessageBox.information(self, self.tr( "No Devices"), self.tr( "No ADB devices connected."))
+            F = len(A.device_panels)
+            A.status_label.setText(A.tr("Added panel {0}: {1} ({2})").format(F, D, C))
+            A._update_panel_count_ui()
+            A._reconnect_drop_signals()
+            return B
+        except Exception as G:
+            A.status_label.setText(A.tr("Failed to add panel: {0}").format(G))
             return
 
-        dialog = DeviceChooser(devices, self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            for serial in dialog.selected_devices():
-                self._add_panel_for_device(serial, devices.get(serial, self.tr("Unknown")))
-
-    def _add_tab(self):
-        panel = self._active_panel()
-        if panel is None:
+    def _add_panel(A):
+        E = ADBHandler()
+        B = E.get_unique_devices()
+        if not B:
             QMessageBox.information(
-                self, self.tr( "No Panel"), self.tr( "Add a device panel before opening a tab.")
+                A, A.tr("No Devices"), A.tr("No ADB devices connected.")
             )
             return
-        panel.add_tab()
+        C = DeviceChooser(B, A)
+        if C.exec() == QDialog.DialogCode.Accepted:
+            for D in C.selected_devices():
+                A._add_panel_for_device(D, B.get(D, A.tr("Unknown")))
 
-    def _close_active_tab(self):
-        panel = self._active_panel()
-        if panel is not None:
-            panel.close_active_tab()
-
-    def _close_panel(self, panel):
-        if panel not in self.device_panels:
-            return
-        self.device_panels.remove(panel)
-        if self._last_active_panel is panel:
-            self._last_active_panel = (
-                self.device_panels[-1] if self.device_panels else None
+    def _add_tab(A):
+        B = A._active_panel()
+        if B is _A:
+            QMessageBox.information(
+                A, A.tr("No Panel"), A.tr("Add a device panel before opening a tab.")
             )
-        panel.setParent(None)
-        panel.prepare_for_close()
-        self._update_panel_count_ui()
-        self._reconnect_drop_signals()
-        self.status_label.setText(self.tr("Panel closed"))
-
-    def _update_panel_count_ui(self):
-        pass
-
-    def _reconnect_drop_signals(self):
-        
-        pass  
-
-    
-
-    def _on_cross_device_drop(self, src_serial, paths, dest_path):
-        
-        dest_panel = self.sender()
-        if not isinstance(dest_panel, DevicePanelGroup):
             return
+        B.add_tab()
 
-        
-        src_panel = None
-        for p in self.device_panels:
-            if p.device_serial == src_serial:
-                src_panel = p
+    def _close_active_tab(B):
+        A = B._active_panel()
+        if A is not _A:
+            A.close_active_tab()
+
+    def _close_panel(A, panel):
+        B = panel
+        if B not in A.device_panels:
+            return
+        A.device_panels.remove(B)
+        if A._last_active_panel is B:
+            A._last_active_panel = A.device_panels[-1] if A.device_panels else _A
+        B.setParent(_A)
+        B.prepare_for_close()
+        A._update_panel_count_ui()
+        A._reconnect_drop_signals()
+        A.status_label.setText(A.tr("Panel closed"))
+
+    def _update_panel_count_ui(A):
+        C = len(A.device_panels) > 1
+        for B in A.device_panels:
+            if hasattr(B, "set_multi_panel_mode"):
+                B.set_multi_panel_mode(C)
+
+    def _reconnect_drop_signals(A):
+        0
+
+    def _on_cross_device_drop(A, src_serial, paths, dest_path):
+        C = A.sender()
+        if not isinstance(C, DevicePanelGroup):
+            return
+        B = _A
+        for D in A.device_panels:
+            if D.device_serial == src_serial:
+                B = D
                 break
-
-        if not src_panel:
-            self.status_label.setText(self.tr("Source device panel not found"))
+        if not B:
+            A.status_label.setText(A.tr("Source device panel not found"))
             return
+        A._stream_items(B, C, paths)
 
-        self._stream_items(src_panel, dest_panel, paths)
+    def _stream_items(A, src_panel, dest_panel, paths):
+        C = dest_panel
+        B = src_panel
 
-    def _stream_items(self, src_panel, dest_panel, paths):
-        def run():
-            for path in paths:
+        def D():
+            D = "/"
+            for A in paths:
                 if is_cancelled():
-                    return False
-                name = path.rstrip('/').split('/')[-1]
-                dest = f"{dest_panel.current_path.rstrip('/')}/{name}"
-                
-                test_r = src_panel.adb_handler._run_adb_command(
-                    ['exec-out', 'test', '-d', path], timeout=10
+                    return _B
+                G = A.rstrip(D).split(D)[-1]
+                E = f"{C.current_path.rstrip(D)}/{G}"
+                H = B.adb_handler._run_adb_command(
+                    ["exec-out", "test", "-d", A], timeout=10
                 )
-                is_dir = test_r.returncode == 0
-
-                if is_dir:
-                    ok = src_panel.adb_handler.stream_directory(
-                        src_panel.device_serial, path,
-                        dest_panel.device_serial, dest,
+                I = H.returncode == 0
+                if I:
+                    F = B.adb_handler.stream_directory(
+                        B.device_serial, A, C.device_serial, E
                     )
                 else:
-                    ok = src_panel.adb_handler.stream_file(
-                        src_panel.device_serial, path,
-                        dest_panel.device_serial, dest,
+                    F = B.adb_handler.stream_file(
+                        B.device_serial, A, C.device_serial, E
                     )
-                if not ok:
-                    return False
-            return True
+                if not F:
+                    return _B
+            return _C
 
-        def on_done(ok):
+        def E(ok):
             if ok:
-                self.status_label.setText(self.tr("Stream complete"))
-                dest_panel.refresh_files()
+                A.status_label.setText(A.tr("Stream complete"))
+                C.refresh_files()
             else:
-                self.status_label.setText(self.tr("Stream failed"))
+                A.status_label.setText(A.tr("Stream failed"))
 
-        self._run_modal(self.tr("Stream to {0}").format(dest_panel.device_name), run, on_done=on_done)
+        A._run_modal(A.tr("Stream to {0}").format(C.device_name), D, on_done=E)
 
-    
+    def _target_panel(B):
+        for A in B.device_panels:
+            if A.adb_handler.device_connected:
+                return A
 
-    def _target_panel(self):
-        for p in self.device_panels:
-            if p.adb_handler.device_connected:
-                return p
-        return None
-
-    def _install_apk_dialog(self):
-        panel = self._target_panel()
-        if not panel:
-            QMessageBox.warning(self, self.tr( "No Device"), self.tr( "No connected device panel to install to."))
+    def _install_apk_dialog(A):
+        B = A._target_panel()
+        if not B:
+            QMessageBox.warning(A, A.tr(_I), A.tr(_J))
             return
-        path, _ = QFileDialog.getOpenFileName(self, self.tr( "Select APK"), "", "APK (*.apk)")
-        if not path:
+        C, D = QFileDialog.getOpenFileName(A, A.tr("Select APK"), "", "APK (*.apk)")
+        if not C:
             return
-        self._run_modal(
-            self.tr("Install APK"), panel.adb_handler.install_apk, path,
+        A._run_modal(
+            A.tr("Install APK"),
+            B.adb_handler.install_apk,
+            C,
             on_done=lambda ok: (
-                self.status_label.setText(self.tr("APK installed successfully")) if ok
-                else self.status_label.setText(self.tr("APK installation failed"))
+                A.status_label.setText(A.tr("APK installed successfully"))
+                if ok
+                else A.status_label.setText(A.tr("APK installation failed"))
             ),
         )
 
-    def _install_xapk_dialog(self):
-        panel = self._target_panel()
-        if not panel:
-            QMessageBox.warning(self, self.tr( "No Device"), self.tr( "No connected device panel to install to."))
+    def _install_xapk_dialog(A):
+        B = A._target_panel()
+        if not B:
+            QMessageBox.warning(A, A.tr(_I), A.tr(_J))
             return
-        path, _ = QFileDialog.getOpenFileName(self, self.tr( "Select XAPK"), "", "XAPK (*.xapk)")
-        if not path:
+        C, F = QFileDialog.getOpenFileName(A, A.tr("Select XAPK"), "", "XAPK (*.xapk)")
+        if not C:
             return
 
-        def on_done(val):
+        def D(val):
             if val:
-                self.status_label.setText(self.tr("XAPK installed ({0} APK files)").format(val))
+                A.status_label.setText(
+                    A.tr("XAPK installed ({0} APK files)").format(val)
+                )
 
-        def on_error():
-            err = panel.adb_handler.last_error or self.tr("XAPK install failed")
-            self.status_label.setText(err)
+        def E():
+            C = B.adb_handler.last_error or A.tr("XAPK install failed")
+            A.status_label.setText(C)
 
-        self._run_modal(self.tr("Install XAPK"), panel.adb_handler.install_xapk, path,
-                        on_done=on_done, on_error=on_error)
+        A._run_modal(
+            A.tr("Install XAPK"), B.adb_handler.install_xapk, C, on_done=D, on_error=E
+        )
 
-    
+    def _active_panel(A):
+        if A._last_active_panel in A.device_panels:
+            return A._last_active_panel
+        for B in A.device_panels:
+            if B.contains_focus():
+                A._last_active_panel = B
+                return B
+        return A._target_panel()
 
-    def _active_panel(self):
-        if self._last_active_panel in self.device_panels:
-            return self._last_active_panel
-        for p in self.device_panels:
-            if p.contains_focus():
-                self._last_active_panel = p
-                return p
-        return self._target_panel()
+    def _remember_panel(A, panel):
+        B = panel
+        if B in A.device_panels:
+            A._last_active_panel = B
 
-    def _remember_panel(self, panel):
-        if panel in self.device_panels:
-            self._last_active_panel = panel
-
-    def _remember_active_panel(self, _old_widget, new_widget):
-        if new_widget is None:
+    def _remember_active_panel(C, _old_widget, new_widget):
+        A = new_widget
+        if A is _A:
             return
-        for panel in self.device_panels:
-            if new_widget is panel or panel.isAncestorOf(new_widget):
-                self._remember_panel(panel)
+        for B in C.device_panels:
+            if A is B or B.isAncestorOf(A):
+                C._remember_panel(B)
                 return
 
-    def _broadcast_copy(self):
-        p = self._active_panel()
-        if p and p.active_view:
-            p.active_view.copy_selected()
+    def _broadcast_copy(B):
+        A = B._active_panel()
+        if A and A.active_view:
+            A.active_view.copy_selected()
 
-    def _broadcast_cut(self):
-        p = self._active_panel()
-        if p and p.active_view:
-            p.active_view.cut_selected()
+    def _broadcast_cut(B):
+        A = B._active_panel()
+        if A and A.active_view:
+            A.active_view.cut_selected()
 
-    def _broadcast_paste(self):
-        p = self._active_panel()
-        if p and p.active_view:
-            p.active_view.paste_items()
+    def _broadcast_paste(B):
+        A = B._active_panel()
+        if A and A.active_view:
+            A.active_view.paste_items()
 
-    def _broadcast_delete(self):
-        p = self._active_panel()
-        if p and p.active_view:
-            p.active_view.delete_selected_items()
+    def _broadcast_delete(B):
+        A = B._active_panel()
+        if A and A.active_view:
+            A.active_view.delete_selected_items()
 
-    def _broadcast_rename(self):
-        p = self._active_panel()
-        if p and p.active_view:
-            view = p.active_view
-            if len(view.tree_view.selectionModel().selectedRows()) == 1:
-                name = view.tree_model.data(view.tree_model.index(view.tree_view.selectionModel().selectedRows()[0].row(), 0))
-                if name and name != "..":
-                    view.rename_item(name)
+    def _broadcast_rename(D):
+        B = D._active_panel()
+        if B and B.active_view:
+            A = B.active_view
+            if len(A.tree_view.selectionModel().selectedRows()) == 1:
+                C = A.tree_model.data(
+                    A.tree_model.index(
+                        A.tree_view.selectionModel().selectedRows()[0].row(), 0
+                    )
+                )
+                if C and C != "..":
+                    A.rename_item(C)
 
-    def _open_updates(self):
-        QDesktopServices.openUrl(QUrl("https://github.com/JSleim/adb-file-explorer/releases"))
+    def _open_updates(A):
+        QDesktopServices.openUrl(
+            QUrl("https://github.com/JSleim/adb-file-explorer/releases")
+        )
 
-    def _toggle_theme(self, dark):
-        _save_theme(dark)
-        QApplication.instance().setStyleSheet(DARK if dark else LIGHT)
+    def _toggle_theme(A, dark):
+        B = dark
+        try:
+            _save_theme(B)
+        except (OSError, configparser.Error) as C:
+            logging.getLogger(__name__).exception(
+                "Could not save theme settings to %s", _config_path()
+            )
+            A.status_label.setText(A.tr("Could not save theme settings: {0}").format(C))
+        A._dark = B
+        QApplication.instance().setStyleSheet(DARK if B else LIGHT)
 
-    
-
-    def _check_connections(self):
-        for panel in self.device_panels:
-            was = panel.adb_handler.device_connected
-            panel.adb_handler.device_connected = panel.adb_handler.check_adb_connection()
-            if was != panel.adb_handler.device_connected:
-                panel.update_connection_status()
-                if not panel.adb_handler.device_connected:
-                    panel.status_label.setText(self.tr("Disconnected"))
+    def _check_connections(B):
+        for A in B.device_panels:
+            C = A.adb_handler.device_connected
+            A.adb_handler.device_connected = A.adb_handler.check_adb_connection()
+            if C != A.adb_handler.device_connected:
+                A.update_connection_status()
+                if not A.adb_handler.device_connected:
+                    A.status_label.setText(B.tr("Disconnected"))
                 else:
-                    panel.status_label.setText(self.tr("Reconnected"))
-                    panel.refresh_files()
+                    A.status_label.setText(B.tr("Reconnected"))
+                    A.refresh_files()
 
-    
+    def _run_modal(B, title, fn, *Q, on_done=_A, on_error=_A, on_cancel=_A, refresh=_B):
+        K = on_cancel
+        J = on_done
+        E = on_error
+        D = title
+        from PyQt6.QtWidgets import QProgressBar as R, QPushButton as L
+        from ui.task_manager import WorkerThread as S
 
-    def _run_modal(
-        self, title, fn, *args, on_done=None, on_error=None, on_cancel=None,
-        refresh=False,
-    ):
-        from PyQt6.QtWidgets import QProgressBar, QPushButton
+        C = S(D, fn, *Q)
+        A = QDialog(B)
+        A.setWindowTitle(D)
+        A.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, _B)
+        A.setWindowModality(Qt.WindowModality.WindowModal)
+        A.setFixedSize(360, 130)
+        F = QVBoxLayout(A)
+        F.setContentsMargins(16, 16, 16, 16)
+        T = QLabel(f"{D}...")
+        F.addWidget(T)
+        M = R()
+        M.setRange(0, 0)
+        F.addWidget(M)
+        G = QHBoxLayout()
+        G.addStretch()
+        N = L(B.tr("Background"))
+        O = L(B.tr("Cancel"))
+        G.addWidget(N)
+        G.addWidget(O)
+        F.addLayout(G)
+        H = [_B]
+        P = [_B]
+        I = [_B]
 
-        from ui.task_manager import WorkerThread
-
-        task = WorkerThread(title, fn, *args)
-
-        dlg = QDialog(self)
-        dlg.setWindowTitle(title)
-        dlg.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, False)
-        dlg.setWindowModality(Qt.WindowModality.WindowModal)
-        dlg.setFixedSize(360, 130)
-        layout = QVBoxLayout(dlg)
-        layout.setContentsMargins(16, 16, 16, 16)
-
-        label = QLabel(f"{title}...")
-        layout.addWidget(label)
-
-        bar = QProgressBar()
-        bar.setRange(0, 0)
-        layout.addWidget(bar)
-
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-        bg_btn = QPushButton(self.tr( "Background"))
-        cancel_btn = QPushButton(self.tr( "Cancel"))
-        btn_row.addWidget(bg_btn)
-        btn_row.addWidget(cancel_btn)
-        layout.addLayout(btn_row)
-
-        sent_to_background = [False]
-        completed = [False]
-        failed = [False]
-
-        def reopen_dialog():
-            if completed[0]:
+        def U():
+            if P[0]:
                 return
-            dlg.show()
-            dlg.raise_()
-            dlg.activateWindow()
+            A.show()
+            A.raise_()
+            A.activateWindow()
 
-        def send_to_background():
-            if sent_to_background[0]:
-                dlg.hide()
+        def V():
+            if H[0]:
+                A.hide()
                 return
-            sent_to_background[0] = True
-            dlg.hide()
-            self.task_manager.add_task(task, name=title, on_reopen=reopen_dialog)
-            self._position_task_manager()
+            H[0] = _C
+            A.hide()
+            B.task_manager.add_task(C, name=D, on_reopen=U)
+            B._position_task_manager()
 
-        bg_btn.clicked.connect(send_to_background)
+        N.clicked.connect(V)
 
-        def cancel_task():
-            task.cancel()
-            dlg.close()
+        def W():
+            C.cancel()
+            A.close()
 
-        cancel_btn.clicked.connect(cancel_task)
+        O.clicked.connect(W)
 
-        def handle_finished(val):
-            completed[0] = True
-            if dlg.isVisible():
-                dlg.close()
-            if task.is_cancelled():
-                if on_cancel:
-                    on_cancel()
+        def X(val):
+            F = val
+            P[0] = _C
+            if A.isVisible():
+                A.close()
+            if C.is_cancelled():
+                if K:
+                    K()
                 return
-            if failed[0]:
+            if I[0]:
                 return
-            is_ok = not failed[0] and (bool(val) if val is not None else False)
-            if is_ok:
-                if on_done:
-                    on_done(val)
+            G = not I[0] and (bool(F) if F is not _A else _B)
+            if G:
+                if J:
+                    J(F)
                 if refresh:
-                    pass  
-            elif not sent_to_background[0]:
-                if on_error:
-                    on_error()
+                    0
+            elif not H[0]:
+                if E:
+                    E()
                 else:
-                    self.status_label.setText(self.tr("{0} failed").format(title))
+                    B.status_label.setText(B.tr("{0} failed").format(D))
 
-        def handle_error(msg):
-            failed[0] = True
-            if dlg.isVisible():
-                dlg.close()
-            if on_error:
-                on_error()
+        def Y(msg):
+            I[0] = _C
+            if A.isVisible():
+                A.close()
+            if E:
+                E()
 
-        task.finished_signal.connect(handle_finished)
-        task.error_signal.connect(handle_error)
-        dlg.show()
-        task.start()
-        return task
+        C.finished_signal.connect(X)
+        C.error_signal.connect(Y)
+        A.show()
+        C.start()
+        return C
