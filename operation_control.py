@@ -3,7 +3,6 @@ import socket
 import subprocess
 import threading
 
-
 _current = threading.local()
 _logger = logging.getLogger(__name__)
 

@@ -1,24 +1,34 @@
+import configparser
 import os
 import sys
 from pathlib import Path
-import configparser
 
-from PyQt6.QtWidgets import (
-    QMainWindow, QSplitter, QVBoxLayout, QHBoxLayout, QWidget,
-    QPushButton, QMessageBox, QStatusBar, QLabel, QToolBar, QDialog,
-    QFileDialog, QMenu, QApplication,
-)
 from PyQt6.QtCore import Qt, QTimer, QUrl
 from PyQt6.QtGui import QDesktopServices, QKeySequence, QShortcut
+from PyQt6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QSplitter,
+    QStatusBar,
+    QToolBar,
+    QVBoxLayout,
+    QWidget,
+)
 
+from device_chooser import DeviceChooser
 from handler import ADBHandler
 from operation_control import is_cancelled
-from device_chooser import DeviceChooser
 from ui.device_panel import DevicePanelGroup
-from ui.widgets import ADB_MIME
 from ui.task_manager import BackgroundTaskManager
-from ui.theme import LIGHT, DARK
-from PyQt6.QtCore import QCoreApplication
+from ui.theme import DARK, LIGHT
+from ui.widgets import ADB_MIME
+
 
 def get_base_dir():
     if getattr(sys, 'frozen', False):
@@ -32,7 +42,7 @@ def _load_theme():
     cp.read(CONFIG_PATH)
     try:
         return cp.getboolean("app", "dark_mode")
-    except Exception:
+    except Exception: # noqa: BLE001
         return False
 
 
@@ -45,8 +55,8 @@ def _save_theme(dark: bool):
     try:
         with open(CONFIG_PATH, "w") as f:
             cp.write(f)
-    except Exception:
-        pass
+    except OSError as e:
+        logger.warning("Failed to save theme to %s: %s", CONFIG_PATH, e)
 
 
 class MultiDeviceWindow(QMainWindow):
@@ -86,12 +96,12 @@ class MultiDeviceWindow(QMainWindow):
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
 
-        self.add_panel_btn = QPushButton(QCoreApplication.translate("MultiDeviceWindow", "+ Add Panel"))
+        self.add_panel_btn = QPushButton(self.tr( "+ Add Panel"))
         self.add_panel_btn.setObjectName("add_panel_btn")
         self.add_panel_btn.clicked.connect(self._add_panel)
         toolbar.addWidget(self.add_panel_btn)
 
-        self.add_tab_btn = QPushButton(QCoreApplication.translate("MultiDeviceWindow", "+ Add Tab"))
+        self.add_tab_btn = QPushButton(self.tr( "+ Add Tab"))
         self.add_tab_btn.setObjectName("add_tab_btn")
         self.add_tab_btn.clicked.connect(self._add_tab)
         toolbar.addWidget(self.add_tab_btn)
@@ -105,7 +115,7 @@ class MultiDeviceWindow(QMainWindow):
 
         toolbar.addSeparator()
 
-        self.device_status_label = QLabel(QCoreApplication.translate("MultiDeviceWindow", "Detecting devices..."))
+        self.device_status_label = QLabel(self.tr( "Detecting devices..."))
         toolbar.addWidget(self.device_status_label)
 
         
@@ -137,7 +147,7 @@ class MultiDeviceWindow(QMainWindow):
         
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_label = QLabel(QCoreApplication.translate("MultiDeviceWindow", "Ready"))
+        self.status_label = QLabel(self.tr( "Ready"))
         self.status_bar.addWidget(self.status_label)
 
         
@@ -223,19 +233,19 @@ class MultiDeviceWindow(QMainWindow):
         handler = ADBHandler()
         devices = handler.get_unique_devices()
         if not devices:
-            QMessageBox.information(self, QCoreApplication.translate("MultiDeviceWindow", "No Devices"), QCoreApplication.translate("MultiDeviceWindow", "No ADB devices connected."))
+            QMessageBox.information(self, self.tr( "No Devices"), self.tr( "No ADB devices connected."))
             return
 
         dialog = DeviceChooser(devices, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             for serial in dialog.selected_devices():
-                self._add_panel_for_device(serial, devices.get(serial, "Unknown"))
+                self._add_panel_for_device(serial, devices.get(serial, self.tr("Unknown")))
 
     def _add_tab(self):
         panel = self._active_panel()
         if panel is None:
             QMessageBox.information(
-                self, QCoreApplication.translate("MultiDeviceWindow", "No Panel"), QCoreApplication.translate("MultiDeviceWindow", "Add a device panel before opening a tab.")
+                self, self.tr( "No Panel"), self.tr( "Add a device panel before opening a tab.")
             )
             return
         panel.add_tab()
@@ -321,7 +331,7 @@ class MultiDeviceWindow(QMainWindow):
             else:
                 self.status_label.setText(self.tr("Stream failed"))
 
-        self._run_modal(f"Stream to {dest_panel.device_name}", run, on_done=on_done)
+        self._run_modal(self.tr("Stream to {0}").format(dest_panel.device_name), run, on_done=on_done)
 
     
 
@@ -334,13 +344,13 @@ class MultiDeviceWindow(QMainWindow):
     def _install_apk_dialog(self):
         panel = self._target_panel()
         if not panel:
-            QMessageBox.warning(self, QCoreApplication.translate("MultiDeviceWindow", "No Device"), QCoreApplication.translate("MultiDeviceWindow", "No connected device panel to install to."))
+            QMessageBox.warning(self, self.tr( "No Device"), self.tr( "No connected device panel to install to."))
             return
-        path, _ = QFileDialog.getOpenFileName(self, QCoreApplication.translate("MultiDeviceWindow", "Select APK"), "", "APK (*.apk)")
+        path, _ = QFileDialog.getOpenFileName(self, self.tr( "Select APK"), "", "APK (*.apk)")
         if not path:
             return
         self._run_modal(
-            "Install APK", panel.adb_handler.install_apk, path,
+            self.tr("Install APK"), panel.adb_handler.install_apk, path,
             on_done=lambda ok: (
                 self.status_label.setText(self.tr("APK installed successfully")) if ok
                 else self.status_label.setText(self.tr("APK installation failed"))
@@ -350,9 +360,9 @@ class MultiDeviceWindow(QMainWindow):
     def _install_xapk_dialog(self):
         panel = self._target_panel()
         if not panel:
-            QMessageBox.warning(self, QCoreApplication.translate("MultiDeviceWindow", "No Device"), QCoreApplication.translate("MultiDeviceWindow", "No connected device panel to install to."))
+            QMessageBox.warning(self, self.tr( "No Device"), self.tr( "No connected device panel to install to."))
             return
-        path, _ = QFileDialog.getOpenFileName(self, QCoreApplication.translate("MultiDeviceWindow", "Select XAPK"), "", "XAPK (*.xapk)")
+        path, _ = QFileDialog.getOpenFileName(self, self.tr( "Select XAPK"), "", "XAPK (*.xapk)")
         if not path:
             return
 
@@ -361,10 +371,10 @@ class MultiDeviceWindow(QMainWindow):
                 self.status_label.setText(self.tr("XAPK installed ({0} APK files)").format(val))
 
         def on_error():
-            err = panel.adb_handler.last_error or "XAPK install failed"
+            err = panel.adb_handler.last_error or self.tr("XAPK install failed")
             self.status_label.setText(err)
 
-        self._run_modal("Install XAPK", panel.adb_handler.install_xapk, path,
+        self._run_modal(self.tr("Install XAPK"), panel.adb_handler.install_xapk, path,
                         on_done=on_done, on_error=on_error)
 
     
@@ -446,8 +456,9 @@ class MultiDeviceWindow(QMainWindow):
         self, title, fn, *args, on_done=None, on_error=None, on_cancel=None,
         refresh=False,
     ):
-        from ui.task_manager import WorkerThread
         from PyQt6.QtWidgets import QProgressBar, QPushButton
+
+        from ui.task_manager import WorkerThread
 
         task = WorkerThread(title, fn, *args)
 
@@ -468,8 +479,8 @@ class MultiDeviceWindow(QMainWindow):
 
         btn_row = QHBoxLayout()
         btn_row.addStretch()
-        bg_btn = QPushButton(QCoreApplication.translate("MultiDeviceWindow", "Background"))
-        cancel_btn = QPushButton(QCoreApplication.translate("MultiDeviceWindow", "Cancel"))
+        bg_btn = QPushButton(self.tr( "Background"))
+        cancel_btn = QPushButton(self.tr( "Cancel"))
         btn_row.addWidget(bg_btn)
         btn_row.addWidget(cancel_btn)
         layout.addLayout(btn_row)

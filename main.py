@@ -1,17 +1,18 @@
-import sys
 import logging
+import sys
 from pathlib import Path
 
 from suppress_console import suppress_console
+
 suppress_console()
 
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PyQt6.QtCore import QCoreApplication, QLibraryInfo, QLocale, QTranslator
 from PyQt6.QtGui import QIcon
-from PyQt6.QtCore import QCoreApplication, QTranslator, QLocale, QLibraryInfo
+from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from logging_config import setup_logging
-from ui.theme import LIGHT
 from ui.multi_device_window import MultiDeviceWindow
+from ui.theme import LIGHT
 
 
 def get_base_dir() -> Path:
@@ -59,8 +60,7 @@ def main():
     try:
         app = QApplication(sys.argv)
 
-        # Сохраняем список переводчиков в переменную, чтобы их не удалил сборщик мусора
-        translators = setup_translations(app, app_logger)
+        app.translators = setup_translations(app, app_logger)
 
         app.setStyle("Fusion")
 

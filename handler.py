@@ -1,15 +1,15 @@
-import subprocess
+import json
+import os
+import re
+import shutil
 import socket
 import struct
-from dataclasses import dataclass
-from typing import List
-import re
+import subprocess
+import tempfile
 import time
 import zipfile
-import os
-import shutil
-import tempfile
-import json
+from dataclasses import dataclass
+
 from operation_control import (
     is_cancelled,
     register_process,
@@ -17,6 +17,7 @@ from operation_control import (
     unregister_process,
     unregister_socket,
 )
+
 
 @dataclass
 class FileItem:
@@ -46,7 +47,7 @@ class ADBHandler:
         elif not device_serial and len(self.devices) == 1:
             self.device_serial = next(iter(self.devices.keys()))
 
-    def _build_adb_cmd(self, command: list, device_serial: str = None) -> list:
+    def _build_adb_cmd(self, command: list, device_serial: str | None = None) -> list:
         cmd = ['adb']
         serial = device_serial or self.device_serial
         if serial:
@@ -124,6 +125,7 @@ class ADBHandler:
                 capture_output=True,
                 text=True,
                 timeout=15,
+                check=False,
                 startupinfo=self._make_startupinfo(),
                 creationflags=self._WIN_FLAGS,
             )
@@ -151,6 +153,7 @@ class ADBHandler:
                 capture_output=True,
                 text=True,
                 timeout=15,
+                check=False,
                 startupinfo=self._make_startupinfo(),
                 creationflags=self._WIN_FLAGS,
             )
@@ -195,7 +198,7 @@ class ADBHandler:
                 process.communicate()
             finally:
                 unregister_process(process)
-        except Exception:
+        except (subprocess.SubprocessError, OSError):
             pass
 
     def _ensure_server_started(self):
@@ -204,10 +207,11 @@ class ADBHandler:
                 ['adb', 'start-server'],
                 capture_output=True,
                 timeout=15,
+                check=False,
                 startupinfo=self._make_startupinfo(),
                 creationflags=self._WIN_FLAGS,
             )
-        except Exception:
+        except (subprocess.SubprocessError, OSError):
             pass
 
     def get_connected_devices(self):
@@ -240,13 +244,14 @@ class ADBHandler:
                 capture_output=True,
                 text=True,
                 timeout=10,
+                check=False,
                 startupinfo=self._make_startupinfo(),
                 creationflags=self._WIN_FLAGS,
             )
             identity = result.stdout.strip()
             if result.returncode == 0 and identity and identity != 'unknown':
                 return identity
-        except Exception:
+        except Exception: # noqa: BLE001
             pass
         return serial
 
@@ -284,7 +289,7 @@ class ADBHandler:
         except FileNotFoundError:
             self.logger.error("ADB command not found. Please ensure ADB is installed and in PATH")
             return False
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             self.logger.error(f"ADB Connection error: {e}")
             return False
 
@@ -390,7 +395,8 @@ class ADBHandler:
             if sock:
                 unregister_socket(sock)
                 try: sock.close()
-                except Exception: pass
+                except Exception:  # noqa: BLE001
+                    pass
 
     def stream_file(self, src_serial: str, src_path: str, dst_serial: str, dst_path: str,
                     chunk_callback=None, cancel_check=None) -> bool:
@@ -450,7 +456,8 @@ class ADBHandler:
                 unregister_process(src_proc)
                 if src_proc.returncode is None:
                     try: src_proc.kill()
-                    except Exception: pass
+                    except Exception:  # noqa: BLE001
+                        pass
             if (
                 is_cancelled()
                 and not transfer_succeeded
@@ -489,7 +496,7 @@ class ADBHandler:
                 if not ok:
                     return False
             return True
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             self.logger.error(f"Directory streaming error: {e}")
             return False
 
@@ -507,7 +514,7 @@ class ADBHandler:
                     time.sleep(1)
                     self.root_mode = "adb"
                     return True
-        except Exception:
+        except Exception: # noqa: BLE001
             pass
 
         try:
@@ -522,7 +529,7 @@ class ADBHandler:
         self.root_mode = None
         return False
 
-    def list_directory(self, path: str, use_root: bool = False) -> List[FileItem]:
+    def list_directory(self, path: str, use_root: bool = False) -> list[FileItem]:
         if not self.device_connected:
             self.logger.error("No ADB device connected")
             self.last_error = "No ADB device connected"
@@ -582,7 +589,7 @@ class ADBHandler:
             self.logger.error(f"Timeout listing directory: {path}")
             self.last_error = f"Timeout listing directory: {path}"
             return []
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             self.logger.error(f"Error listing directory: {e}")
             self.last_error = str(e)
             return []
@@ -607,7 +614,7 @@ class ADBHandler:
             stdout, stderr = process.communicate()
             transfer_succeeded = process.returncode == 0
             return transfer_succeeded
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             self.logger.error(f"Error pulling file/folder: {e}")
             return False
         finally:
@@ -653,7 +660,7 @@ class ADBHandler:
             process.wait()
             transfer_succeeded = process.returncode == 0
             return transfer_succeeded
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             self.logger.error(f"Error during streaming transfer: {e}")
             return False
         finally:
@@ -703,7 +710,7 @@ class ADBHandler:
         except subprocess.TimeoutExpired:
             self.logger.error(f"Timeout renaming: {old_path}")
             return False
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             self.logger.error(f"Error renaming: {e}")
             return False
 
@@ -720,7 +727,7 @@ class ADBHandler:
         except subprocess.TimeoutExpired:
             self.logger.error(f"Timeout deleting: {path}")
             return False
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             self.logger.error(f"Error deleting: {e}")
             return False
 
@@ -736,7 +743,7 @@ class ADBHandler:
         except subprocess.TimeoutExpired:
             self.logger.error(f"Timeout creating file: {remote_path}")
             return False
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             self.logger.error(f"Error creating file: {e}")
             return False
 
@@ -752,7 +759,7 @@ class ADBHandler:
         except subprocess.TimeoutExpired:
             self.logger.error(f"Timeout creating folder: {remote_path}")
             return False
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             self.logger.error(f"Error creating folder: {e}")
             return False
 
@@ -776,7 +783,7 @@ class ADBHandler:
             stdout, stderr = process.communicate()
             transfer_succeeded = process.returncode == 0
             return transfer_succeeded
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             self.logger.error(f"Error pushing file: {e}")
             return False
         finally:
@@ -813,7 +820,7 @@ class ADBHandler:
         except subprocess.TimeoutExpired:
             print(f"Timeout copying: {src_path} to {dest_path}")
             return False
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             print(f"Error copying: {e}")
             return False
         finally:
@@ -842,7 +849,7 @@ class ADBHandler:
         except subprocess.TimeoutExpired:
             print(f"Timeout moving: {src_path} to {dest_path}")
             return False
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             print(f"Error moving: {e}")
             return False
 
@@ -853,7 +860,7 @@ class ADBHandler:
             escaped_path = self._escape_path(path)
             result = self._run_adb_command(['shell', f'test -e {escaped_path} && echo "yes" || echo "no"'])
             return result.returncode == 0 and "yes" in (result.stdout or "")
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             self.logger.error(f"Error checking path existence: {e}")
             return False
 
@@ -944,9 +951,9 @@ class ADBHandler:
         if not os.path.exists(manifest_path):
             return None
         try:
-            with open(manifest_path, "r", encoding="utf-8") as f:
+            with open(manifest_path, encoding="utf-8") as f:
                 manifest = json.load(f)
             return manifest.get("package_name") or manifest.get("package")
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             self.logger.warning(f"Could not read XAPK manifest: {e}")
             return None

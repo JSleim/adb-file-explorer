@@ -1,6 +1,7 @@
-import sys
 import os
 import subprocess
+import sys
+
 
 def suppress_console():
     if sys.platform != 'win32':

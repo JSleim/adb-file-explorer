@@ -1,22 +1,35 @@
 import os
+import subprocess
 import sys
 import tempfile
-import subprocess
 
+from PyQt6.QtCore import QFileInfo, Qt, QTimer
+from PyQt6.QtGui import QKeySequence, QShortcut, QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import (
-    QMainWindow, QTreeView, QVBoxLayout, QHBoxLayout, QWidget, QPushButton,
-    QMessageBox, QLineEdit, QMenu, QFileDialog, QInputDialog,
-    QStatusBar, QLabel, QDialog, QCheckBox, QFileIconProvider, QProgressBar,
+    QCheckBox,
+    QDialog,
+    QFileDialog,
+    QFileIconProvider,
+    QHBoxLayout,
+    QInputDialog,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QStatusBar,
+    QTreeView,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtGui import QStandardItemModel, QStandardItem, QKeySequence, QShortcut
-from PyQt6.QtCore import Qt, QTimer, QFileInfo
 
-from handler import ADBHandler
 from device_chooser import DeviceChooser
-from ui.widgets import DropTreeView
-from ui.task_manager import BackgroundTaskManager, WorkerThread
+from handler import ADBHandler
 from ui.device_panel import DevicePanel
-from PyQt6.QtCore import QCoreApplication
+from ui.task_manager import BackgroundTaskManager, WorkerThread
+from ui.widgets import DropTreeView
 
 
 class ADBFileExplorer(QMainWindow):
@@ -93,7 +106,7 @@ class ADBFileExplorer(QMainWindow):
 
     def select_device(self):
         if not self.adb_handler.device_connected:
-            QMessageBox.critical(self, QCoreApplication.translate("ADBFileExplorer", "No Devices"), QCoreApplication.translate("ADBFileExplorer", "No ADB devices found. Please connect a device and try again."))
+            QMessageBox.critical(self, self.tr( "No Devices"), self.tr( "No ADB devices found. Please connect a device and try again."))
             return False
 
         if len(self.adb_handler.devices) > 1:
@@ -121,25 +134,25 @@ class ADBFileExplorer(QMainWindow):
 
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
-        layout = QVBoxLayout(main_widget)
+        self.main_layout = QVBoxLayout(main_widget)
 
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_label = QLabel(QCoreApplication.translate("ADBFileExplorer", "Ready"))
+        self.status_label = QLabel(self.tr( "Ready"))
         self.status_bar.addWidget(self.status_label)
 
         self.connection_label = QLabel("")
         self.status_bar.addPermanentWidget(self.connection_label)
         self.update_connection_status()
 
-        self.root_checkbox = QCheckBox(QCoreApplication.translate("ADBFileExplorer", "Root access"))
+        self.root_checkbox = QCheckBox(self.tr( "Root access"))
         self.root_checkbox.setChecked(False)
         self.root_checkbox.stateChanged.connect(self.on_root_toggle)
         self.status_bar.addPermanentWidget(self.root_checkbox)
 
         self.task_manager = BackgroundTaskManager(main_widget)
 
-        self.toolbar = self.addToolBar("Edit")
+        self.toolbar = self.addToolBar(self.tr("Edit"))
         self.copy_action = self.toolbar.addAction(self.tr("Copy"))
         self.copy_action.triggered.connect(self.copy_selected)
         self.cut_action = self.toolbar.addAction(self.tr("Cut"))
@@ -210,8 +223,8 @@ class ADBFileExplorer(QMainWindow):
                 if not has_root:
                     reset_root_access()
                     QMessageBox.warning(
-                        self, QCoreApplication.translate("ADBFileExplorer", "Root Access"),
-                        QCoreApplication.translate("ADBFileExplorer", "Root access is not available on this device.\n\n"
+                        self, self.tr( "Root Access"),
+                        self.tr( "Root access is not available on this device.\n\n"
                         "If rooted, grant superuser permissions on the device.\n"
                         "If not rooted, adb root may not be supported on production builds.")
                     )
@@ -224,12 +237,12 @@ class ADBFileExplorer(QMainWindow):
             def on_root_error():
                 reset_root_access()
                 QMessageBox.warning(
-                    self, QCoreApplication.translate("ADBFileExplorer", "Root Access"),
-                    self.adb_handler.last_error or "Could not enable root access."
+                    self, self.tr( "Root Access"),
+                    self.adb_handler.last_error or self.tr("Could not enable root access.")
                 )
             self.root_checkbox.setEnabled(False)
             self._run_modal(
-                "Enable root access",
+                self.tr("Enable root access"),
                 self.adb_handler.enable_root,
                 on_done=on_root_enabled,
                 on_error=on_root_error,
@@ -388,35 +401,35 @@ class ADBFileExplorer(QMainWindow):
 
     def install_apk_dialog(self):
         if not self.adb_handler.device_connected:
-            self.show_error_message("Connection Error", "No ADB device connected")
+            self.show_error_message(self.tr( "No ADB device connected"))
             return
-        path, _ = QFileDialog.getOpenFileName(self, QCoreApplication.translate("ADBFileExplorer", "Select APK file"), "", "APK (*.apk)")
+        path, _ = QFileDialog.getOpenFileName(self, self.tr( "Select APK file"), "", "APK (*.apk)")
         if not path:
             return
         self._run_modal(
-            "Install APK", self.adb_handler.install_apk, path,
-            on_done=lambda ok: self.show_success_message("APK installed successfully") if ok else
-                self.show_error_message("Install Error", "APK installation failed"),
+            self.tr("Install APK"), self.adb_handler.install_apk, path,
+            on_done=lambda ok: self.show_success_message(self.tr("APK installed successfully")) if ok else
+                self.show_error_message(self.tr( "APK installation failed")),
             on_error=lambda: self.show_error_message(
-                "Install Error",
-                self.adb_handler.last_error or "APK installation failed",
+                self.tr("Install Error"),
+                self.adb_handler.last_error or self.tr("APK installation failed"),
             ),
         )
 
     def install_xapk_dialog(self):
         if not self.adb_handler.device_connected:
-            self.show_error_message("Connection Error", "No ADB device connected")
+            self.show_error_message(self.tr( "No ADB device connected"))
             return
-        path, _ = QFileDialog.getOpenFileName(self, QCoreApplication.translate("ADBFileExplorer", "Select XAPK file"), "", "XAPK (*.xapk)")
+        path, _ = QFileDialog.getOpenFileName(self, self.tr( "Select XAPK file"), "", "XAPK (*.xapk)")
         if not path:
             return
         self._run_modal(
-            "Install XAPK", self.adb_handler.install_xapk, path,
-            on_done=lambda cnt: self.show_success_message(f"Installed {cnt} APKs") if cnt and cnt > 0 else
-                self.show_error_message("Install Error", "XAPK installation failed"),
+            self.tr("Install XAPK"), self.adb_handler.install_xapk, path,
+            on_done=lambda cnt: self.show_success_message(self.tr("Installed {0} APKs").format(cnt)) if cnt and cnt > 0 else
+                self.show_error_message(self.tr( "XAPK installation failed")),
             on_error=lambda: self.show_error_message(
-                "Install Error",
-                self.adb_handler.last_error or "XAPK installation failed",
+                self.tr("Install Error"),
+                self.adb_handler.last_error or self.tr("XAPK installation failed"),
             ),
         )
 
@@ -445,8 +458,8 @@ class ADBFileExplorer(QMainWindow):
 
         btn_row = QHBoxLayout()
         btn_row.addStretch()
-        bg_btn = QPushButton(QCoreApplication.translate("ADBFileExplorer", "Background"))
-        cancel_btn = QPushButton(QCoreApplication.translate("ADBFileExplorer", "Cancel"))
+        bg_btn = QPushButton(self.tr( "Background"))
+        cancel_btn = QPushButton(self.tr( "Cancel"))
         btn_row.addWidget(bg_btn)
         btn_row.addWidget(cancel_btn)
         layout.addLayout(btn_row)
@@ -499,7 +512,7 @@ class ADBFileExplorer(QMainWindow):
                 if on_error:
                     on_error()
                 else:
-                    self.show_error_message("Error", f"{title} failed")
+                    self.show_error_message(self.tr( "{0} failed").format(title))
 
         def handle_error(msg):
             failed[0] = True

@@ -1,8 +1,14 @@
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QPushButton, 
-                             QTreeView, QHeaderView, QMessageBox, QLabel, QHBoxLayout)
-from PyQt6.QtGui import QStandardItemModel, QStandardItem
-from PyQt6.QtCore import Qt
-from PyQt6.QtCore import QCoreApplication
+from PyQt6.QtGui import QStandardItem, QStandardItemModel
+from PyQt6.QtWidgets import (
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QTreeView,
+    QVBoxLayout,
+)
+
 
 class SelectDirectoryDialog(QDialog):
     def __init__(self, parent, adb_handler, start_path="/storage/emulated/0", root_path="/", use_root=False):
@@ -17,7 +23,7 @@ class SelectDirectoryDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        self.status_label = QLabel(QCoreApplication.translate("SelectDirectoryDialog", "Ready"))
+        self.status_label = QLabel(self.tr( "Ready"))
         layout.addWidget(self.status_label)
 
         self.tree_view = QTreeView()
@@ -29,15 +35,15 @@ class SelectDirectoryDialog(QDialog):
         layout.addWidget(self.tree_view)
 
         btn_layout = QHBoxLayout()
-        up_btn = QPushButton(QCoreApplication.translate("SelectDirectoryDialog", "Up"))
+        up_btn = QPushButton(self.tr( "Up"))
         up_btn.clicked.connect(self.go_up)
         btn_layout.addWidget(up_btn)
 
-        select_btn = QPushButton(QCoreApplication.translate("SelectDirectoryDialog", "Select"))
+        select_btn = QPushButton(self.tr( "Select"))
         select_btn.clicked.connect(self.accept)
         btn_layout.addWidget(select_btn)
 
-        cancel_btn = QPushButton(QCoreApplication.translate("SelectDirectoryDialog", "Cancel"))
+        cancel_btn = QPushButton(self.tr( "Cancel"))
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
@@ -49,7 +55,7 @@ class SelectDirectoryDialog(QDialog):
             self.refresh()
         else:
             self.status_label.setText(self.tr("No ADB device connected"))
-            QMessageBox.warning(self, QCoreApplication.translate("SelectDirectoryDialog", "Connection Error"), QCoreApplication.translate("SelectDirectoryDialog", "No ADB device connected"))
+            QMessageBox.warning(self, self.tr( "Connection Error"), self.tr( "No ADB device connected"))
 
     def refresh(self):
         if not self.adb_handler.device_connected:
@@ -58,7 +64,7 @@ class SelectDirectoryDialog(QDialog):
             
         self.status_label.setText(self.tr("Loading directories..."))
         self.tree_model.clear()
-        self.tree_model.setHorizontalHeaderLabels(['Name', 'Path'])
+        self.tree_model.setHorizontalHeaderLabels([self.tr('Name'), self.tr('Path')])
 
         
         if self.current_path != self.root_path:
@@ -82,7 +88,7 @@ class SelectDirectoryDialog(QDialog):
                 self.tree_model.appendRow([name_item, path_item])
                 
             self.status_label.setText(self.tr("Found {0} directories").format(len(dirs)))
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.status_label.setText(self.tr("Error loading directories: {0}").format(e))
 
         self.tree_view.setColumnHidden(1, True)
@@ -109,12 +115,12 @@ class SelectDirectoryDialog(QDialog):
 
     def accept(self):
         if not self.adb_handler.device_connected:
-            QMessageBox.warning(self, QCoreApplication.translate("SelectDirectoryDialog", "Connection Error"), QCoreApplication.translate("SelectDirectoryDialog", "No ADB device connected"))
+            QMessageBox.warning(self, self.tr( "Connection Error"), self.tr( "No ADB device connected"))
             return
             
         selection = self.tree_view.selectionModel().selectedRows()
         if not selection:
-            QMessageBox.warning(self, QCoreApplication.translate("SelectDirectoryDialog", "No Selection"), QCoreApplication.translate("SelectDirectoryDialog", "Please select a folder."))
+            QMessageBox.warning(self, self.tr( "No Selection"), self.tr( "Please select a folder."))
             return
         index = selection[0]
         path_index = self.tree_model.index(index.row(), 1)

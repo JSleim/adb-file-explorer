@@ -1,16 +1,23 @@
 import logging
 import threading
 
-from PyQt6.QtWidgets import (QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
-                             QScrollArea, QWidget, QProgressBar)
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread
+from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
 
 from operation_control import (
     OperationControl,
     clear_current_operation,
     set_current_operation,
 )
-from PyQt6.QtCore import QCoreApplication
 
 _logger = logging.getLogger(__name__)
 
@@ -36,7 +43,7 @@ class WorkerThread(QThread):
         set_current_operation(self._operation)
         try:
             self._result = self._fn(*self._args, **self._kwargs)
-        except Exception as e:
+        except Exception as e: # noqa: BLE001
             if not self.is_cancelled():
                 self._result = None
                 self._error_message = str(e)
@@ -114,7 +121,7 @@ class TaskRow(QFrame):
         title = QLabel(self.name)
         title.setObjectName("task_title")
         title.setTextFormat(Qt.TextFormat.PlainText)
-        self.status_label = QLabel(QCoreApplication.translate("TaskRow", "Running..."))
+        self.status_label = QLabel(self.tr("Running..."))
         self.status_label.setObjectName("task_status")
         info.addWidget(title)
         info.addWidget(self.status_label)
@@ -183,7 +190,7 @@ class TaskRow(QFrame):
         self._spinner.setStyleSheet("color: #4caf50; font-size: 14px;")
         self._result = result
         ok = bool(result) if result is not None else False
-        self.status_label.setText("Done ✓" if ok else "Failed")
+        self.status_label.setText(self.tr("Done ✓") if ok else self.tr("Failed"))
         self.cancel_btn.setVisible(False)
         QTimer.singleShot(5000, lambda: self.removed.emit(self))
 
@@ -209,7 +216,7 @@ class BackgroundTaskManager(QFrame):
         header.setObjectName("task_header")
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(10, 6, 10, 6)
-        title = QLabel(QCoreApplication.translate("BackgroundTaskManager", "Background Tasks"))
+        title = QLabel(self.tr("Background Tasks"))
         title.setObjectName("task_header_title")
         header_layout.addWidget(title)
         header_layout.addStretch()
@@ -232,7 +239,7 @@ class BackgroundTaskManager(QFrame):
         self._task_layout = QVBoxLayout(self._task_container)
         self._task_layout.setContentsMargins(4, 4, 4, 4)
         self._task_layout.setSpacing(6)
-        self._no_tasks_label = QLabel(QCoreApplication.translate("BackgroundTaskManager", "No background tasks"))
+        self._no_tasks_label = QLabel(self.tr("No background tasks"))
         self._no_tasks_label.setObjectName("task_none")
         self._task_layout.addWidget(self._no_tasks_label)
         self._task_layout.addStretch()

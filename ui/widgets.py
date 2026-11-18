@@ -1,8 +1,6 @@
-from PyQt6.QtWidgets import QTreeView, QMessageBox
-from PyQt6.QtCore import Qt, QMimeData
+from PyQt6.QtCore import QMimeData, Qt
 from PyQt6.QtGui import QDrag
-from PyQt6.QtCore import QCoreApplication
-
+from PyQt6.QtWidgets import QMessageBox, QTreeView
 
 ADB_MIME = "application/x-adb-paths"
 
@@ -79,7 +77,7 @@ class DropTreeView(QTreeView):
         adb_payload = self._adb_paths_payload(md)
         if adb_payload is not None:
             raw = adb_payload.decode("utf-8").rstrip("\0")
-            lines = [l.strip() for l in raw.split("\n") if l.strip()]
+            lines = [line.strip() for line in raw.split("\n") if line.strip()]
             if not lines:
                 event.ignore()
                 return
@@ -138,8 +136,8 @@ class DropTreeView(QTreeView):
             if hasattr(window, '_on_cross_device_drop'):
                 
                 pass
-            QMessageBox.warning(self, QCoreApplication.translate("DropTreeView", "Cross-Device Drop"),
-                                QCoreApplication.translate("DropTreeView", "Cross-device streaming not available from this view."))
+            QMessageBox.warning(self, self.tr( "Cross-Device Drop"),
+                                self.tr( "Cross-device streaming not available from this view."))
 
     def startDrag(self, supportedActions):
         indexes = self.selectionModel().selectedRows()
@@ -166,7 +164,7 @@ class DropTreeView(QTreeView):
                 self.tr("Native Windows drag source unavailable; using in-app drag.")
             )
         except (OSError, RuntimeError, ValueError) as error:
-            QMessageBox.warning(self, QCoreApplication.translate("DropTreeView", "Drag Error"), str(error))
+            QMessageBox.warning(self, self.tr( "Drag Error"), str(error))
             self.main_window.status_label.setText(
                 self.tr("Native drag failed; using in-app drag.")
             )
@@ -189,7 +187,7 @@ class DropTreeView(QTreeView):
             "Move items",
             self.main_window.adb_handler.move_on_device, first, dst_path,
             refresh=True,
-            on_error=lambda: QMessageBox.warning(self, QCoreApplication.translate("DropTreeView", "Move Error"), QCoreApplication.translate("DropTreeView", "Failed to move items.")),
+            on_error=lambda: QMessageBox.warning(self, self.tr( "Move Error"), self.tr( "Failed to move items.")),
         )
 
         for src in paths[1:]:
