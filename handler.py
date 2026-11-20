@@ -974,3 +974,82 @@ class ADBHandler:
         except Exception as e:
             self.logger.warning(f"Could not read XAPK manifest: {e}")
             return
+
+    def search_device_files(
+        self,
+        root_path="/",
+        name_query="",
+        content_query="",
+        use_root=False,
+        cancel_check=None,
+    ):
+        if not self.device_connected:
+            return
+
+        target_root = root_path.strip() or "/"
+        quoted_root = self._shell_quote(target_root)
+        name_pattern = f"*{name_query}*" if name_query else "*"
+        quoted_name = self._shell_quote(name_pattern)
+
+        prune_expr = ""
+        if target_root == "/":
+            prune_expr = "\\( -path /proc -o -path /sys -o -path /dev \\) -prune -o "
+
+        if content_query:
+            quoted_content = self._shell_quote(content_query)
+            shell_cmd = (
+                f"find {quoted_root} {prune_expr}"
+                f"-type f -iname {quoted_name} "
+                f"-exec grep -Fil {quoted_content} {{}} + 2>/dev/null"
+            )
+        else:
+            shell_cmd = (
+                f"find {quoted_root} {prune_expr}"
+                f"-iname {quoted_name} -print 2>/dev/null"
+            )
+
+        cmd = (
+            self._build_adb_cmd(["shell", "su", "-c", shell_cmd])
+            if use_root and self.root_mode == "su"
+            else self._build_adb_cmd(["shell", shell_cmd])
+        )
+
+        process = None
+        try:
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                errors="replace",
+                bufsize=1,
+                startupinfo=self._make_startupinfo(),
+                creationflags=self._WIN_FLAGS,
+            )
+            register_process(process)
+
+            for line in iter(process.stdout.readline, ""):
+                if is_cancelled() or (cancel_check and cancel_check()):
+                    process.kill()
+                    break
+
+                path = line.strip()
+                if not path or path == "/":
+                    continue
+
+                yield {
+                    "name": path.rstrip("/").split("/")[-1],
+                    "path": path,
+                }
+
+            process.wait()
+        except Exception as e:
+            self.logger.error(f"Device search error: {e}")
+        finally:
+            if process:
+                unregister_process(process)
+                if process.poll() is None:
+                    try:
+                        process.kill()
+                    except OSError:
+                        pass

@@ -1255,6 +1255,103 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
         <translation type="unfinished" />
     </message>
 </context><context>
+    <name>DeviceSearchDialog</name>
+    <message>
+        <location filename="../search_dialog.py" line="62" />
+        <source>Global Search on Device</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="82" />
+        <source>File or folder name (e.g. photo or .pdf)</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="85" />
+        <source>Text inside file (optional)</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="87" />
+        <source>Search with Root (su)</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="90" />
+        <source>Device:</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="91" />
+        <source>Start directory:</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="92" />
+        <source>Name:</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="93" />
+        <source>Content:</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="98" />
+        <source>Search</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="99" />
+        <source>Stop</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="107" />
+        <source>Name</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="107" />
+        <source>Path</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="112" />
+        <source>Ready</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="125" />
+        <source>No device selected.</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="133" />
+        <source>Enter file name or content text.</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="140" />
+        <source>Searching...</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="156" />
+        <source>Stopping...</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="163" />
+        <source>Searching... Found: {0}</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="171" />
+        <source>Done. Found: {0}</source>
+        <translation type="unfinished" />
+    </message>
+</context><context>
     <name>DropTreeView</name>
     <message>
         <location filename="../ui/widgets.py" line="130" />
@@ -1307,300 +1404,318 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
 </context><context>
     <name>MultiDeviceWindow</name>
     <message>
-        <location filename="../ui/multi_device_window.py" line="85" />
-        <location filename="../ui/multi_device_window.py" line="85" />
+        <location filename="../ui/multi_device_window.py" line="86" />
+        <location filename="../ui/multi_device_window.py" line="86" />
         <source>ADB Explorer</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="109" />
-        <location filename="../ui/multi_device_window.py" line="109" />
+        <location filename="../ui/multi_device_window.py" line="110" />
+        <location filename="../ui/multi_device_window.py" line="110" />
         <source>+ Add Panel</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="113" />
-        <location filename="../ui/multi_device_window.py" line="113" />
+        <location filename="../ui/multi_device_window.py" line="114" />
+        <location filename="../ui/multi_device_window.py" line="114" />
         <source>+ Add Tab</source>
         <translation type="unfinished" />
     </message>
     <message>
         <location filename="../ui/multi_device_window.py" line="124" />
         <location filename="../ui/multi_device_window.py" line="124" />
+        <source>Search Device</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/multi_device_window.py" line="134" />
+        <location filename="../ui/multi_device_window.py" line="134" />
         <source>Detecting devices...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="128" />
-        <location filename="../ui/multi_device_window.py" line="128" />
+        <location filename="../ui/multi_device_window.py" line="138" />
+        <location filename="../ui/multi_device_window.py" line="138" />
         <source>Edit</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="129" />
-        <location filename="../ui/multi_device_window.py" line="129" />
+        <location filename="../ui/multi_device_window.py" line="139" />
+        <location filename="../ui/multi_device_window.py" line="139" />
         <source>Cut</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="130" />
-        <location filename="../ui/multi_device_window.py" line="130" />
+        <location filename="../ui/multi_device_window.py" line="140" />
+        <location filename="../ui/multi_device_window.py" line="140" />
         <source>Copy</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="131" />
-        <location filename="../ui/multi_device_window.py" line="131" />
+        <location filename="../ui/multi_device_window.py" line="141" />
+        <location filename="../ui/multi_device_window.py" line="141" />
         <source>Paste</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="133" />
-        <location filename="../ui/multi_device_window.py" line="133" />
+        <location filename="../ui/multi_device_window.py" line="143" />
+        <location filename="../ui/multi_device_window.py" line="143" />
         <source>Delete</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="134" />
-        <location filename="../ui/multi_device_window.py" line="134" />
+        <location filename="../ui/multi_device_window.py" line="144" />
+        <location filename="../ui/multi_device_window.py" line="144" />
         <source>Rename</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="135" />
-        <location filename="../ui/multi_device_window.py" line="135" />
+        <location filename="../ui/multi_device_window.py" line="145" />
+        <location filename="../ui/multi_device_window.py" line="145" />
         <source>View</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="136" />
-        <location filename="../ui/multi_device_window.py" line="136" />
+        <location filename="../ui/multi_device_window.py" line="146" />
+        <location filename="../ui/multi_device_window.py" line="146" />
         <source>Dark Mode</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="140" />
-        <location filename="../ui/multi_device_window.py" line="140" />
+        <location filename="../ui/multi_device_window.py" line="150" />
+        <location filename="../ui/multi_device_window.py" line="150" />
         <source>Tools</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="141" />
-        <location filename="../ui/multi_device_window.py" line="141" />
+        <location filename="../ui/multi_device_window.py" line="151" />
+        <location filename="../ui/multi_device_window.py" line="151" />
         <source>Install APK...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="142" />
-        <location filename="../ui/multi_device_window.py" line="142" />
+        <location filename="../ui/multi_device_window.py" line="152" />
+        <location filename="../ui/multi_device_window.py" line="152" />
         <source>Install XAPK...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="143" />
-        <location filename="../ui/multi_device_window.py" line="143" />
+        <location filename="../ui/multi_device_window.py" line="154" />
+        <location filename="../ui/multi_device_window.py" line="154" />
+        <source>Search on Device...</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/multi_device_window.py" line="156" />
+        <location filename="../ui/multi_device_window.py" line="156" />
         <source>Help</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="144" />
-        <location filename="../ui/multi_device_window.py" line="144" />
+        <location filename="../ui/multi_device_window.py" line="157" />
+        <location filename="../ui/multi_device_window.py" line="157" />
         <source>Check for Updates...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="150" />
-        <location filename="../ui/multi_device_window.py" line="150" />
+        <location filename="../ui/multi_device_window.py" line="163" />
+        <location filename="../ui/multi_device_window.py" line="163" />
         <source>Ready</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="184" />
-        <location filename="../ui/multi_device_window.py" line="184" />
+        <location filename="../ui/multi_device_window.py" line="197" />
+        <location filename="../ui/multi_device_window.py" line="197" />
         <source>No devices connected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="186" />
-        <location filename="../ui/multi_device_window.py" line="186" />
+        <location filename="../ui/multi_device_window.py" line="199" />
+        <location filename="../ui/multi_device_window.py" line="199" />
         <source>No ADB devices found. Connect a device and use + Add Panel.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="190" />
-        <location filename="../ui/multi_device_window.py" line="190" />
+        <location filename="../ui/multi_device_window.py" line="203" />
+        <location filename="../ui/multi_device_window.py" line="203" />
         <source>{0} device(s) connected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="214" />
-        <location filename="../ui/multi_device_window.py" line="214" />
+        <location filename="../ui/multi_device_window.py" line="227" />
+        <location filename="../ui/multi_device_window.py" line="227" />
         <source>Added panel {0}: {1} ({2})</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="219" />
-        <location filename="../ui/multi_device_window.py" line="219" />
+        <location filename="../ui/multi_device_window.py" line="232" />
+        <location filename="../ui/multi_device_window.py" line="232" />
         <source>Failed to add panel: {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="227" />
-        <location filename="../ui/multi_device_window.py" line="227" />
+        <location filename="../ui/multi_device_window.py" line="571" />
+        <location filename="../ui/multi_device_window.py" line="240" />
+        <location filename="../ui/multi_device_window.py" line="571" />
+        <location filename="../ui/multi_device_window.py" line="240" />
         <source>No Devices</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="227" />
-        <location filename="../ui/multi_device_window.py" line="227" />
+        <location filename="../ui/multi_device_window.py" line="571" />
+        <location filename="../ui/multi_device_window.py" line="240" />
+        <location filename="../ui/multi_device_window.py" line="571" />
+        <location filename="../ui/multi_device_window.py" line="240" />
         <source>No ADB devices connected.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="233" />
-        <location filename="../ui/multi_device_window.py" line="233" />
+        <location filename="../ui/multi_device_window.py" line="594" />
+        <location filename="../ui/multi_device_window.py" line="246" />
+        <location filename="../ui/multi_device_window.py" line="594" />
+        <location filename="../ui/multi_device_window.py" line="246" />
         <source>Unknown</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="239" />
-        <location filename="../ui/multi_device_window.py" line="239" />
+        <location filename="../ui/multi_device_window.py" line="252" />
+        <location filename="../ui/multi_device_window.py" line="252" />
         <source>No Panel</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="239" />
-        <location filename="../ui/multi_device_window.py" line="239" />
+        <location filename="../ui/multi_device_window.py" line="252" />
+        <location filename="../ui/multi_device_window.py" line="252" />
         <source>Add a device panel before opening a tab.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="260" />
-        <location filename="../ui/multi_device_window.py" line="260" />
+        <location filename="../ui/multi_device_window.py" line="273" />
+        <location filename="../ui/multi_device_window.py" line="273" />
         <source>Panel closed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="281" />
-        <location filename="../ui/multi_device_window.py" line="281" />
+        <location filename="../ui/multi_device_window.py" line="294" />
+        <location filename="../ui/multi_device_window.py" line="294" />
         <source>Source device panel not found</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="314" />
-        <location filename="../ui/multi_device_window.py" line="314" />
+        <location filename="../ui/multi_device_window.py" line="327" />
+        <location filename="../ui/multi_device_window.py" line="327" />
         <source>Stream complete</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="317" />
-        <location filename="../ui/multi_device_window.py" line="317" />
+        <location filename="../ui/multi_device_window.py" line="330" />
+        <location filename="../ui/multi_device_window.py" line="330" />
         <source>Stream failed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="319" />
-        <location filename="../ui/multi_device_window.py" line="319" />
+        <location filename="../ui/multi_device_window.py" line="332" />
+        <location filename="../ui/multi_device_window.py" line="332" />
         <source>Stream to {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="351" />
-        <location filename="../ui/multi_device_window.py" line="330" />
-        <location filename="../ui/multi_device_window.py" line="351" />
-        <location filename="../ui/multi_device_window.py" line="330" />
+        <location filename="../ui/multi_device_window.py" line="364" />
+        <location filename="../ui/multi_device_window.py" line="343" />
+        <location filename="../ui/multi_device_window.py" line="364" />
+        <location filename="../ui/multi_device_window.py" line="343" />
         <source>No Device</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="351" />
-        <location filename="../ui/multi_device_window.py" line="330" />
-        <location filename="../ui/multi_device_window.py" line="351" />
-        <location filename="../ui/multi_device_window.py" line="330" />
+        <location filename="../ui/multi_device_window.py" line="364" />
+        <location filename="../ui/multi_device_window.py" line="343" />
+        <location filename="../ui/multi_device_window.py" line="364" />
+        <location filename="../ui/multi_device_window.py" line="343" />
         <source>No connected device panel to install to.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="333" />
-        <location filename="../ui/multi_device_window.py" line="333" />
+        <location filename="../ui/multi_device_window.py" line="346" />
+        <location filename="../ui/multi_device_window.py" line="346" />
         <source>Select APK</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="337" />
-        <location filename="../ui/multi_device_window.py" line="337" />
+        <location filename="../ui/multi_device_window.py" line="350" />
+        <location filename="../ui/multi_device_window.py" line="350" />
         <source>Install APK</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="341" />
-        <location filename="../ui/multi_device_window.py" line="341" />
+        <location filename="../ui/multi_device_window.py" line="354" />
+        <location filename="../ui/multi_device_window.py" line="354" />
         <source>APK installed successfully</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="343" />
-        <location filename="../ui/multi_device_window.py" line="343" />
+        <location filename="../ui/multi_device_window.py" line="356" />
+        <location filename="../ui/multi_device_window.py" line="356" />
         <source>APK installation failed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="354" />
-        <location filename="../ui/multi_device_window.py" line="354" />
+        <location filename="../ui/multi_device_window.py" line="367" />
+        <location filename="../ui/multi_device_window.py" line="367" />
         <source>Select XAPK</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="361" />
-        <location filename="../ui/multi_device_window.py" line="361" />
+        <location filename="../ui/multi_device_window.py" line="374" />
+        <location filename="../ui/multi_device_window.py" line="374" />
         <source>XAPK installed ({0} APK files)</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="365" />
-        <location filename="../ui/multi_device_window.py" line="365" />
+        <location filename="../ui/multi_device_window.py" line="378" />
+        <location filename="../ui/multi_device_window.py" line="378" />
         <source>XAPK install failed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="369" />
-        <location filename="../ui/multi_device_window.py" line="369" />
+        <location filename="../ui/multi_device_window.py" line="382" />
+        <location filename="../ui/multi_device_window.py" line="382" />
         <source>Install XAPK</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="441" />
-        <location filename="../ui/multi_device_window.py" line="441" />
+        <location filename="../ui/multi_device_window.py" line="454" />
+        <location filename="../ui/multi_device_window.py" line="454" />
         <source>Could not save theme settings: {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="452" />
-        <location filename="../ui/multi_device_window.py" line="452" />
+        <location filename="../ui/multi_device_window.py" line="465" />
+        <location filename="../ui/multi_device_window.py" line="465" />
         <source>Disconnected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="454" />
-        <location filename="../ui/multi_device_window.py" line="454" />
+        <location filename="../ui/multi_device_window.py" line="467" />
+        <location filename="../ui/multi_device_window.py" line="467" />
         <source>Reconnected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="484" />
-        <location filename="../ui/multi_device_window.py" line="484" />
+        <location filename="../ui/multi_device_window.py" line="497" />
+        <location filename="../ui/multi_device_window.py" line="497" />
         <source>Background</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="485" />
-        <location filename="../ui/multi_device_window.py" line="485" />
+        <location filename="../ui/multi_device_window.py" line="498" />
+        <location filename="../ui/multi_device_window.py" line="498" />
         <source>Cancel</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="538" />
-        <location filename="../ui/multi_device_window.py" line="538" />
+        <location filename="../ui/multi_device_window.py" line="551" />
+        <location filename="../ui/multi_device_window.py" line="551" />
         <source>{0} failed</source>
         <translation type="unfinished" />
     </message>
@@ -1774,12 +1889,12 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
 </context><context>
     <name>main</name>
     <message>
-        <location filename="../main.py" line="68" />
+        <location filename="../main.py" line="70" />
         <source>Fatal Error</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../main.py" line="69" />
+        <location filename="../main.py" line="71" />
         <source>A fatal error occurred:
 {0}
 

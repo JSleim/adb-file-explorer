@@ -4,6 +4,8 @@ from pathlib import Path
 
 from suppress_console import suppress_console
 
+from search_dialog import DeviceSearchDialog
+
 suppress_console()
 from PyQt6.QtCore import QCoreApplication, QLibraryInfo, QLocale, QTranslator
 from PyQt6.QtGui import QIcon

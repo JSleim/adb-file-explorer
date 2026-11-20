@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
 )
 
 from device_chooser import DeviceChooser
+from search_dialog import DeviceSearchDialog
 from handler import ADBHandler
 from operation_control import is_cancelled
 from ui.bookmarks import BookmarkStore, get_app_data_directory
@@ -120,6 +121,15 @@ class MultiDeviceWindow(QMainWindow):
         A.close_tab_shortcut = QShortcut(QKeySequence("Ctrl+W"), A)
         A.close_tab_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         A.close_tab_shortcut.activated.connect(A._close_active_tab)
+        A.global_search_btn = QPushButton(A.tr("Search Device"))
+        A.global_search_btn.setObjectName("add_panel_btn")
+        A.global_search_btn.clicked.connect(A._open_global_search)
+        B.addWidget(A.global_search_btn)
+
+        A.global_search_shortcut = QShortcut(QKeySequence("Ctrl+Shift+F"), A)
+        A.global_search_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        A.global_search_shortcut.activated.connect(A._open_global_search)
+
         B.addSeparator()
         A.device_status_label = QLabel(A.tr("Detecting devices..."))
         B.addWidget(A.device_status_label)
@@ -140,6 +150,9 @@ class MultiDeviceWindow(QMainWindow):
         G = D.addMenu(A.tr("Tools"))
         G.addAction(A.tr("Install APK..."), A._install_apk_dialog)
         G.addAction(A.tr("Install XAPK..."), A._install_xapk_dialog)
+        G.addSeparator()
+        G.addAction(A.tr("Search on Device..."), A._open_global_search)
+
         J = D.addMenu(A.tr("Help"))
         J.addAction(A.tr("Check for Updates..."), A._open_updates)
         A.splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -549,3 +562,60 @@ class MultiDeviceWindow(QMainWindow):
         A.show()
         C.start()
         return C
+
+    def _open_global_search(A):
+        B = A._active_panel()
+        C = B.adb_handler if B else ADBHandler()
+        if not C.get_unique_devices():
+            QMessageBox.information(
+                A, A.tr("No Devices"), A.tr("No ADB devices connected.")
+            )
+            return
+        D = bool(B and B.active_view and getattr(B.active_view, "use_root", False))
+        E = DeviceSearchDialog(
+            adb_handler=C,
+            default_serial=B.device_serial if B else None,
+            start_path="/",
+            use_root=D,
+            parent=A,
+        )
+        E.file_selected.connect(A._navigate_to_search_result)
+        E.exec()
+
+    def _navigate_to_search_result(A, serial, remote_path):
+        # Ищем открытую панель для выбранного устройства или создаем новую
+        B = None
+        for C in A.device_panels:
+            if C.device_serial == serial:
+                B = C
+                break
+        if B is None:
+            E = ADBHandler().get_unique_devices()
+            B = A._add_panel_for_device(serial, E.get(serial, A.tr("Unknown")))
+        if B is None:
+            return
+
+        # Проверяем, является ли найденный путь директорией или файлом
+        F = B.adb_handler._run_adb_command(
+            ["exec-out", "test", "-d", remote_path], timeout=10
+        )
+        if F.returncode == 0:
+            D = remote_path
+            G = None
+        else:
+            D = remote_path.rsplit("/", 1)[0] or "/"
+            G = remote_path.rsplit("/", 1)[-1]
+
+        # Открываем в новой вкладке активной панели устройства и выделяем файл
+        H = B.add_tab(path=D)
+        if H and G:
+
+            def _select_found_item():
+                for row in range(H.tree_model.rowCount()):
+                    idx = H.tree_model.index(row, 0)
+                    if H.tree_model.data(idx) == G:
+                        H.tree_view.setCurrentIndex(idx)
+                        H.tree_view.scrollTo(idx)
+                        break
+
+            QTimer.singleShot(800, _select_found_item)
