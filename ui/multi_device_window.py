@@ -1,16 +1,9 @@
-_J = "No connected device panel to install to."
-_I = "No Device"
-_H = "dark_mode"
-_G = "config.ini"
-_F = "task_manager"
-_E = "app"
-_D = "utf-8"
-_C = True
-_B = False
-_A = None
-import configparser, os, sys
-from pathlib import Path
+import configparser
 import logging
+import os
+import sys
+from pathlib import Path
+
 from PyQt6.QtCore import Qt, QTimer, QUrl
 from PyQt6.QtGui import QDesktopServices, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
@@ -28,6 +21,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
 from device_chooser import DeviceChooser
 from handler import ADBHandler
 from operation_control import is_cancelled
@@ -35,21 +29,20 @@ from ui.bookmarks import BookmarkStore, get_app_data_directory
 from ui.device_panel import DevicePanelGroup
 from ui.task_manager import BackgroundTaskManager
 from ui.theme import DARK, LIGHT
-from ui.widgets import ADB_MIME
 
 
 def get_base_dir():
-    if getattr(sys, "frozen", _B):
+    if getattr(sys, "frozen", False):
         return Path(sys.executable).parent
     return Path(os.path.abspath(__file__)).parent
 
 
 def _config_path():
-    return get_app_data_directory() / _G
+    return get_app_data_directory() / "config.ini"
 
 
 def _legacy_config_path():
-    return get_base_dir() / _G
+    return get_base_dir() / "config.ini"
 
 
 def _load_theme():
@@ -58,14 +51,14 @@ def _load_theme():
     D = not A.exists()
     C = _legacy_config_path() if D else A
     try:
-        B.read(C, encoding=_D)
-        E = B.getboolean(_E, _H)
+        B.read(C, encoding="utf-8")
+        E = B.getboolean("app", "dark_mode")
     except (configparser.Error, ValueError):
-        return _B
+        return False
     if D and C.exists():
         try:
-            A.parent.mkdir(parents=_C, exist_ok=_C)
-            with A.open("w", encoding=_D) as F:
+            A.parent.mkdir(parents=True, exist_ok=True)
+            with A.open("w", encoding="utf-8") as F:
                 B.write(F)
         except OSError:
             logging.getLogger(__name__).exception(
@@ -77,12 +70,12 @@ def _load_theme():
 def _save_theme(dark):
     A = configparser.ConfigParser()
     B = _config_path()
-    A.read(B, encoding=_D)
-    if _E not in A:
-        A[_E] = {}
-    A[_E][_H] = "yes" if dark else "no"
-    B.parent.mkdir(parents=_C, exist_ok=_C)
-    with B.open("w", encoding=_D) as C:
+    A.read(B, encoding="utf-8")
+    if "app" not in A:
+        A["app"] = {}
+    A["app"]["dark_mode"] = "yes" if dark else "no"
+    B.parent.mkdir(parents=True, exist_ok=True)
+    with B.open("w", encoding="utf-8") as C:
         A.write(C)
 
 
@@ -92,7 +85,7 @@ class MultiDeviceWindow(QMainWindow):
         A.setWindowTitle(A.tr("ADB Explorer"))
         A.setGeometry(100, 100, 1100, 600)
         A.device_panels = []
-        A._last_active_panel = _A
+        A._last_active_panel = None
         A.bookmark_store = BookmarkStore()
         A._dark = _load_theme()
         QApplication.instance().setStyleSheet(DARK if A._dark else LIGHT)
@@ -111,7 +104,7 @@ class MultiDeviceWindow(QMainWindow):
         F.setContentsMargins(0, 0, 0, 0)
         F.setSpacing(0)
         B = QToolBar("Main")
-        B.setMovable(_B)
+        B.setMovable(False)
         A.addToolBar(B)
         A.add_panel_btn = QPushButton(A.tr("+ Add Panel"))
         A.add_panel_btn.setObjectName("add_panel_btn")
@@ -141,7 +134,7 @@ class MultiDeviceWindow(QMainWindow):
         C.addAction(A.tr("Rename"), A._broadcast_rename)
         I = D.addMenu(A.tr("View"))
         A.dark_mode_action = I.addAction(A.tr("Dark Mode"))
-        A.dark_mode_action.setCheckable(_C)
+        A.dark_mode_action.setCheckable(True)
         A.dark_mode_action.setChecked(A._dark)
         A.dark_mode_action.toggled.connect(A._toggle_theme)
         G = D.addMenu(A.tr("Tools"))
@@ -150,7 +143,7 @@ class MultiDeviceWindow(QMainWindow):
         J = D.addMenu(A.tr("Help"))
         J.addAction(A.tr("Check for Updates..."), A._open_updates)
         A.splitter = QSplitter(Qt.Orientation.Horizontal)
-        A.splitter.setChildrenCollapsible(_C)
+        A.splitter.setChildrenCollapsible(True)
         F.addWidget(A.splitter)
         A.status_bar = QStatusBar()
         A.setStatusBar(A.status_bar)
@@ -160,22 +153,22 @@ class MultiDeviceWindow(QMainWindow):
 
     def resizeEvent(A, event):
         super().resizeEvent(event)
-        if hasattr(A, _F) and A.task_manager.isVisible():
+        if hasattr(A, "task_manager") and A.task_manager.isVisible():
             A._position_task_manager()
 
     def showEvent(A, event):
         super().showEvent(event)
-        if hasattr(A, _F):
+        if hasattr(A, "task_manager"):
             A._position_task_manager()
 
     def closeEvent(A, event):
-        if hasattr(A, _F):
-            A.task_manager.setParent(_A)
+        if hasattr(A, "task_manager"):
+            A.task_manager.setParent(None)
         A.device_panels.clear()
         event.accept()
 
     def _position_task_manager(C):
-        if not hasattr(C, _F):
+        if not hasattr(C, "task_manager"):
             return
         A = C.task_manager
         D = A.parentWidget() or C
@@ -241,7 +234,7 @@ class MultiDeviceWindow(QMainWindow):
 
     def _add_tab(A):
         B = A._active_panel()
-        if B is _A:
+        if B is None:
             QMessageBox.information(
                 A, A.tr("No Panel"), A.tr("Add a device panel before opening a tab.")
             )
@@ -250,7 +243,7 @@ class MultiDeviceWindow(QMainWindow):
 
     def _close_active_tab(B):
         A = B._active_panel()
-        if A is not _A:
+        if A is not None:
             A.close_active_tab()
 
     def _close_panel(A, panel):
@@ -259,8 +252,8 @@ class MultiDeviceWindow(QMainWindow):
             return
         A.device_panels.remove(B)
         if A._last_active_panel is B:
-            A._last_active_panel = A.device_panels[-1] if A.device_panels else _A
-        B.setParent(_A)
+            A._last_active_panel = A.device_panels[-1] if A.device_panels else None
+        B.setParent(None)
         B.prepare_for_close()
         A._update_panel_count_ui()
         A._reconnect_drop_signals()
@@ -273,13 +266,13 @@ class MultiDeviceWindow(QMainWindow):
                 B.set_multi_panel_mode(C)
 
     def _reconnect_drop_signals(A):
-        0
+        pass
 
     def _on_cross_device_drop(A, src_serial, paths, dest_path):
         C = A.sender()
         if not isinstance(C, DevicePanelGroup):
             return
-        B = _A
+        B = None
         for D in A.device_panels:
             if D.device_serial == src_serial:
                 B = D
@@ -295,9 +288,9 @@ class MultiDeviceWindow(QMainWindow):
 
         def D():
             D = "/"
-            for A in paths:
+            for path in paths:
                 if is_cancelled():
-                    return _B
+                    return False
                 G = A.rstrip(D).split(D)[-1]
                 E = f"{C.current_path.rstrip(D)}/{G}"
                 H = B.adb_handler._run_adb_command(
@@ -313,8 +306,8 @@ class MultiDeviceWindow(QMainWindow):
                         B.device_serial, A, C.device_serial, E
                     )
                 if not F:
-                    return _B
-            return _C
+                    return False
+            return True
 
         def E(ok):
             if ok:
@@ -333,9 +326,11 @@ class MultiDeviceWindow(QMainWindow):
     def _install_apk_dialog(A):
         B = A._target_panel()
         if not B:
-            QMessageBox.warning(A, A.tr(_I), A.tr(_J))
+            QMessageBox.warning(
+                A, A.tr("No Device"), A.tr("No connected device panel to install to.")
+            )
             return
-        C, D = QFileDialog.getOpenFileName(A, A.tr("Select APK"), "", "APK (*.apk)")
+        C, _ = QFileDialog.getOpenFileName(A, A.tr("Select APK"), "", "APK (*.apk)")
         if not C:
             return
         A._run_modal(
@@ -352,9 +347,11 @@ class MultiDeviceWindow(QMainWindow):
     def _install_xapk_dialog(A):
         B = A._target_panel()
         if not B:
-            QMessageBox.warning(A, A.tr(_I), A.tr(_J))
+            QMessageBox.warning(
+                A, A.tr("No Device"), A.tr("No connected device panel to install to.")
+            )
             return
-        C, F = QFileDialog.getOpenFileName(A, A.tr("Select XAPK"), "", "XAPK (*.xapk)")
+        C, _ = QFileDialog.getOpenFileName(A, A.tr("Select XAPK"), "", "XAPK (*.xapk)")
         if not C:
             return
 
@@ -388,7 +385,7 @@ class MultiDeviceWindow(QMainWindow):
 
     def _remember_active_panel(C, _old_widget, new_widget):
         A = new_widget
-        if A is _A:
+        if A is None:
             return
         for B in C.device_panels:
             if A is B or B.isAncestorOf(A):
@@ -457,18 +454,22 @@ class MultiDeviceWindow(QMainWindow):
                     A.status_label.setText(B.tr("Reconnected"))
                     A.refresh_files()
 
-    def _run_modal(B, title, fn, *Q, on_done=_A, on_error=_A, on_cancel=_A, refresh=_B):
+    def _run_modal(
+        B, title, fn, *Q, on_done=None, on_error=None, on_cancel=None, refresh=False
+    ):
         K = on_cancel
         J = on_done
         E = on_error
         D = title
-        from PyQt6.QtWidgets import QProgressBar as R, QPushButton as L
+        from PyQt6.QtWidgets import QProgressBar as R
+        from PyQt6.QtWidgets import QPushButton as L
+
         from ui.task_manager import WorkerThread as S
 
         C = S(D, fn, *Q)
         A = QDialog(B)
         A.setWindowTitle(D)
-        A.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, _B)
+        A.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, False)
         A.setWindowModality(Qt.WindowModality.WindowModal)
         A.setFixedSize(360, 130)
         F = QVBoxLayout(A)
@@ -485,9 +486,9 @@ class MultiDeviceWindow(QMainWindow):
         G.addWidget(N)
         G.addWidget(O)
         F.addLayout(G)
-        H = [_B]
-        P = [_B]
-        I = [_B]
+        H = [False]
+        P = [False]
+        I = [False]
 
         def U():
             if P[0]:
@@ -500,7 +501,7 @@ class MultiDeviceWindow(QMainWindow):
             if H[0]:
                 A.hide()
                 return
-            H[0] = _C
+            H[0] = True
             A.hide()
             B.task_manager.add_task(C, name=D, on_reopen=U)
             B._position_task_manager()
@@ -515,7 +516,7 @@ class MultiDeviceWindow(QMainWindow):
 
         def X(val):
             F = val
-            P[0] = _C
+            P[0] = True
             if A.isVisible():
                 A.close()
             if C.is_cancelled():
@@ -524,12 +525,12 @@ class MultiDeviceWindow(QMainWindow):
                 return
             if I[0]:
                 return
-            G = not I[0] and (bool(F) if F is not _A else _B)
+            G = not I[0] and (bool(F) if F is not None else False)
             if G:
                 if J:
                     J(F)
                 if refresh:
-                    0
+                    pass
             elif not H[0]:
                 if E:
                     E()
@@ -537,7 +538,7 @@ class MultiDeviceWindow(QMainWindow):
                     B.status_label.setText(B.tr("{0} failed").format(D))
 
         def Y(msg):
-            I[0] = _C
+            I[0] = True
             if A.isVisible():
                 A.close()
             if E:

@@ -1,6 +1,3 @@
-_C = "Connection Error"
-_B = "No ADB device connected"
-_A = "/"
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import (
     QDialog,
@@ -19,7 +16,7 @@ class SelectDirectoryDialog(QDialog):
         parent,
         adb_handler,
         start_path="/storage/emulated/0",
-        root_path=_A,
+        root_path="/",
         use_root=False,
     ):
         E = root_path
@@ -29,8 +26,8 @@ class SelectDirectoryDialog(QDialog):
         A.resize(600, 400)
         A.adb_handler = adb_handler
         A.selected_path = None
-        A.root_path = _A if E == _A else E.rstrip(_A)
-        A.current_path = _A if D == _A else D.rstrip(_A)
+        A.root_path = "/" if E == "/" else E.rstrip("/")
+        A.current_path = "/" if D == "/" else D.rstrip("/")
         A.use_root = use_root
         C = QVBoxLayout(A)
         A.status_label = QLabel(A.tr("Ready"))
@@ -57,18 +54,20 @@ class SelectDirectoryDialog(QDialog):
         if A.adb_handler.device_connected:
             A.refresh()
         else:
-            A.status_label.setText(A.tr(_B))
-            QMessageBox.warning(A, A.tr(_C), A.tr(_B))
+            A.status_label.setText(A.tr("No ADB device connected"))
+            QMessageBox.warning(
+                A, A.tr("Connection Error"), A.tr("No ADB device connected")
+            )
 
     def refresh(A):
         if not A.adb_handler.device_connected:
-            A.status_label.setText(A.tr(_B))
+            A.status_label.setText(A.tr("No ADB device connected"))
             return
         A.status_label.setText(A.tr("Loading directories..."))
         A.tree_model.clear()
         A.tree_model.setHorizontalHeaderLabels([A.tr("Name"), A.tr("Path")])
         if A.current_path != A.root_path:
-            B = _A.join(A.current_path.split(_A)[:-1])
+            B = "/".join(A.current_path.split("/")[:-1])
             if not B:
                 B = A.root_path
             G = QStandardItem("..")
@@ -93,7 +92,7 @@ class SelectDirectoryDialog(QDialog):
     def go_up(A):
         if A.current_path == A.root_path:
             return
-        B = _A.join(A.current_path.split(_A)[:-1])
+        B = "/".join(A.current_path.split("/")[:-1])
         if not B:
             B = A.root_path
         A.current_path = B
@@ -111,7 +110,9 @@ class SelectDirectoryDialog(QDialog):
 
     def accept(A):
         if not A.adb_handler.device_connected:
-            QMessageBox.warning(A, A.tr(_C), A.tr(_B))
+            QMessageBox.warning(
+                A, A.tr("Connection Error"), A.tr("No ADB device connected")
+            )
             return
         B = A.tree_view.selectionModel().selectedRows()
         if not B:

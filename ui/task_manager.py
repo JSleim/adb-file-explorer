@@ -1,9 +1,6 @@
-_E = "Failed"
-_D = "Cancelled"
-_C = True
-_B = False
-_A = None
-import logging, threading
+import logging
+import threading
+
 from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
     QFrame,
@@ -15,6 +12,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
 from operation_control import (
     OperationControl,
     clear_current_operation,
@@ -35,8 +33,8 @@ class WorkerThread(QThread):
         A._fn = fn
         A._args = B
         A._kwargs = C
-        A._result = _A
-        A._error_message = _A
+        A._result = None
+        A._error_message = None
         A._operation = OperationControl()
         A._cancel_callbacks = []
         A._cancel_callback_lock = threading.Lock()
@@ -47,7 +45,7 @@ class WorkerThread(QThread):
             A._result = A._fn(*A._args, **A._kwargs)
         except Exception as B:
             if not A.is_cancelled():
-                A._result = _A
+                A._result = None
                 A._error_message = str(B)
                 A.error_signal.emit(A._error_message)
         finally:
@@ -91,15 +89,15 @@ class TaskRow(QFrame):
     removed = pyqtSignal(object)
     mousePressed = pyqtSignal(object)
 
-    def __init__(A, task, name=_A, on_reopen=_A):
+    def __init__(A, task, name=None, on_reopen=None):
         B = task
         super().__init__()
         A.task = B
         A.name = name or getattr(B, "name", "Task")
         A._on_reopen = on_reopen
-        A._result = _A
-        A._finished = _B
-        A._failed = _B
+        A._result = None
+        A._finished = False
+        A._failed = False
         A._setup_ui()
         A.setCursor(Qt.CursorShape.PointingHandCursor)
         B.finished_signal.connect(A._on_finished)
@@ -130,7 +128,7 @@ class TaskRow(QFrame):
         A.progress.setRange(0, 0)
         A.progress.setFixedWidth(100)
         A.progress.setFixedHeight(14)
-        A.progress.setTextVisible(_B)
+        A.progress.setTextVisible(False)
         B.addWidget(A.progress)
         A.cancel_btn = QPushButton("✕")
         A.cancel_btn.setFixedSize(20, 20)
@@ -139,15 +137,15 @@ class TaskRow(QFrame):
         B.addWidget(A.cancel_btn)
 
     def _on_cancel(A):
-        A.cancel_btn.setEnabled(_B)
+        A.cancel_btn.setEnabled(False)
         A.status_label.setText(A.tr("Cancelling..."))
         A.task.cancel()
 
     def _on_error(A, message):
-        A._failed = _C
+        A._failed = True
         A._spinner.setStyleSheet("color: #e53935; font-size: 14px;")
         A.status_label.setText(A.tr("Error: {0}").format(message[:40]))
-        A.cancel_btn.setVisible(_B)
+        A.cancel_btn.setVisible(False)
         QTimer.singleShot(4000, lambda: A.removed.emit(A))
 
     def mousePressEvent(A, event):
@@ -161,11 +159,11 @@ class TaskRow(QFrame):
         from PyQt6.QtWidgets import QMessageBox as E
 
         if A.task.is_cancelled():
-            C = _D
-        elif A._result is not _A and not A._failed and bool(A._result):
+            C = "Cancelled"
+        elif A._result is not None and not A._failed and bool(A._result):
             C = "Succeeded"
         else:
-            C = _E
+            C = "Failed"
         B = E(A)
         B.setWindowTitle(A.tr("Task: {0}").format(A.name))
         B.setText(A.tr("Status: {0}").format(C))
@@ -177,31 +175,31 @@ class TaskRow(QFrame):
 
     def _on_finished(A, result):
         B = result
-        A._finished = _C
+        A._finished = True
         if A._failed:
             return
         if A.task.is_cancelled():
             A._spinner.setStyleSheet("color: #999; font-size: 14px;")
             A._result = B
-            A.status_label.setText(A.tr(_D))
-            A.cancel_btn.setVisible(_B)
+            A.status_label.setText(A.tr("Cancelled"))
+            A.cancel_btn.setVisible(False)
             QTimer.singleShot(3000, lambda: A.removed.emit(A))
             return
         A._spinner.setStyleSheet("color: #4caf50; font-size: 14px;")
         A._result = B
-        C = bool(B) if B is not _A else _B
-        A.status_label.setText(A.tr("Done ✓") if C else A.tr(_E))
-        A.cancel_btn.setVisible(_B)
+        C = bool(B) if B is not None else False
+        A.status_label.setText(A.tr("Done ✓") if C else A.tr("Failed"))
+        A.cancel_btn.setVisible(False)
         QTimer.singleShot(5000, lambda: A.removed.emit(A))
 
 
 class BackgroundTaskManager(QFrame):
-    def __init__(A, parent=_A):
+    def __init__(A, parent=None):
         super().__init__(parent)
         A._tasks = []
-        A._expanded = _C
+        A._expanded = True
         A._setup_ui()
-        A.setVisible(_B)
+        A.setVisible(False)
 
     def _setup_ui(A):
         A.setObjectName("task_manager")
@@ -227,7 +225,7 @@ class BackgroundTaskManager(QFrame):
         B.addWidget(A.toggle_btn)
         C.addWidget(D)
         A.scroll = QScrollArea()
-        A.scroll.setWidgetResizable(_C)
+        A.scroll.setWidgetResizable(True)
         A.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         A.scroll.setObjectName("task_scroll")
         A._task_container = QWidget()
@@ -245,24 +243,24 @@ class BackgroundTaskManager(QFrame):
         A.scroll.viewport().setStyleSheet("background: transparent;")
         C.addWidget(A.scroll)
 
-    def submit(B, name, fn, *C, on_reopen=_A):
+    def submit(B, name, fn, *C, on_reopen=None):
         A = WorkerThread(name, fn, *C)
         B.add_task(A, name=name, on_reopen=on_reopen)
         A.start()
         return A
 
-    def add_task(A, task, name=_A, on_reopen=_A):
+    def add_task(A, task, name=None, on_reopen=None):
         B = task
-        A._expanded = _C
+        A._expanded = True
         C = TaskRow(B, name=name, on_reopen=on_reopen)
         C.removed.connect(A._remove_row)
-        B.finished_signal.connect(lambda _=_A: A._update_count())
-        B.error_signal.connect(lambda _=_A: A._update_count())
+        B.finished_signal.connect(lambda _=None: A._update_count())
+        B.error_signal.connect(lambda _=None: A._update_count())
         A._tasks.append(C)
         A._task_layout.insertWidget(A._task_layout.count() - 1, C)
-        A._no_tasks_label.setVisible(_B)
+        A._no_tasks_label.setVisible(False)
         A._update_count()
-        A.setVisible(_C)
+        A.setVisible(True)
         A._adjust_scroll_height()
         A.toggle_btn.setText("−")
         return B
@@ -276,8 +274,8 @@ class BackgroundTaskManager(QFrame):
             A._update_count()
             A._adjust_scroll_height()
         if not A._tasks:
-            A._no_tasks_label.setVisible(_C)
-            A.setVisible(_B)
+            A._no_tasks_label.setVisible(True)
+            A.setVisible(False)
 
     def _adjust_scroll_height(A):
         B = len(A._tasks)
@@ -285,7 +283,7 @@ class BackgroundTaskManager(QFrame):
             A.scroll.setMaximumHeight(70)
             A.scroll.setMinimumHeight(50)
             return
-        A._no_tasks_label.setVisible(_B)
+        A._no_tasks_label.setVisible(False)
         C = min(250, B * 48 + 12)
         A.scroll.setMaximumHeight(C)
         A.scroll.setMinimumHeight(50)

@@ -1,5 +1,3 @@
-_B = True
-_A = "/"
 from PyQt6.QtCore import QMimeData, Qt
 from PyQt6.QtGui import QDrag
 from PyQt6.QtWidgets import QMessageBox, QTreeView
@@ -13,10 +11,10 @@ class DropTreeView(QTreeView):
         super().__init__(B)
         A.parent_widget = B
         A.main_window = main_window
-        A.setAcceptDrops(_B)
+        A.setAcceptDrops(True)
         A.setDragDropMode(QTreeView.DragDropMode.DragDrop)
-        A.setDragEnabled(_B)
-        A.setAlternatingRowColors(_B)
+        A.setDragEnabled(True)
+        A.setAlternatingRowColors(True)
 
     def _get_device_serial(A):
         if hasattr(A.main_window, "device_serial"):
@@ -112,9 +110,12 @@ class DropTreeView(QTreeView):
             D = A.model().data(C.siblingAtColumn(0))
             E = A.model().data(C.siblingAtColumn(1)) == "Directory"
             if D == "..":
-                B = _A.join(A.main_window.current_path.rstrip(_A).split(_A)[:-1]) or _A
+                B = (
+                    "/".join(A.main_window.current_path.rstrip("/").split("/")[:-1])
+                    or "/"
+                )
             elif E:
-                B = f"{A.main_window.current_path.rstrip(_A)}/{D}"
+                B = f"{A.main_window.current_path.rstrip('/')}/{D}"
         return B
 
     def _handle_cross_device_drop(A, src_serial, paths, dest_path):
@@ -123,7 +124,7 @@ class DropTreeView(QTreeView):
         else:
             B = A.window()
             if hasattr(B, "_on_cross_device_drop"):
-                0
+                pass
             QMessageBox.warning(
                 A,
                 A.tr("Cross-Device Drop"),
@@ -139,7 +140,7 @@ class DropTreeView(QTreeView):
         for H in D:
             C = A.model().data(H.siblingAtColumn(0))
             if C and C != "..":
-                B.append(f"{A.main_window.current_path.rstrip(_A)}/{C}")
+                B.append(f"{A.main_window.current_path.rstrip('/')}/{C}")
         if not B:
             return
         try:
@@ -170,19 +171,19 @@ class DropTreeView(QTreeView):
         if not B:
             return
         D = B[0]
-        C = D.rstrip(_A).split(_A)[-1]
-        F = f"{dest.rstrip(_A)}/{C}"
+        C = D.rstrip("/").split("/")[-1]
+        F = f"{dest.rstrip('/')}/{C}"
         A.main_window._run_background(
             "Move items",
             A.main_window.adb_handler.move_on_device,
             D,
             F,
-            refresh=_B,
+            refresh=True,
             on_error=lambda: QMessageBox.warning(
                 A, A.tr("Move Error"), A.tr("Failed to move items.")
             ),
         )
         for E in B[1:]:
-            C = E.rstrip(_A).split(_A)[-1]
-            G = f"{dest.rstrip(_A)}/{C}"
+            C = E.rstrip("/").split("/")[-1]
+            G = f"{dest.rstrip('/')}/{C}"
             A.main_window.adb_handler.move_on_device(E, G)
