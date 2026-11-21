@@ -981,6 +981,7 @@ class ADBHandler:
         name_query="",
         content_query="",
         use_root=False,
+        device_serial=None,
         cancel_check=None,
     ):
         if not self.device_connected:
@@ -1009,9 +1010,11 @@ class ADBHandler:
             )
 
         cmd = (
-            self._build_adb_cmd(["shell", "su", "-c", shell_cmd])
+            self._build_adb_cmd(
+                ["shell", "su", "-c", shell_cmd], device_serial=device_serial
+            )
             if use_root and self.root_mode == "su"
-            else self._build_adb_cmd(["shell", shell_cmd])
+            else self._build_adb_cmd(["shell", shell_cmd], device_serial=device_serial)
         )
 
         process = None
@@ -1053,3 +1056,8 @@ class ADBHandler:
                         process.kill()
                     except OSError:
                         pass
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()

@@ -26,7 +26,7 @@ class BookmarkStore(QObject):
         data = self._read()
         bookmarks = data["devices"].get(self._device_key(device_id), [])
         if not isinstance(bookmarks, list):
-            raise ValueError("Bookmark list must be a JSON array")  # noqa: TRY004
+            raise ValueError("Bookmark list must be a JSON array")
         for item in bookmarks:
             self._validate_bookmark(item)
         return bookmarks
@@ -68,7 +68,7 @@ class BookmarkStore(QObject):
         with self.path.open(encoding="utf-8") as file:
             data = json.load(file)
         if not isinstance(data, dict) or not isinstance(data.get("devices"), dict):
-            raise ValueError("Bookmark file must contain a devices object")  # noqa: TRY004
+            raise ValueError("Bookmark file must contain a devices object")
         return data
 
     @staticmethod

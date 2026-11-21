@@ -13,6 +13,13 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from handler import ADBHandler
+from operation_control import (
+    OperationControl,
+    clear_current_operation,
+    set_current_operation,
+)
+
 
 class DeviceSearchWorker(QThread):
     item_found = pyqtSignal(dict)
@@ -26,29 +33,42 @@ class DeviceSearchWorker(QThread):
         self.content_query = content_query
         self.use_root = use_root
         self._cancelled = False
+        self._operation = OperationControl()
 
     def cancel(self):
         self._cancelled = True
+        # Kills the search adb process immediately instead of waiting
+        # for the next line of find output.
+        self._operation.cancel()
 
     def run(self):
-        count = 0
-        for item in self.adb_handler.search_device_files(
-            root_path=self.root_path,
-            name_query=self.name_query,
-            content_query=self.content_query,
-            use_root=self.use_root,
-            cancel_check=lambda: self._cancelled,
-        ):
-            if self._cancelled:
-                break
-            count += 1
-            self.item_found.emit(item)
-        self.search_finished.emit(count)
+        set_current_operation(self._operation)
+        try:
+            if self.use_root and self.adb_handler.root_mode is None:
+                try:
+                    self.adb_handler.enable_root()
+                except Exception:
+                    pass
+            count = 0
+            for item in self.adb_handler.search_device_files(
+                root_path=self.root_path,
+                name_query=self.name_query,
+                content_query=self.content_query,
+                use_root=self.use_root,
+                cancel_check=lambda: self._cancelled,
+            ):
+                if self._cancelled:
+                    break
+                count += 1
+                self.item_found.emit(item)
+            self.search_finished.emit(count)
+        finally:
+            clear_current_operation()
 
 
 class DeviceSearchDialog(QDialog):
-    # Передает (serial_устройства, полный_путь)
-    file_selected = pyqtSignal(str, str)
+    # Передает (serial_устройства, полный_путь, use_root)
+    file_selected = pyqtSignal(str, str, bool)
 
     def __init__(
         self,
@@ -133,14 +153,16 @@ class DeviceSearchDialog(QDialog):
             self.status_label.setText(self.tr("Enter file name or content text."))
             return
 
-        self.adb_handler.device_serial = serial
+        self._shutdown_worker()
         self.results_tree.clear()
         self.search_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
         self.status_label.setText(self.tr("Searching..."))
 
+        # Dedicated handler: the shared panel handler is never touched,
+        # so the panel keeps its own serial and root state.
         self.worker = DeviceSearchWorker(
-            adb_handler=self.adb_handler,
+            adb_handler=ADBHandler(device_serial=serial),
             root_path=root_path,
             name_query=name_q,
             content_query=content_q,
@@ -154,6 +176,23 @@ class DeviceSearchDialog(QDialog):
         if self.worker and self.worker.isRunning():
             self.worker.cancel()
             self.status_label.setText(self.tr("Stopping..."))
+
+    def _shutdown_worker(self):
+        if self.worker is None:
+            return
+        self.stop_search()
+        self.worker.wait(3000)
+        if self.worker.isRunning():
+            # Last resort: the process kill did not unblock the thread.
+            self.worker.terminate()
+            self.worker.wait(1000)
+        self.worker = None
+
+    def done(self, result):
+        # Covers accept/reject/Esc (opening a result included) - closeEvent
+        # is not called for those.
+        self._shutdown_worker()
+        super().done(result)
 
     def on_item_found(self, item):
         row = QTreeWidgetItem([item["name"], item["path"]])
@@ -174,11 +213,9 @@ class DeviceSearchDialog(QDialog):
         path = item.data(0, Qt.ItemDataRole.UserRole)
         serial = self.device_combo.currentData()
         if path and serial:
-            self.file_selected.emit(serial, path)
+            self.file_selected.emit(serial, path, self.root_checkbox.isChecked())
             self.accept()
 
     def closeEvent(self, event):
-        self.stop_search()
-        if self.worker:
-            self.worker.wait(1000)
+        self._shutdown_worker()
         super().closeEvent(event)

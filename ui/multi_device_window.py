@@ -23,9 +23,9 @@ from PyQt6.QtWidgets import (
 )
 
 from device_chooser import DeviceChooser
-from search_dialog import DeviceSearchDialog
 from handler import ADBHandler
 from operation_control import is_cancelled
+from search_dialog import DeviceSearchDialog
 from ui.bookmarks import BookmarkStore, get_app_data_directory
 from ui.device_panel import DevicePanelGroup
 from ui.task_manager import BackgroundTaskManager
@@ -582,8 +582,7 @@ class MultiDeviceWindow(QMainWindow):
         E.file_selected.connect(A._navigate_to_search_result)
         E.exec()
 
-    def _navigate_to_search_result(A, serial, remote_path):
-        # Ищем открытую панель для выбранного устройства или создаем новую
+    def _navigate_to_search_result(A, serial, remote_path, use_root=False):
         B = None
         for C in A.device_panels:
             if C.device_serial == serial:
@@ -595,10 +594,23 @@ class MultiDeviceWindow(QMainWindow):
         if B is None:
             return
 
-        # Проверяем, является ли найденный путь директорией или файлом
-        F = B.adb_handler._run_adb_command(
-            ["exec-out", "test", "-d", remote_path], timeout=10
-        )
+        if use_root and B.adb_handler.root_mode != "su":
+            try:
+                B.adb_handler.enable_root()
+            except Exception:
+                logging.getLogger(__name__).exception(
+                    "Could not enable root mode for %s", serial
+                )
+
+        if use_root and B.adb_handler.root_mode == "su":
+            quoted = B.adb_handler._shell_quote(remote_path)
+            F = B.adb_handler._run_adb_command(
+                ["exec-out", "su", "-c", f"test -d {quoted}"], timeout=10
+            )
+        else:
+            F = B.adb_handler._run_adb_command(
+                ["exec-out", "test", "-d", remote_path], timeout=10
+            )
         if F.returncode == 0:
             D = remote_path
             G = None
@@ -606,9 +618,13 @@ class MultiDeviceWindow(QMainWindow):
             D = remote_path.rsplit("/", 1)[0] or "/"
             G = remote_path.rsplit("/", 1)[-1]
 
-        # Открываем в новой вкладке активной панели устройства и выделяем файл
         H = B.add_tab(path=D)
-        if H and G:
+        if H is None:
+            return
+        if use_root and not H.use_root:
+            H.use_root = True
+            H.refresh_files()
+        if G:
 
             def _select_found_item():
                 for row in range(H.tree_model.rowCount()):
