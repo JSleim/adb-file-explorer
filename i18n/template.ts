@@ -4,98 +4,88 @@
 <context>
     <name>ADBFileExplorer</name>
     <message>
-        <location filename="../ui/explorer.py" line="39" />
-        <location filename="../ui/explorer.py" line="39" />
+        <location filename="../ui/explorer.py" line="27" />
+        <location filename="../ui/explorer.py" line="27" />
         <source>ADB File Explorer</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="109" />
-        <location filename="../ui/explorer.py" line="109" />
-        <source>No Devices</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/explorer.py" line="109" />
-        <location filename="../ui/explorer.py" line="109" />
-        <source>No ADB devices found. Please connect a device and try again.</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/explorer.py" line="123" />
-        <location filename="../ui/explorer.py" line="118" />
-        <location filename="../ui/explorer.py" line="123" />
-        <location filename="../ui/explorer.py" line="118" />
+        <location filename="../ui/explorer.py" line="94" />
+        <location filename="../ui/explorer.py" line="94" />
         <source>ADB File Explorer - {0} ({1})</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="398" />
-        <location filename="../ui/explorer.py" line="390" />
-        <location filename="../ui/explorer.py" line="141" />
-        <location filename="../ui/explorer.py" line="398" />
-        <location filename="../ui/explorer.py" line="390" />
-        <location filename="../ui/explorer.py" line="141" />
+        <location filename="../ui/explorer.py" line="98" />
+        <location filename="../ui/explorer.py" line="98" />
+        <source>No Devices</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/explorer.py" line="99" />
+        <location filename="../ui/explorer.py" line="99" />
+        <source>No ADB devices found. Please connect a device and try again.</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/explorer.py" line="382" />
+        <location filename="../ui/explorer.py" line="373" />
+        <location filename="../ui/explorer.py" line="128" />
+        <location filename="../ui/explorer.py" line="382" />
+        <location filename="../ui/explorer.py" line="373" />
+        <location filename="../ui/explorer.py" line="128" />
         <source>Ready</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="148" />
-        <location filename="../ui/explorer.py" line="148" />
+        <location filename="../ui/explorer.py" line="133" />
+        <location filename="../ui/explorer.py" line="133" />
         <source>Root access</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="155" />
-        <location filename="../ui/explorer.py" line="155" />
+        <location filename="../ui/explorer.py" line="138" />
+        <location filename="../ui/explorer.py" line="138" />
         <source>Edit</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="156" />
-        <location filename="../ui/explorer.py" line="156" />
+        <location filename="../ui/explorer.py" line="139" />
+        <location filename="../ui/explorer.py" line="139" />
         <source>Copy</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="158" />
-        <location filename="../ui/explorer.py" line="158" />
+        <location filename="../ui/explorer.py" line="141" />
+        <location filename="../ui/explorer.py" line="141" />
         <source>Cut</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="160" />
-        <location filename="../ui/explorer.py" line="160" />
+        <location filename="../ui/explorer.py" line="143" />
+        <location filename="../ui/explorer.py" line="143" />
         <source>Paste</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="410" />
-        <location filename="../ui/explorer.py" line="163" />
-        <location filename="../ui/explorer.py" line="410" />
-        <location filename="../ui/explorer.py" line="163" />
+        <location filename="../ui/explorer.py" line="395" />
+        <location filename="../ui/explorer.py" line="145" />
+        <location filename="../ui/explorer.py" line="395" />
+        <location filename="../ui/explorer.py" line="145" />
         <source>Install APK</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="427" />
-        <location filename="../ui/explorer.py" line="165" />
-        <location filename="../ui/explorer.py" line="427" />
-        <location filename="../ui/explorer.py" line="165" />
+        <location filename="../ui/explorer.py" line="419" />
+        <location filename="../ui/explorer.py" line="147" />
+        <location filename="../ui/explorer.py" line="419" />
+        <location filename="../ui/explorer.py" line="147" />
         <source>Install XAPK</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="240" />
-        <location filename="../ui/explorer.py" line="226" />
-        <location filename="../ui/explorer.py" line="240" />
-        <location filename="../ui/explorer.py" line="226" />
-        <source>Root Access</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/explorer.py" line="227" />
-        <location filename="../ui/explorer.py" line="227" />
+        <location filename="../ui/explorer.py" line="210" />
+        <location filename="../ui/explorer.py" line="210" />
         <source>Root access is not available on this device.
 
 If rooted, grant superuser permissions on the device.
@@ -103,127 +93,143 @@ If not rooted, adb root may not be supported on production builds.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="241" />
-        <location filename="../ui/explorer.py" line="241" />
+        <location filename="../ui/explorer.py" line="225" />
+        <location filename="../ui/explorer.py" line="225" />
         <source>Could not enable root access.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="245" />
-        <location filename="../ui/explorer.py" line="245" />
+        <location filename="../ui/explorer.py" line="230" />
+        <location filename="../ui/explorer.py" line="230" />
         <source>Enable root access</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="260" />
-        <location filename="../ui/explorer.py" line="260" />
+        <location filename="../ui/explorer.py" line="245" />
+        <location filename="../ui/explorer.py" line="245" />
         <source>🟢 Connected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="263" />
-        <location filename="../ui/explorer.py" line="263" />
+        <location filename="../ui/explorer.py" line="248" />
+        <location filename="../ui/explorer.py" line="248" />
         <source>🔴 Disconnected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="274" />
-        <location filename="../ui/explorer.py" line="274" />
+        <location filename="../ui/explorer.py" line="257" />
+        <location filename="../ui/explorer.py" line="257" />
         <source>ADB device reconnected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="394" />
-        <location filename="../ui/explorer.py" line="394" />
+        <location filename="../ui/explorer.py" line="378" />
+        <location filename="../ui/explorer.py" line="378" />
         <source>Error: {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="421" />
-        <location filename="../ui/explorer.py" line="404" />
-        <location filename="../ui/explorer.py" line="421" />
-        <location filename="../ui/explorer.py" line="404" />
-        <source>No ADB device connected</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/explorer.py" line="406" />
-        <location filename="../ui/explorer.py" line="406" />
-        <source>Select APK file</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/explorer.py" line="411" />
-        <location filename="../ui/explorer.py" line="411" />
-        <source>APK installed successfully</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/explorer.py" line="415" />
-        <location filename="../ui/explorer.py" line="412" />
-        <location filename="../ui/explorer.py" line="415" />
-        <location filename="../ui/explorer.py" line="412" />
+        <location filename="../ui/explorer.py" line="385" />
+        <location filename="../ui/explorer.py" line="385" />
         <source>APK installation failed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="431" />
-        <location filename="../ui/explorer.py" line="414" />
-        <location filename="../ui/explorer.py" line="431" />
-        <location filename="../ui/explorer.py" line="414" />
+        <location filename="../ui/explorer.py" line="411" />
+        <location filename="../ui/explorer.py" line="387" />
+        <location filename="../ui/explorer.py" line="411" />
+        <location filename="../ui/explorer.py" line="387" />
+        <source>No ADB device connected</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/explorer.py" line="390" />
+        <location filename="../ui/explorer.py" line="390" />
+        <source>Select APK file</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/explorer.py" line="399" />
+        <location filename="../ui/explorer.py" line="399" />
+        <source>APK installed successfully</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/explorer.py" line="428" />
+        <location filename="../ui/explorer.py" line="404" />
+        <location filename="../ui/explorer.py" line="428" />
+        <location filename="../ui/explorer.py" line="404" />
         <source>Install Error</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="423" />
-        <location filename="../ui/explorer.py" line="423" />
-        <source>Select XAPK file</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/explorer.py" line="428" />
-        <location filename="../ui/explorer.py" line="428" />
-        <source>Installed {0} APKs</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/explorer.py" line="432" />
-        <location filename="../ui/explorer.py" line="429" />
-        <location filename="../ui/explorer.py" line="432" />
-        <location filename="../ui/explorer.py" line="429" />
+        <location filename="../ui/explorer.py" line="409" />
+        <location filename="../ui/explorer.py" line="409" />
         <source>XAPK installation failed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="461" />
-        <location filename="../ui/explorer.py" line="461" />
+        <location filename="../ui/explorer.py" line="414" />
+        <location filename="../ui/explorer.py" line="414" />
+        <source>Select XAPK file</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/explorer.py" line="423" />
+        <location filename="../ui/explorer.py" line="423" />
+        <source>Installed {0} APKs</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/explorer.py" line="454" />
+        <location filename="../ui/explorer.py" line="454" />
         <source>Background</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="462" />
-        <location filename="../ui/explorer.py" line="462" />
+        <location filename="../ui/explorer.py" line="455" />
+        <location filename="../ui/explorer.py" line="455" />
         <source>Cancel</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/explorer.py" line="515" />
-        <location filename="../ui/explorer.py" line="515" />
+        <location filename="../ui/explorer.py" line="508" />
+        <location filename="../ui/explorer.py" line="508" />
         <source>{0} failed</source>
         <translation type="unfinished" />
     </message>
 </context><context>
     <name>BackgroundTaskManager</name>
     <message>
-        <location filename="../ui/task_manager.py" line="219" />
-        <location filename="../ui/task_manager.py" line="219" />
+        <location filename="../ui/task_manager.py" line="214" />
+        <location filename="../ui/task_manager.py" line="214" />
         <source>Background Tasks</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/task_manager.py" line="242" />
-        <location filename="../ui/task_manager.py" line="242" />
+        <location filename="../ui/task_manager.py" line="236" />
+        <location filename="../ui/task_manager.py" line="236" />
         <source>No background tasks</source>
+        <translation type="unfinished" />
+    </message>
+</context><context>
+    <name>BookmarkDialog</name>
+    <message>
+        <location filename="../ui/device_panel.py" line="1917" />
+        <location filename="../ui/device_panel.py" line="1917" />
+        <source>Name</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="1918" />
+        <location filename="../ui/device_panel.py" line="1918" />
+        <source>Path</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="1919" />
+        <location filename="../ui/device_panel.py" line="1919" />
+        <source>Note</source>
         <translation type="unfinished" />
     </message>
 </context><context>
@@ -234,223 +240,211 @@ If not rooted, adb root may not be supported on production builds.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../device_chooser.py" line="21" />
+        <location filename="../device_chooser.py" line="19" />
         <source>Select device panels to open:</source>
         <translation type="unfinished" />
     </message>
 </context><context>
     <name>DevicePanel</name>
     <message>
-        <location filename="../ui/device_panel.py" line="1371" />
-        <location filename="../ui/device_panel.py" line="1371" />
-        <source>Cannot determine the folder name for '{0}'.</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="1396" />
-        <location filename="../ui/device_panel.py" line="1396" />
-        <source>'{0}' is not a file or folder.</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="449" />
-        <location filename="../ui/device_panel.py" line="449" />
+        <location filename="../ui/device_panel.py" line="452" />
+        <location filename="../ui/device_panel.py" line="452" />
         <source>Close this device panel</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="450" />
-        <location filename="../ui/device_panel.py" line="450" />
+        <location filename="../ui/device_panel.py" line="453" />
+        <location filename="../ui/device_panel.py" line="453" />
         <source>Close device panel</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="581" />
-        <location filename="../ui/device_panel.py" line="457" />
-        <location filename="../ui/device_panel.py" line="581" />
-        <location filename="../ui/device_panel.py" line="457" />
+        <location filename="../ui/device_panel.py" line="577" />
+        <location filename="../ui/device_panel.py" line="459" />
+        <location filename="../ui/device_panel.py" line="577" />
+        <location filename="../ui/device_panel.py" line="459" />
         <source>🟢 Connected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="584" />
-        <location filename="../ui/device_panel.py" line="457" />
-        <location filename="../ui/device_panel.py" line="584" />
-        <location filename="../ui/device_panel.py" line="457" />
+        <location filename="../ui/device_panel.py" line="582" />
+        <location filename="../ui/device_panel.py" line="461" />
+        <location filename="../ui/device_panel.py" line="582" />
+        <location filename="../ui/device_panel.py" line="461" />
         <source>🔴 Disconnected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="505" />
-        <location filename="../ui/device_panel.py" line="505" />
+        <location filename="../ui/device_panel.py" line="501" />
+        <location filename="../ui/device_panel.py" line="501" />
         <source>Filter files</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="766" />
-        <location filename="../ui/device_panel.py" line="698" />
-        <location filename="../ui/device_panel.py" line="513" />
-        <location filename="../ui/device_panel.py" line="766" />
-        <location filename="../ui/device_panel.py" line="698" />
-        <location filename="../ui/device_panel.py" line="513" />
+        <location filename="../ui/device_panel.py" line="762" />
+        <location filename="../ui/device_panel.py" line="687" />
+        <location filename="../ui/device_panel.py" line="509" />
+        <location filename="../ui/device_panel.py" line="762" />
+        <location filename="../ui/device_panel.py" line="687" />
+        <location filename="../ui/device_panel.py" line="509" />
         <source>Name</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="766" />
-        <location filename="../ui/device_panel.py" line="698" />
-        <location filename="../ui/device_panel.py" line="513" />
-        <location filename="../ui/device_panel.py" line="766" />
-        <location filename="../ui/device_panel.py" line="698" />
-        <location filename="../ui/device_panel.py" line="513" />
+        <location filename="../ui/device_panel.py" line="763" />
+        <location filename="../ui/device_panel.py" line="688" />
+        <location filename="../ui/device_panel.py" line="510" />
+        <location filename="../ui/device_panel.py" line="763" />
+        <location filename="../ui/device_panel.py" line="688" />
+        <location filename="../ui/device_panel.py" line="510" />
         <source>Type</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="766" />
-        <location filename="../ui/device_panel.py" line="698" />
-        <location filename="../ui/device_panel.py" line="513" />
-        <location filename="../ui/device_panel.py" line="766" />
-        <location filename="../ui/device_panel.py" line="698" />
-        <location filename="../ui/device_panel.py" line="513" />
+        <location filename="../ui/device_panel.py" line="764" />
+        <location filename="../ui/device_panel.py" line="689" />
+        <location filename="../ui/device_panel.py" line="511" />
+        <location filename="../ui/device_panel.py" line="764" />
+        <location filename="../ui/device_panel.py" line="689" />
+        <location filename="../ui/device_panel.py" line="511" />
         <source>Size</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="766" />
-        <location filename="../ui/device_panel.py" line="698" />
-        <location filename="../ui/device_panel.py" line="513" />
-        <location filename="../ui/device_panel.py" line="766" />
-        <location filename="../ui/device_panel.py" line="698" />
-        <location filename="../ui/device_panel.py" line="513" />
+        <location filename="../ui/device_panel.py" line="765" />
+        <location filename="../ui/device_panel.py" line="690" />
+        <location filename="../ui/device_panel.py" line="512" />
+        <location filename="../ui/device_panel.py" line="765" />
+        <location filename="../ui/device_panel.py" line="690" />
+        <location filename="../ui/device_panel.py" line="512" />
         <source>Permissions</source>
         <translation type="unfinished" />
     </message>
     <message>
         <location filename="../ui/device_panel.py" line="766" />
-        <location filename="../ui/device_panel.py" line="698" />
+        <location filename="../ui/device_panel.py" line="691" />
         <location filename="../ui/device_panel.py" line="513" />
         <location filename="../ui/device_panel.py" line="766" />
-        <location filename="../ui/device_panel.py" line="698" />
+        <location filename="../ui/device_panel.py" line="691" />
         <location filename="../ui/device_panel.py" line="513" />
         <source>Modified</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="531" />
-        <location filename="../ui/device_panel.py" line="531" />
+        <location filename="../ui/device_panel.py" line="529" />
+        <location filename="../ui/device_panel.py" line="529" />
         <source>Ready</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="533" />
-        <location filename="../ui/device_panel.py" line="533" />
+        <location filename="../ui/device_panel.py" line="531" />
+        <location filename="../ui/device_panel.py" line="531" />
         <source>0 items selected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="547" />
-        <location filename="../ui/device_panel.py" line="547" />
+        <location filename="../ui/device_panel.py" line="544" />
+        <location filename="../ui/device_panel.py" line="544" />
         <source>No ADB device connected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="670" />
-        <location filename="../ui/device_panel.py" line="670" />
+        <location filename="../ui/device_panel.py" line="664" />
+        <location filename="../ui/device_panel.py" line="664" />
         <source>Copying files to Windows</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="689" />
-        <location filename="../ui/device_panel.py" line="689" />
+        <location filename="../ui/device_panel.py" line="677" />
+        <location filename="../ui/device_panel.py" line="677" />
         <source>No ADB device</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="696" />
-        <location filename="../ui/device_panel.py" line="696" />
+        <location filename="../ui/device_panel.py" line="683" />
+        <location filename="../ui/device_panel.py" line="683" />
         <source>Loading {0}...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="699" />
-        <location filename="../ui/device_panel.py" line="699" />
+        <location filename="../ui/device_panel.py" line="694" />
+        <location filename="../ui/device_panel.py" line="694" />
         <source>Loading...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="710" />
-        <location filename="../ui/device_panel.py" line="710" />
+        <location filename="../ui/device_panel.py" line="706" />
+        <location filename="../ui/device_panel.py" line="706" />
         <source>Found {0} items</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="712" />
-        <location filename="../ui/device_panel.py" line="712" />
+        <location filename="../ui/device_panel.py" line="708" />
+        <location filename="../ui/device_panel.py" line="708" />
         <source>Failed to list directory</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1634" />
-        <location filename="../ui/device_panel.py" line="1217" />
-        <location filename="../ui/device_panel.py" line="1065" />
-        <location filename="../ui/device_panel.py" line="979" />
-        <location filename="../ui/device_panel.py" line="827" />
+        <location filename="../ui/device_panel.py" line="1659" />
+        <location filename="../ui/device_panel.py" line="1254" />
+        <location filename="../ui/device_panel.py" line="1082" />
+        <location filename="../ui/device_panel.py" line="994" />
+        <location filename="../ui/device_panel.py" line="830" />
         <location filename="../ui/device_panel.py" line="811" />
-        <location filename="../ui/device_panel.py" line="775" />
-        <location filename="../ui/device_panel.py" line="1634" />
-        <location filename="../ui/device_panel.py" line="1217" />
-        <location filename="../ui/device_panel.py" line="1065" />
-        <location filename="../ui/device_panel.py" line="979" />
-        <location filename="../ui/device_panel.py" line="827" />
+        <location filename="../ui/device_panel.py" line="779" />
+        <location filename="../ui/device_panel.py" line="1659" />
+        <location filename="../ui/device_panel.py" line="1254" />
+        <location filename="../ui/device_panel.py" line="1082" />
+        <location filename="../ui/device_panel.py" line="994" />
+        <location filename="../ui/device_panel.py" line="830" />
         <location filename="../ui/device_panel.py" line="811" />
-        <location filename="../ui/device_panel.py" line="775" />
+        <location filename="../ui/device_panel.py" line="779" />
         <source>Directory</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="973" />
-        <location filename="../ui/device_panel.py" line="836" />
+        <location filename="../ui/device_panel.py" line="988" />
+        <location filename="../ui/device_panel.py" line="839" />
         <location filename="../ui/device_panel.py" line="811" />
-        <location filename="../ui/device_panel.py" line="973" />
-        <location filename="../ui/device_panel.py" line="836" />
+        <location filename="../ui/device_panel.py" line="988" />
+        <location filename="../ui/device_panel.py" line="839" />
         <location filename="../ui/device_panel.py" line="811" />
         <source>File</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="860" />
-        <location filename="../ui/device_panel.py" line="860" />
+        <location filename="../ui/device_panel.py" line="863" />
+        <location filename="../ui/device_panel.py" line="863" />
         <source>Selected items: {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="867" />
-        <location filename="../ui/device_panel.py" line="867" />
+        <location filename="../ui/device_panel.py" line="870" />
+        <location filename="../ui/device_panel.py" line="870" />
         <source>Copied {0} item(s)</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="874" />
-        <location filename="../ui/device_panel.py" line="874" />
+        <location filename="../ui/device_panel.py" line="877" />
+        <location filename="../ui/device_panel.py" line="877" />
         <source>Cut {0} item(s)</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="878" />
-        <location filename="../ui/device_panel.py" line="878" />
+        <location filename="../ui/device_panel.py" line="881" />
+        <location filename="../ui/device_panel.py" line="881" />
         <source>Clipboard is empty</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="890" />
-        <location filename="../ui/device_panel.py" line="890" />
+        <location filename="../ui/device_panel.py" line="894" />
+        <location filename="../ui/device_panel.py" line="894" />
         <source>Item(s) Already Exist</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="891" />
-        <location filename="../ui/device_panel.py" line="891" />
+        <location filename="../ui/device_panel.py" line="895" />
+        <location filename="../ui/device_panel.py" line="895" />
         <source>The following already exist in the destination:
 
 {0}{1}
@@ -459,463 +453,465 @@ Overwrite?</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="895" />
-        <location filename="../ui/device_panel.py" line="895" />
+        <location filename="../ui/device_panel.py" line="901" />
+        <location filename="../ui/device_panel.py" line="901" />
         <source>Paste canceled</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="920" />
-        <location filename="../ui/device_panel.py" line="920" />
+        <location filename="../ui/device_panel.py" line="926" />
+        <location filename="../ui/device_panel.py" line="926" />
         <source>Pasted {0} item(s)</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="923" />
-        <location filename="../ui/device_panel.py" line="923" />
+        <location filename="../ui/device_panel.py" line="929" />
+        <location filename="../ui/device_panel.py" line="929" />
         <source>Paste failed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="925" />
-        <location filename="../ui/device_panel.py" line="925" />
+        <location filename="../ui/device_panel.py" line="932" />
+        <location filename="../ui/device_panel.py" line="932" />
         <source>Paste {0} items</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="939" />
-        <location filename="../ui/device_panel.py" line="939" />
-        <source>Paste</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="1261" />
-        <location filename="../ui/device_panel.py" line="944" />
-        <location filename="../ui/device_panel.py" line="1261" />
-        <location filename="../ui/device_panel.py" line="944" />
-        <source>New File</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="1283" />
-        <location filename="../ui/device_panel.py" line="945" />
-        <location filename="../ui/device_panel.py" line="1283" />
-        <location filename="../ui/device_panel.py" line="945" />
-        <source>New Folder</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="946" />
-        <location filename="../ui/device_panel.py" line="946" />
-        <source>Upload to Device</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="947" />
-        <location filename="../ui/device_panel.py" line="947" />
-        <source>Import Folder from PC...</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="1648" />
-        <location filename="../ui/device_panel.py" line="969" />
-        <location filename="../ui/device_panel.py" line="949" />
-        <location filename="../ui/device_panel.py" line="1648" />
-        <location filename="../ui/device_panel.py" line="969" />
-        <location filename="../ui/device_panel.py" line="949" />
-        <source>Copy</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="970" />
-        <location filename="../ui/device_panel.py" line="950" />
-        <location filename="../ui/device_panel.py" line="970" />
-        <location filename="../ui/device_panel.py" line="950" />
-        <source>Cut</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="952" />
-        <location filename="../ui/device_panel.py" line="952" />
-        <source>Delete Selected</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="953" />
-        <location filename="../ui/device_panel.py" line="953" />
-        <source>Download to PC</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="954" />
-        <location filename="../ui/device_panel.py" line="954" />
-        <source>Copy to Device Folder...</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="955" />
-        <location filename="../ui/device_panel.py" line="955" />
-        <source>Batch Rename...</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="962" />
-        <location filename="../ui/device_panel.py" line="962" />
-        <source>Total Size: {0}</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="974" />
-        <location filename="../ui/device_panel.py" line="974" />
-        <source>Open</source>
-        <translation type="unfinished" />
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="980" />
-        <location filename="../ui/device_panel.py" line="975" />
-        <location filename="../ui/device_panel.py" line="980" />
-        <location filename="../ui/device_panel.py" line="975" />
+        <location filename="../ui/device_panel.py" line="936" />
+        <location filename="../ui/device_panel.py" line="936" />
         <source>Save to PC...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1488" />
-        <location filename="../ui/device_panel.py" line="1136" />
-        <location filename="../ui/device_panel.py" line="982" />
-        <location filename="../ui/device_panel.py" line="977" />
-        <location filename="../ui/device_panel.py" line="1488" />
-        <location filename="../ui/device_panel.py" line="1136" />
-        <location filename="../ui/device_panel.py" line="982" />
-        <location filename="../ui/device_panel.py" line="977" />
+        <location filename="../ui/device_panel.py" line="937" />
+        <location filename="../ui/device_panel.py" line="937" />
+        <source>Cut</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="957" />
+        <location filename="../ui/device_panel.py" line="957" />
+        <source>Paste</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="1300" />
+        <location filename="../ui/device_panel.py" line="961" />
+        <location filename="../ui/device_panel.py" line="1300" />
+        <location filename="../ui/device_panel.py" line="961" />
+        <source>New File</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="1322" />
+        <location filename="../ui/device_panel.py" line="962" />
+        <location filename="../ui/device_panel.py" line="1322" />
+        <location filename="../ui/device_panel.py" line="962" />
+        <source>New Folder</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="963" />
+        <location filename="../ui/device_panel.py" line="963" />
+        <source>Upload to Device</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="964" />
+        <location filename="../ui/device_panel.py" line="964" />
+        <source>Import Folder from PC...</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="1674" />
+        <location filename="../ui/device_panel.py" line="985" />
+        <location filename="../ui/device_panel.py" line="966" />
+        <location filename="../ui/device_panel.py" line="1674" />
+        <location filename="../ui/device_panel.py" line="985" />
+        <location filename="../ui/device_panel.py" line="966" />
+        <source>Copy</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="969" />
+        <location filename="../ui/device_panel.py" line="969" />
+        <source>Delete Selected</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="970" />
+        <location filename="../ui/device_panel.py" line="970" />
+        <source>Download to PC</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="971" />
+        <location filename="../ui/device_panel.py" line="971" />
+        <source>Copy to Device Folder...</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="972" />
+        <location filename="../ui/device_panel.py" line="972" />
+        <source>Batch Rename...</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="979" />
+        <location filename="../ui/device_panel.py" line="979" />
+        <source>Total Size: {0}</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="989" />
+        <location filename="../ui/device_panel.py" line="989" />
+        <source>Open</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="1513" />
+        <location filename="../ui/device_panel.py" line="1170" />
+        <location filename="../ui/device_panel.py" line="1004" />
+        <location filename="../ui/device_panel.py" line="992" />
+        <location filename="../ui/device_panel.py" line="1513" />
+        <location filename="../ui/device_panel.py" line="1170" />
+        <location filename="../ui/device_panel.py" line="1004" />
+        <location filename="../ui/device_panel.py" line="992" />
         <source>Rename</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1237" />
-        <location filename="../ui/device_panel.py" line="1170" />
-        <location filename="../ui/device_panel.py" line="983" />
-        <location filename="../ui/device_panel.py" line="978" />
-        <location filename="../ui/device_panel.py" line="1237" />
-        <location filename="../ui/device_panel.py" line="1170" />
-        <location filename="../ui/device_panel.py" line="983" />
-        <location filename="../ui/device_panel.py" line="978" />
+        <location filename="../ui/device_panel.py" line="1275" />
+        <location filename="../ui/device_panel.py" line="1206" />
+        <location filename="../ui/device_panel.py" line="1005" />
+        <location filename="../ui/device_panel.py" line="993" />
+        <location filename="../ui/device_panel.py" line="1275" />
+        <location filename="../ui/device_panel.py" line="1206" />
+        <location filename="../ui/device_panel.py" line="1005" />
+        <location filename="../ui/device_panel.py" line="993" />
         <source>Delete</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="987" />
-        <location filename="../ui/device_panel.py" line="987" />
+        <location filename="../ui/device_panel.py" line="998" />
+        <location filename="../ui/device_panel.py" line="998" />
+        <source>Add to favorites</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="1007" />
+        <location filename="../ui/device_panel.py" line="1007" />
         <source>Send to Device...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="998" />
-        <location filename="../ui/device_panel.py" line="994" />
-        <location filename="../ui/device_panel.py" line="998" />
-        <location filename="../ui/device_panel.py" line="994" />
+        <location filename="../ui/device_panel.py" line="1018" />
+        <location filename="../ui/device_panel.py" line="1014" />
+        <location filename="../ui/device_panel.py" line="1018" />
+        <location filename="../ui/device_panel.py" line="1014" />
         <source>No items selected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1017" />
-        <location filename="../ui/device_panel.py" line="1003" />
-        <location filename="../ui/device_panel.py" line="1017" />
-        <location filename="../ui/device_panel.py" line="1003" />
+        <location filename="../ui/device_panel.py" line="1031" />
+        <location filename="../ui/device_panel.py" line="1022" />
+        <location filename="../ui/device_panel.py" line="1031" />
+        <location filename="../ui/device_panel.py" line="1022" />
         <source>No other devices</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1049" />
-        <location filename="../ui/device_panel.py" line="1049" />
+        <location filename="../ui/device_panel.py" line="1067" />
+        <location filename="../ui/device_panel.py" line="1067" />
         <source>Sent {0} item(s) to {1}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1052" />
-        <location filename="../ui/device_panel.py" line="1052" />
+        <location filename="../ui/device_panel.py" line="1071" />
+        <location filename="../ui/device_panel.py" line="1071" />
         <source>Stream failed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1054" />
-        <location filename="../ui/device_panel.py" line="1054" />
+        <location filename="../ui/device_panel.py" line="1073" />
+        <location filename="../ui/device_panel.py" line="1073" />
         <source>Streaming to {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1076" />
-        <location filename="../ui/device_panel.py" line="1076" />
+        <location filename="../ui/device_panel.py" line="1095" />
+        <location filename="../ui/device_panel.py" line="1095" />
         <source>No connection</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1087" />
-        <location filename="../ui/device_panel.py" line="1087" />
+        <location filename="../ui/device_panel.py" line="1106" />
+        <location filename="../ui/device_panel.py" line="1106" />
         <source>Failed to open {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1096" />
-        <location filename="../ui/device_panel.py" line="1096" />
+        <location filename="../ui/device_panel.py" line="1115" />
+        <location filename="../ui/device_panel.py" line="1115" />
         <source>Opened {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1098" />
-        <location filename="../ui/device_panel.py" line="1098" />
+        <location filename="../ui/device_panel.py" line="1117" />
+        <location filename="../ui/device_panel.py" line="1117" />
         <source>Failed to open file</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1100" />
-        <location filename="../ui/device_panel.py" line="1100" />
+        <location filename="../ui/device_panel.py" line="1119" />
+        <location filename="../ui/device_panel.py" line="1119" />
         <source>Downloading file</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1106" />
-        <location filename="../ui/device_panel.py" line="1106" />
+        <location filename="../ui/device_panel.py" line="1126" />
+        <location filename="../ui/device_panel.py" line="1126" />
         <source>Save File As</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1109" />
-        <location filename="../ui/device_panel.py" line="1109" />
+        <location filename="../ui/device_panel.py" line="1130" />
+        <location filename="../ui/device_panel.py" line="1130" />
         <source>Copying file</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1110" />
-        <location filename="../ui/device_panel.py" line="1110" />
+        <location filename="../ui/device_panel.py" line="1133" />
+        <location filename="../ui/device_panel.py" line="1133" />
         <source>File copied: {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1121" />
-        <location filename="../ui/device_panel.py" line="1110" />
-        <location filename="../ui/device_panel.py" line="1121" />
-        <location filename="../ui/device_panel.py" line="1110" />
+        <location filename="../ui/device_panel.py" line="1151" />
+        <location filename="../ui/device_panel.py" line="1134" />
+        <location filename="../ui/device_panel.py" line="1151" />
+        <location filename="../ui/device_panel.py" line="1134" />
         <source>Failed to copy {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1116" />
-        <location filename="../ui/device_panel.py" line="1116" />
+        <location filename="../ui/device_panel.py" line="1142" />
+        <location filename="../ui/device_panel.py" line="1142" />
         <source>Select Destination</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1120" />
-        <location filename="../ui/device_panel.py" line="1120" />
+        <location filename="../ui/device_panel.py" line="1147" />
+        <location filename="../ui/device_panel.py" line="1147" />
         <source>Copying folder</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1121" />
-        <location filename="../ui/device_panel.py" line="1121" />
+        <location filename="../ui/device_panel.py" line="1150" />
+        <location filename="../ui/device_panel.py" line="1150" />
         <source>Folder copied: {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1137" />
-        <location filename="../ui/device_panel.py" line="1137" />
+        <location filename="../ui/device_panel.py" line="1170" />
+        <location filename="../ui/device_panel.py" line="1170" />
         <source>New name for '{0}':</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1145" />
-        <location filename="../ui/device_panel.py" line="1145" />
+        <location filename="../ui/device_panel.py" line="1177" />
+        <location filename="../ui/device_panel.py" line="1177" />
         <source>Renamed to '{0}'</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1149" />
-        <location filename="../ui/device_panel.py" line="1149" />
+        <location filename="../ui/device_panel.py" line="1181" />
+        <location filename="../ui/device_panel.py" line="1181" />
         <source>Rename failed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1152" />
-        <location filename="../ui/device_panel.py" line="1152" />
+        <location filename="../ui/device_panel.py" line="1184" />
+        <location filename="../ui/device_panel.py" line="1184" />
         <source>Rename {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1224" />
-        <location filename="../ui/device_panel.py" line="1164" />
-        <location filename="../ui/device_panel.py" line="1224" />
-        <location filename="../ui/device_panel.py" line="1164" />
+        <location filename="../ui/device_panel.py" line="1261" />
+        <location filename="../ui/device_panel.py" line="1198" />
+        <location filename="../ui/device_panel.py" line="1261" />
+        <location filename="../ui/device_panel.py" line="1198" />
         <source>Delete folder '{0}' and all of its contents, including subfolders?</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1227" />
-        <location filename="../ui/device_panel.py" line="1167" />
-        <location filename="../ui/device_panel.py" line="1227" />
-        <location filename="../ui/device_panel.py" line="1167" />
+        <location filename="../ui/device_panel.py" line="1265" />
+        <location filename="../ui/device_panel.py" line="1202" />
+        <location filename="../ui/device_panel.py" line="1265" />
+        <location filename="../ui/device_panel.py" line="1202" />
         <source>Delete '{0}'?</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1177" />
-        <location filename="../ui/device_panel.py" line="1177" />
+        <location filename="../ui/device_panel.py" line="1214" />
+        <location filename="../ui/device_panel.py" line="1214" />
         <source>Deleted '{0}'</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1181" />
-        <location filename="../ui/device_panel.py" line="1181" />
+        <location filename="../ui/device_panel.py" line="1218" />
+        <location filename="../ui/device_panel.py" line="1218" />
         <source>Delete failed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1184" />
-        <location filename="../ui/device_panel.py" line="1184" />
+        <location filename="../ui/device_panel.py" line="1221" />
+        <location filename="../ui/device_panel.py" line="1221" />
         <source>Delete {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1230" />
-        <location filename="../ui/device_panel.py" line="1230" />
+        <location filename="../ui/device_panel.py" line="1268" />
+        <location filename="../ui/device_panel.py" line="1268" />
         <source>Delete {0} selected items?</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1233" />
-        <location filename="../ui/device_panel.py" line="1233" />
+        <location filename="../ui/device_panel.py" line="1270" />
+        <location filename="../ui/device_panel.py" line="1270" />
         <source>
 Any selected folders and all their contents, including subfolders, will also be deleted.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1253" />
-        <location filename="../ui/device_panel.py" line="1253" />
+        <location filename="../ui/device_panel.py" line="1292" />
+        <location filename="../ui/device_panel.py" line="1292" />
         <source>Deleted {0} items</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1256" />
-        <location filename="../ui/device_panel.py" line="1256" />
+        <location filename="../ui/device_panel.py" line="1295" />
+        <location filename="../ui/device_panel.py" line="1295" />
         <source>Delete {0} items</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1261" />
-        <location filename="../ui/device_panel.py" line="1261" />
+        <location filename="../ui/device_panel.py" line="1300" />
+        <location filename="../ui/device_panel.py" line="1300" />
         <source>File name:</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1288" />
-        <location filename="../ui/device_panel.py" line="1266" />
-        <location filename="../ui/device_panel.py" line="1288" />
-        <location filename="../ui/device_panel.py" line="1266" />
+        <location filename="../ui/device_panel.py" line="1327" />
+        <location filename="../ui/device_panel.py" line="1305" />
+        <location filename="../ui/device_panel.py" line="1327" />
+        <location filename="../ui/device_panel.py" line="1305" />
         <source>Created '{0}'</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1292" />
-        <location filename="../ui/device_panel.py" line="1270" />
-        <location filename="../ui/device_panel.py" line="1292" />
-        <location filename="../ui/device_panel.py" line="1270" />
+        <location filename="../ui/device_panel.py" line="1331" />
+        <location filename="../ui/device_panel.py" line="1309" />
+        <location filename="../ui/device_panel.py" line="1331" />
+        <location filename="../ui/device_panel.py" line="1309" />
         <source>Create failed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1273" />
-        <location filename="../ui/device_panel.py" line="1273" />
+        <location filename="../ui/device_panel.py" line="1312" />
+        <location filename="../ui/device_panel.py" line="1312" />
         <source>Create file {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1283" />
-        <location filename="../ui/device_panel.py" line="1283" />
+        <location filename="../ui/device_panel.py" line="1322" />
+        <location filename="../ui/device_panel.py" line="1322" />
         <source>Folder name:</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1295" />
-        <location filename="../ui/device_panel.py" line="1295" />
+        <location filename="../ui/device_panel.py" line="1334" />
+        <location filename="../ui/device_panel.py" line="1334" />
         <source>Create folder {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1305" />
-        <location filename="../ui/device_panel.py" line="1305" />
+        <location filename="../ui/device_panel.py" line="1344" />
+        <location filename="../ui/device_panel.py" line="1344" />
         <source>Select File to Upload</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1313" />
-        <location filename="../ui/device_panel.py" line="1313" />
+        <location filename="../ui/device_panel.py" line="1352" />
+        <location filename="../ui/device_panel.py" line="1352" />
         <source>Select Folder to Import</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1325" />
-        <location filename="../ui/device_panel.py" line="1325" />
+        <location filename="../ui/device_panel.py" line="1363" />
+        <location filename="../ui/device_panel.py" line="1363" />
         <source>Import from PC failed: {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1328" />
-        <location filename="../ui/device_panel.py" line="1328" />
+        <location filename="../ui/device_panel.py" line="1366" />
+        <location filename="../ui/device_panel.py" line="1366" />
         <source>No files to upload</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1332" />
-        <location filename="../ui/device_panel.py" line="1332" />
+        <location filename="../ui/device_panel.py" line="1369" />
+        <location filename="../ui/device_panel.py" line="1369" />
         <source>Checking destination files</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1339" />
-        <location filename="../ui/device_panel.py" line="1339" />
+        <location filename="../ui/device_panel.py" line="1374" />
+        <location filename="../ui/device_panel.py" line="1374" />
         <source>Could not verify destination files; import was not started</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1589" />
-        <location filename="../ui/device_panel.py" line="1341" />
-        <location filename="../ui/device_panel.py" line="1589" />
-        <location filename="../ui/device_panel.py" line="1341" />
+        <location filename="../ui/device_panel.py" line="1614" />
+        <location filename="../ui/device_panel.py" line="1376" />
+        <location filename="../ui/device_panel.py" line="1614" />
+        <location filename="../ui/device_panel.py" line="1376" />
         <source>Import cancelled</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1423" />
-        <location filename="../ui/device_panel.py" line="1423" />
+        <location filename="../ui/device_panel.py" line="1451" />
+        <location filename="../ui/device_panel.py" line="1451" />
         <source>Could not verify destination folder '{0}'</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1435" />
-        <location filename="../ui/device_panel.py" line="1435" />
+        <location filename="../ui/device_panel.py" line="1462" />
+        <location filename="../ui/device_panel.py" line="1462" />
         <source>Could not list destination folder '{0}'</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1449" />
-        <location filename="../ui/device_panel.py" line="1449" />
+        <location filename="../ui/device_panel.py" line="1473" />
+        <location filename="../ui/device_panel.py" line="1473" />
         <source>Cannot upload file '{0}': a folder already exists at '{1}'.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1476" />
-        <location filename="../ui/device_panel.py" line="1476" />
+        <location filename="../ui/device_panel.py" line="1499" />
+        <location filename="../ui/device_panel.py" line="1499" />
         <source>File already exists</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1477" />
-        <location filename="../ui/device_panel.py" line="1477" />
+        <location filename="../ui/device_panel.py" line="1500" />
+        <location filename="../ui/device_panel.py" line="1500" />
         <source>The following file already exists:</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1479" />
-        <location filename="../ui/device_panel.py" line="1479" />
+        <location filename="../ui/device_panel.py" line="1502" />
+        <location filename="../ui/device_panel.py" line="1502" />
         <source>{0}
 
 Source: {1}, Modified {2}
@@ -925,506 +921,735 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1487" />
-        <location filename="../ui/device_panel.py" line="1487" />
+        <location filename="../ui/device_panel.py" line="1512" />
+        <location filename="../ui/device_panel.py" line="1512" />
         <source>Overwrite</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1490" />
-        <location filename="../ui/device_panel.py" line="1490" />
+        <location filename="../ui/device_panel.py" line="1515" />
+        <location filename="../ui/device_panel.py" line="1515" />
         <source>Skip</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1762" />
-        <location filename="../ui/device_panel.py" line="1492" />
-        <location filename="../ui/device_panel.py" line="1762" />
-        <location filename="../ui/device_panel.py" line="1492" />
+        <location filename="../ui/device_panel.py" line="1782" />
+        <location filename="../ui/device_panel.py" line="1517" />
+        <location filename="../ui/device_panel.py" line="1782" />
+        <location filename="../ui/device_panel.py" line="1517" />
         <source>Cancel</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1493" />
-        <location filename="../ui/device_panel.py" line="1493" />
+        <location filename="../ui/device_panel.py" line="1518" />
+        <location filename="../ui/device_panel.py" line="1518" />
         <source>Apply to all conflicts</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1495" />
-        <location filename="../ui/device_panel.py" line="1495" />
+        <location filename="../ui/device_panel.py" line="1520" />
+        <location filename="../ui/device_panel.py" line="1520" />
         <source>Apply to all file conflicts</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1497" />
-        <location filename="../ui/device_panel.py" line="1497" />
+        <location filename="../ui/device_panel.py" line="1522" />
+        <location filename="../ui/device_panel.py" line="1522" />
         <source>Use this choice for every remaining file conflict in this import.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1525" />
-        <location filename="../ui/device_panel.py" line="1525" />
+        <location filename="../ui/device_panel.py" line="1549" />
+        <location filename="../ui/device_panel.py" line="1549" />
         <source>Could not read source file '{0}': {1}; import was not started</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1533" />
-        <location filename="../ui/device_panel.py" line="1533" />
+        <location filename="../ui/device_panel.py" line="1559" />
+        <location filename="../ui/device_panel.py" line="1559" />
         <source>Import cancelled; no files were uploaded</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1552" />
-        <location filename="../ui/device_panel.py" line="1552" />
+        <location filename="../ui/device_panel.py" line="1576" />
+        <location filename="../ui/device_panel.py" line="1576" />
         <source>Failed to create device folder '{0}'.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1572" />
-        <location filename="../ui/device_panel.py" line="1572" />
+        <location filename="../ui/device_panel.py" line="1595" />
+        <location filename="../ui/device_panel.py" line="1595" />
         <source>Failed to upload '{0}' to '{1}'.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1580" />
-        <location filename="../ui/device_panel.py" line="1580" />
+        <location filename="../ui/device_panel.py" line="1603" />
+        <location filename="../ui/device_panel.py" line="1603" />
         <source>Uploaded {0} files; skipped {1}; preserved {2} existing files</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1585" />
-        <location filename="../ui/device_panel.py" line="1585" />
+        <location filename="../ui/device_panel.py" line="1610" />
+        <location filename="../ui/device_panel.py" line="1610" />
         <source>Importing files from PC</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1588" />
-        <location filename="../ui/device_panel.py" line="1588" />
+        <location filename="../ui/device_panel.py" line="1613" />
+        <location filename="../ui/device_panel.py" line="1613" />
         <source>Import from PC failed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1598" />
-        <location filename="../ui/device_panel.py" line="1598" />
+        <location filename="../ui/device_panel.py" line="1623" />
+        <location filename="../ui/device_panel.py" line="1623" />
         <source>Download Location</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1621" />
-        <location filename="../ui/device_panel.py" line="1621" />
+        <location filename="../ui/device_panel.py" line="1646" />
+        <location filename="../ui/device_panel.py" line="1646" />
         <source>Downloaded {0} files</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1623" />
-        <location filename="../ui/device_panel.py" line="1623" />
+        <location filename="../ui/device_panel.py" line="1648" />
+        <location filename="../ui/device_panel.py" line="1648" />
         <source>Download {0} files</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1648" />
-        <location filename="../ui/device_panel.py" line="1648" />
+        <location filename="../ui/device_panel.py" line="1675" />
+        <location filename="../ui/device_panel.py" line="1675" />
         <source>Copy {0} items to '{1}'?</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1689" />
-        <location filename="../ui/device_panel.py" line="1689" />
+        <location filename="../ui/device_panel.py" line="1712" />
+        <location filename="../ui/device_panel.py" line="1712" />
         <source>Copied {0} items</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1692" />
-        <location filename="../ui/device_panel.py" line="1692" />
+        <location filename="../ui/device_panel.py" line="1715" />
+        <location filename="../ui/device_panel.py" line="1715" />
         <source>Copy {0} items</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1699" />
-        <location filename="../ui/device_panel.py" line="1699" />
+        <location filename="../ui/device_panel.py" line="1723" />
+        <location filename="../ui/device_panel.py" line="1723" />
         <source>Info</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1699" />
-        <location filename="../ui/device_panel.py" line="1699" />
+        <location filename="../ui/device_panel.py" line="1723" />
+        <location filename="../ui/device_panel.py" line="1723" />
         <source>Select 2+ items to batch rename.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1701" />
-        <location filename="../ui/device_panel.py" line="1701" />
+        <location filename="../ui/device_panel.py" line="1726" />
+        <location filename="../ui/device_panel.py" line="1726" />
         <source>Batch Rename</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1701" />
-        <location filename="../ui/device_panel.py" line="1701" />
+        <location filename="../ui/device_panel.py" line="1726" />
+        <location filename="../ui/device_panel.py" line="1726" />
         <source>Base name:</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1720" />
-        <location filename="../ui/device_panel.py" line="1720" />
+        <location filename="../ui/device_panel.py" line="1745" />
+        <location filename="../ui/device_panel.py" line="1745" />
         <source>Renamed {0} items</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1723" />
-        <location filename="../ui/device_panel.py" line="1723" />
+        <location filename="../ui/device_panel.py" line="1748" />
+        <location filename="../ui/device_panel.py" line="1748" />
         <source>Rename {0} items</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1761" />
-        <location filename="../ui/device_panel.py" line="1761" />
+        <location filename="../ui/device_panel.py" line="1781" />
+        <location filename="../ui/device_panel.py" line="1781" />
         <source>Background</source>
         <translation type="unfinished" />
     </message>
 </context><context>
     <name>DevicePanelGroup</name>
     <message>
-        <location filename="../ui/device_panel.py" line="1914" />
-        <location filename="../ui/device_panel.py" line="1914" />
+        <location filename="../ui/device_panel.py" line="2271" />
+        <location filename="../ui/device_panel.py" line="1991" />
+        <location filename="../ui/device_panel.py" line="2271" />
+        <location filename="../ui/device_panel.py" line="1991" />
+        <source>Hide navigation panel</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="1992" />
+        <location filename="../ui/device_panel.py" line="1992" />
+        <source>Toggle navigation pane</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2003" />
+        <location filename="../ui/device_panel.py" line="2003" />
         <source>Close this device panel</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1915" />
-        <location filename="../ui/device_panel.py" line="1915" />
+        <location filename="../ui/device_panel.py" line="2004" />
+        <location filename="../ui/device_panel.py" line="2004" />
         <source>Close device panel</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1921" />
-        <location filename="../ui/device_panel.py" line="1921" />
+        <location filename="../ui/device_panel.py" line="2010" />
+        <location filename="../ui/device_panel.py" line="2010" />
         <source>Add a path tab</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1922" />
-        <location filename="../ui/device_panel.py" line="1922" />
+        <location filename="../ui/device_panel.py" line="2011" />
+        <location filename="../ui/device_panel.py" line="2011" />
         <source>Add path tab</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1998" />
-        <location filename="../ui/device_panel.py" line="1997" />
-        <location filename="../ui/device_panel.py" line="1998" />
-        <location filename="../ui/device_panel.py" line="1997" />
+        <location filename="../ui/device_panel.py" line="2144" />
+        <location filename="../ui/device_panel.py" line="2037" />
+        <location filename="../ui/device_panel.py" line="2144" />
+        <location filename="../ui/device_panel.py" line="2037" />
+        <source>Could not load favorites: {0}</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2049" />
+        <location filename="../ui/device_panel.py" line="2049" />
+        <source>Folders</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2081" />
+        <location filename="../ui/device_panel.py" line="2081" />
+        <source>Favorites</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2103" />
+        <location filename="../ui/device_panel.py" line="2103" />
+        <source>No favorites yet</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2107" />
+        <location filename="../ui/device_panel.py" line="2107" />
+        <source>Internal storage</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2154" />
+        <location filename="../ui/device_panel.py" line="2154" />
+        <source>Bookmark Error</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2161" />
+        <location filename="../ui/device_panel.py" line="2161" />
+        <source>Could not save favorites: {0}</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2182" />
+        <location filename="../ui/device_panel.py" line="2182" />
+        <source>Favorite name cannot be empty</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2238" />
+        <location filename="../ui/device_panel.py" line="2190" />
+        <location filename="../ui/device_panel.py" line="2238" />
+        <location filename="../ui/device_panel.py" line="2190" />
+        <source>This folder is already in favorites</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2210" />
+        <location filename="../ui/device_panel.py" line="2210" />
+        <source>Edit favorite</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2223" />
+        <location filename="../ui/device_panel.py" line="2223" />
+        <source>Open</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2225" />
+        <location filename="../ui/device_panel.py" line="2225" />
+        <source>Edit</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2226" />
+        <location filename="../ui/device_panel.py" line="2226" />
+        <source>Remove from favorites</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2228" />
+        <location filename="../ui/device_panel.py" line="2228" />
+        <source>Add to favorites</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2241" />
+        <location filename="../ui/device_panel.py" line="2241" />
+        <source>Added '{0}' to favorites</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2271" />
+        <location filename="../ui/device_panel.py" line="2271" />
+        <source>Show navigation pane</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2344" />
+        <location filename="../ui/device_panel.py" line="2343" />
+        <location filename="../ui/device_panel.py" line="2344" />
+        <location filename="../ui/device_panel.py" line="2343" />
         <source>Close tab</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2026" />
-        <location filename="../ui/device_panel.py" line="2025" />
-        <location filename="../ui/device_panel.py" line="2026" />
-        <location filename="../ui/device_panel.py" line="2025" />
+        <location filename="../ui/device_panel.py" line="2368" />
+        <location filename="../ui/device_panel.py" line="2367" />
+        <location filename="../ui/device_panel.py" line="2368" />
+        <location filename="../ui/device_panel.py" line="2367" />
         <source>Scroll tabs left</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2031" />
-        <location filename="../ui/device_panel.py" line="2030" />
-        <location filename="../ui/device_panel.py" line="2031" />
-        <location filename="../ui/device_panel.py" line="2030" />
+        <location filename="../ui/device_panel.py" line="2373" />
+        <location filename="../ui/device_panel.py" line="2372" />
+        <location filename="../ui/device_panel.py" line="2373" />
+        <location filename="../ui/device_panel.py" line="2372" />
         <source>Scroll tabs right</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2076" />
-        <location filename="../ui/device_panel.py" line="2076" />
+        <location filename="../ui/device_panel.py" line="2423" />
+        <location filename="../ui/device_panel.py" line="2423" />
         <source>🟢 Connected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2079" />
-        <location filename="../ui/device_panel.py" line="2079" />
+        <location filename="../ui/device_panel.py" line="2428" />
+        <location filename="../ui/device_panel.py" line="2428" />
         <source>🔴 Disconnected</source>
+        <translation type="unfinished" />
+    </message>
+</context><context>
+    <name>DeviceSearchDialog</name>
+    <message>
+        <location filename="../search_dialog.py" line="62" />
+        <source>Global Search on Device</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="82" />
+        <source>File or folder name (e.g. photo or .pdf)</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="85" />
+        <source>Text inside file (optional)</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="87" />
+        <source>Search with Root (su)</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="90" />
+        <source>Device:</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="91" />
+        <source>Start directory:</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="92" />
+        <source>Name:</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="93" />
+        <source>Content:</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="98" />
+        <source>Search</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="99" />
+        <source>Stop</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="107" />
+        <source>Name</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="107" />
+        <source>Path</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="112" />
+        <source>Ready</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="125" />
+        <source>No device selected.</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="133" />
+        <source>Enter file name or content text.</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="140" />
+        <source>Searching...</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="156" />
+        <source>Stopping...</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="163" />
+        <source>Searching... Found: {0}</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../search_dialog.py" line="171" />
+        <source>Done. Found: {0}</source>
         <translation type="unfinished" />
     </message>
 </context><context>
     <name>DropTreeView</name>
     <message>
-        <location filename="../ui/widgets.py" line="139" />
-        <location filename="../ui/widgets.py" line="139" />
+        <location filename="../ui/widgets.py" line="130" />
+        <location filename="../ui/widgets.py" line="130" />
         <source>Cross-Device Drop</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/widgets.py" line="140" />
-        <location filename="../ui/widgets.py" line="140" />
+        <location filename="../ui/widgets.py" line="131" />
+        <location filename="../ui/widgets.py" line="131" />
         <source>Cross-device streaming not available from this view.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/widgets.py" line="160" />
-        <location filename="../ui/widgets.py" line="160" />
+        <location filename="../ui/widgets.py" line="149" />
+        <location filename="../ui/widgets.py" line="149" />
         <source>Drop accepted; Windows may continue copying in the background.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/widgets.py" line="164" />
-        <location filename="../ui/widgets.py" line="164" />
+        <location filename="../ui/widgets.py" line="155" />
+        <location filename="../ui/widgets.py" line="155" />
         <source>Native Windows drag source unavailable; using in-app drag.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/widgets.py" line="167" />
-        <location filename="../ui/widgets.py" line="167" />
+        <location filename="../ui/widgets.py" line="158" />
+        <location filename="../ui/widgets.py" line="158" />
         <source>Drag Error</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/widgets.py" line="169" />
-        <location filename="../ui/widgets.py" line="169" />
+        <location filename="../ui/widgets.py" line="160" />
+        <location filename="../ui/widgets.py" line="160" />
         <source>Native drag failed; using in-app drag.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/widgets.py" line="190" />
-        <location filename="../ui/widgets.py" line="190" />
+        <location filename="../ui/widgets.py" line="183" />
+        <location filename="../ui/widgets.py" line="183" />
         <source>Move Error</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/widgets.py" line="190" />
-        <location filename="../ui/widgets.py" line="190" />
+        <location filename="../ui/widgets.py" line="183" />
+        <location filename="../ui/widgets.py" line="183" />
         <source>Failed to move items.</source>
         <translation type="unfinished" />
     </message>
 </context><context>
     <name>MultiDeviceWindow</name>
     <message>
-        <location filename="../ui/multi_device_window.py" line="66" />
-        <location filename="../ui/multi_device_window.py" line="66" />
+        <location filename="../ui/multi_device_window.py" line="86" />
+        <location filename="../ui/multi_device_window.py" line="86" />
         <source>ADB Explorer</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="99" />
-        <location filename="../ui/multi_device_window.py" line="99" />
+        <location filename="../ui/multi_device_window.py" line="110" />
+        <location filename="../ui/multi_device_window.py" line="110" />
         <source>+ Add Panel</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="104" />
-        <location filename="../ui/multi_device_window.py" line="104" />
+        <location filename="../ui/multi_device_window.py" line="114" />
+        <location filename="../ui/multi_device_window.py" line="114" />
         <source>+ Add Tab</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="118" />
-        <location filename="../ui/multi_device_window.py" line="118" />
+        <location filename="../ui/multi_device_window.py" line="124" />
+        <location filename="../ui/multi_device_window.py" line="124" />
+        <source>Search Device</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/multi_device_window.py" line="134" />
+        <location filename="../ui/multi_device_window.py" line="134" />
         <source>Detecting devices...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="124" />
-        <location filename="../ui/multi_device_window.py" line="124" />
+        <location filename="../ui/multi_device_window.py" line="138" />
+        <location filename="../ui/multi_device_window.py" line="138" />
         <source>Edit</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="125" />
-        <location filename="../ui/multi_device_window.py" line="125" />
+        <location filename="../ui/multi_device_window.py" line="139" />
+        <location filename="../ui/multi_device_window.py" line="139" />
         <source>Cut</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="126" />
-        <location filename="../ui/multi_device_window.py" line="126" />
+        <location filename="../ui/multi_device_window.py" line="140" />
+        <location filename="../ui/multi_device_window.py" line="140" />
         <source>Copy</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="127" />
-        <location filename="../ui/multi_device_window.py" line="127" />
+        <location filename="../ui/multi_device_window.py" line="141" />
+        <location filename="../ui/multi_device_window.py" line="141" />
         <source>Paste</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="129" />
-        <location filename="../ui/multi_device_window.py" line="129" />
+        <location filename="../ui/multi_device_window.py" line="143" />
+        <location filename="../ui/multi_device_window.py" line="143" />
         <source>Delete</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="130" />
-        <location filename="../ui/multi_device_window.py" line="130" />
+        <location filename="../ui/multi_device_window.py" line="144" />
+        <location filename="../ui/multi_device_window.py" line="144" />
         <source>Rename</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="131" />
-        <location filename="../ui/multi_device_window.py" line="131" />
+        <location filename="../ui/multi_device_window.py" line="145" />
+        <location filename="../ui/multi_device_window.py" line="145" />
         <source>View</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="132" />
-        <location filename="../ui/multi_device_window.py" line="132" />
+        <location filename="../ui/multi_device_window.py" line="146" />
+        <location filename="../ui/multi_device_window.py" line="146" />
         <source>Dark Mode</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="136" />
-        <location filename="../ui/multi_device_window.py" line="136" />
+        <location filename="../ui/multi_device_window.py" line="150" />
+        <location filename="../ui/multi_device_window.py" line="150" />
         <source>Tools</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="137" />
-        <location filename="../ui/multi_device_window.py" line="137" />
+        <location filename="../ui/multi_device_window.py" line="151" />
+        <location filename="../ui/multi_device_window.py" line="151" />
         <source>Install APK...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="138" />
-        <location filename="../ui/multi_device_window.py" line="138" />
+        <location filename="../ui/multi_device_window.py" line="152" />
+        <location filename="../ui/multi_device_window.py" line="152" />
         <source>Install XAPK...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="139" />
-        <location filename="../ui/multi_device_window.py" line="139" />
+        <location filename="../ui/multi_device_window.py" line="154" />
+        <location filename="../ui/multi_device_window.py" line="154" />
+        <source>Search on Device...</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/multi_device_window.py" line="156" />
+        <location filename="../ui/multi_device_window.py" line="156" />
         <source>Help</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="140" />
-        <location filename="../ui/multi_device_window.py" line="140" />
+        <location filename="../ui/multi_device_window.py" line="157" />
+        <location filename="../ui/multi_device_window.py" line="157" />
         <source>Check for Updates...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="150" />
-        <location filename="../ui/multi_device_window.py" line="150" />
+        <location filename="../ui/multi_device_window.py" line="163" />
+        <location filename="../ui/multi_device_window.py" line="163" />
         <source>Ready</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="189" />
-        <location filename="../ui/multi_device_window.py" line="189" />
+        <location filename="../ui/multi_device_window.py" line="197" />
+        <location filename="../ui/multi_device_window.py" line="197" />
         <source>No devices connected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="191" />
-        <location filename="../ui/multi_device_window.py" line="191" />
+        <location filename="../ui/multi_device_window.py" line="199" />
+        <location filename="../ui/multi_device_window.py" line="199" />
         <source>No ADB devices found. Connect a device and use + Add Panel.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="196" />
-        <location filename="../ui/multi_device_window.py" line="196" />
+        <location filename="../ui/multi_device_window.py" line="203" />
+        <location filename="../ui/multi_device_window.py" line="203" />
         <source>{0} device(s) connected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="224" />
-        <location filename="../ui/multi_device_window.py" line="224" />
+        <location filename="../ui/multi_device_window.py" line="227" />
+        <location filename="../ui/multi_device_window.py" line="227" />
         <source>Added panel {0}: {1} ({2})</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="229" />
-        <location filename="../ui/multi_device_window.py" line="229" />
+        <location filename="../ui/multi_device_window.py" line="232" />
+        <location filename="../ui/multi_device_window.py" line="232" />
         <source>Failed to add panel: {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="236" />
-        <location filename="../ui/multi_device_window.py" line="236" />
+        <location filename="../ui/multi_device_window.py" line="571" />
+        <location filename="../ui/multi_device_window.py" line="240" />
+        <location filename="../ui/multi_device_window.py" line="571" />
+        <location filename="../ui/multi_device_window.py" line="240" />
         <source>No Devices</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="236" />
-        <location filename="../ui/multi_device_window.py" line="236" />
+        <location filename="../ui/multi_device_window.py" line="571" />
+        <location filename="../ui/multi_device_window.py" line="240" />
+        <location filename="../ui/multi_device_window.py" line="571" />
+        <location filename="../ui/multi_device_window.py" line="240" />
         <source>No ADB devices connected.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="242" />
-        <location filename="../ui/multi_device_window.py" line="242" />
+        <location filename="../ui/multi_device_window.py" line="594" />
+        <location filename="../ui/multi_device_window.py" line="246" />
+        <location filename="../ui/multi_device_window.py" line="594" />
+        <location filename="../ui/multi_device_window.py" line="246" />
         <source>Unknown</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="248" />
-        <location filename="../ui/multi_device_window.py" line="248" />
+        <location filename="../ui/multi_device_window.py" line="252" />
+        <location filename="../ui/multi_device_window.py" line="252" />
         <source>No Panel</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="248" />
-        <location filename="../ui/multi_device_window.py" line="248" />
+        <location filename="../ui/multi_device_window.py" line="252" />
+        <location filename="../ui/multi_device_window.py" line="252" />
         <source>Add a device panel before opening a tab.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="270" />
-        <location filename="../ui/multi_device_window.py" line="270" />
+        <location filename="../ui/multi_device_window.py" line="273" />
+        <location filename="../ui/multi_device_window.py" line="273" />
         <source>Panel closed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="295" />
-        <location filename="../ui/multi_device_window.py" line="295" />
+        <location filename="../ui/multi_device_window.py" line="294" />
+        <location filename="../ui/multi_device_window.py" line="294" />
         <source>Source device panel not found</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="329" />
-        <location filename="../ui/multi_device_window.py" line="329" />
+        <location filename="../ui/multi_device_window.py" line="327" />
+        <location filename="../ui/multi_device_window.py" line="327" />
         <source>Stream complete</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="332" />
-        <location filename="../ui/multi_device_window.py" line="332" />
+        <location filename="../ui/multi_device_window.py" line="330" />
+        <location filename="../ui/multi_device_window.py" line="330" />
         <source>Stream failed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="334" />
-        <location filename="../ui/multi_device_window.py" line="334" />
+        <location filename="../ui/multi_device_window.py" line="332" />
+        <location filename="../ui/multi_device_window.py" line="332" />
         <source>Stream to {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="363" />
-        <location filename="../ui/multi_device_window.py" line="347" />
-        <location filename="../ui/multi_device_window.py" line="363" />
-        <location filename="../ui/multi_device_window.py" line="347" />
+        <location filename="../ui/multi_device_window.py" line="364" />
+        <location filename="../ui/multi_device_window.py" line="343" />
+        <location filename="../ui/multi_device_window.py" line="364" />
+        <location filename="../ui/multi_device_window.py" line="343" />
         <source>No Device</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="363" />
-        <location filename="../ui/multi_device_window.py" line="347" />
-        <location filename="../ui/multi_device_window.py" line="363" />
-        <location filename="../ui/multi_device_window.py" line="347" />
+        <location filename="../ui/multi_device_window.py" line="364" />
+        <location filename="../ui/multi_device_window.py" line="343" />
+        <location filename="../ui/multi_device_window.py" line="364" />
+        <location filename="../ui/multi_device_window.py" line="343" />
         <source>No connected device panel to install to.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="349" />
-        <location filename="../ui/multi_device_window.py" line="349" />
+        <location filename="../ui/multi_device_window.py" line="346" />
+        <location filename="../ui/multi_device_window.py" line="346" />
         <source>Select APK</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="353" />
-        <location filename="../ui/multi_device_window.py" line="353" />
+        <location filename="../ui/multi_device_window.py" line="350" />
+        <location filename="../ui/multi_device_window.py" line="350" />
         <source>Install APK</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="355" />
-        <location filename="../ui/multi_device_window.py" line="355" />
+        <location filename="../ui/multi_device_window.py" line="354" />
+        <location filename="../ui/multi_device_window.py" line="354" />
         <source>APK installed successfully</source>
         <translation type="unfinished" />
     </message>
@@ -1435,235 +1660,241 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="365" />
-        <location filename="../ui/multi_device_window.py" line="365" />
+        <location filename="../ui/multi_device_window.py" line="367" />
+        <location filename="../ui/multi_device_window.py" line="367" />
         <source>Select XAPK</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="371" />
-        <location filename="../ui/multi_device_window.py" line="371" />
+        <location filename="../ui/multi_device_window.py" line="374" />
+        <location filename="../ui/multi_device_window.py" line="374" />
         <source>XAPK installed ({0} APK files)</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="374" />
-        <location filename="../ui/multi_device_window.py" line="374" />
+        <location filename="../ui/multi_device_window.py" line="378" />
+        <location filename="../ui/multi_device_window.py" line="378" />
         <source>XAPK install failed</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="377" />
-        <location filename="../ui/multi_device_window.py" line="377" />
+        <location filename="../ui/multi_device_window.py" line="382" />
+        <location filename="../ui/multi_device_window.py" line="382" />
         <source>Install XAPK</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="448" />
-        <location filename="../ui/multi_device_window.py" line="448" />
+        <location filename="../ui/multi_device_window.py" line="454" />
+        <location filename="../ui/multi_device_window.py" line="454" />
+        <source>Could not save theme settings: {0}</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/multi_device_window.py" line="465" />
+        <location filename="../ui/multi_device_window.py" line="465" />
         <source>Disconnected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="450" />
-        <location filename="../ui/multi_device_window.py" line="450" />
+        <location filename="../ui/multi_device_window.py" line="467" />
+        <location filename="../ui/multi_device_window.py" line="467" />
         <source>Reconnected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="482" />
-        <location filename="../ui/multi_device_window.py" line="482" />
+        <location filename="../ui/multi_device_window.py" line="497" />
+        <location filename="../ui/multi_device_window.py" line="497" />
         <source>Background</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="483" />
-        <location filename="../ui/multi_device_window.py" line="483" />
+        <location filename="../ui/multi_device_window.py" line="498" />
+        <location filename="../ui/multi_device_window.py" line="498" />
         <source>Cancel</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="536" />
-        <location filename="../ui/multi_device_window.py" line="536" />
+        <location filename="../ui/multi_device_window.py" line="551" />
+        <location filename="../ui/multi_device_window.py" line="551" />
         <source>{0} failed</source>
         <translation type="unfinished" />
     </message>
 </context><context>
     <name>PathBreadcrumbs</name>
     <message>
-        <location filename="../ui/device_panel.py" line="154" />
-        <location filename="../ui/device_panel.py" line="153" />
-        <location filename="../ui/device_panel.py" line="154" />
-        <location filename="../ui/device_panel.py" line="153" />
+        <location filename="../ui/device_panel.py" line="169" />
+        <location filename="../ui/device_panel.py" line="168" />
+        <location filename="../ui/device_panel.py" line="169" />
+        <location filename="../ui/device_panel.py" line="168" />
         <source>Edit path</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="197" />
-        <location filename="../ui/device_panel.py" line="197" />
+        <location filename="../ui/device_panel.py" line="209" />
+        <location filename="../ui/device_panel.py" line="209" />
         <source>Navigate to {0}</source>
         <translation type="unfinished" />
     </message>
 </context><context>
     <name>PathInput</name>
     <message>
-        <location filename="../ui/device_panel.py" line="272" />
-        <location filename="../ui/device_panel.py" line="272" />
+        <location filename="../ui/device_panel.py" line="278" />
+        <location filename="../ui/device_panel.py" line="278" />
         <source>Complete path {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="285" />
-        <location filename="../ui/device_panel.py" line="285" />
+        <location filename="../ui/device_panel.py" line="292" />
+        <location filename="../ui/device_panel.py" line="292" />
         <source>Failed to load path suggestions for {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="297" />
-        <location filename="../ui/device_panel.py" line="297" />
+        <location filename="../ui/device_panel.py" line="304" />
+        <location filename="../ui/device_panel.py" line="304" />
         <source>Path suggestions failed: {0}</source>
         <translation type="unfinished" />
     </message>
 </context><context>
     <name>SelectDirectoryDialog</name>
     <message>
-        <location filename="../select_directory_dialog.py" line="16" />
+        <location filename="../select_directory_dialog.py" line="25" />
         <source>Select Destination Folder</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../select_directory_dialog.py" line="26" />
+        <location filename="../select_directory_dialog.py" line="33" />
         <source>Ready</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../select_directory_dialog.py" line="38" />
+        <location filename="../select_directory_dialog.py" line="43" />
         <source>Up</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../select_directory_dialog.py" line="42" />
+        <location filename="../select_directory_dialog.py" line="46" />
         <source>Select</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../select_directory_dialog.py" line="46" />
+        <location filename="../select_directory_dialog.py" line="49" />
         <source>Cancel</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../select_directory_dialog.py" line="118" />
-        <location filename="../select_directory_dialog.py" line="62" />
-        <location filename="../select_directory_dialog.py" line="58" />
+        <location filename="../select_directory_dialog.py" line="114" />
+        <location filename="../select_directory_dialog.py" line="64" />
+        <location filename="../select_directory_dialog.py" line="59" />
         <location filename="../select_directory_dialog.py" line="57" />
         <source>No ADB device connected</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../select_directory_dialog.py" line="118" />
-        <location filename="../select_directory_dialog.py" line="58" />
+        <location filename="../select_directory_dialog.py" line="114" />
+        <location filename="../select_directory_dialog.py" line="59" />
         <source>Connection Error</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../select_directory_dialog.py" line="65" />
+        <location filename="../select_directory_dialog.py" line="66" />
         <source>Loading directories...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../select_directory_dialog.py" line="67" />
+        <location filename="../select_directory_dialog.py" line="68" />
         <source>Name</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../select_directory_dialog.py" line="67" />
+        <location filename="../select_directory_dialog.py" line="68" />
         <source>Path</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../select_directory_dialog.py" line="81" />
+        <location filename="../select_directory_dialog.py" line="79" />
         <source>Failed to load directories</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../select_directory_dialog.py" line="90" />
+        <location filename="../select_directory_dialog.py" line="86" />
         <source>Found {0} directories</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../select_directory_dialog.py" line="92" />
+        <location filename="../select_directory_dialog.py" line="88" />
         <source>Error loading directories: {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../select_directory_dialog.py" line="123" />
+        <location filename="../select_directory_dialog.py" line="120" />
         <source>No Selection</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../select_directory_dialog.py" line="123" />
+        <location filename="../select_directory_dialog.py" line="120" />
         <source>Please select a folder.</source>
         <translation type="unfinished" />
     </message>
 </context><context>
     <name>TaskRow</name>
     <message>
-        <location filename="../ui/task_manager.py" line="124" />
-        <location filename="../ui/task_manager.py" line="124" />
+        <location filename="../ui/task_manager.py" line="122" />
+        <location filename="../ui/task_manager.py" line="122" />
         <source>Running...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/task_manager.py" line="145" />
-        <location filename="../ui/task_manager.py" line="145" />
+        <location filename="../ui/task_manager.py" line="141" />
+        <location filename="../ui/task_manager.py" line="141" />
         <source>Cancelling...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/task_manager.py" line="151" />
-        <location filename="../ui/task_manager.py" line="151" />
+        <location filename="../ui/task_manager.py" line="147" />
+        <location filename="../ui/task_manager.py" line="147" />
         <source>Error: {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/task_manager.py" line="171" />
-        <location filename="../ui/task_manager.py" line="171" />
+        <location filename="../ui/task_manager.py" line="168" />
+        <location filename="../ui/task_manager.py" line="168" />
         <source>Task: {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/task_manager.py" line="172" />
-        <location filename="../ui/task_manager.py" line="172" />
+        <location filename="../ui/task_manager.py" line="169" />
+        <location filename="../ui/task_manager.py" line="169" />
         <source>Status: {0}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/task_manager.py" line="186" />
-        <location filename="../ui/task_manager.py" line="186" />
+        <location filename="../ui/task_manager.py" line="184" />
+        <location filename="../ui/task_manager.py" line="184" />
         <source>Cancelled</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/task_manager.py" line="193" />
-        <location filename="../ui/task_manager.py" line="193" />
+        <location filename="../ui/task_manager.py" line="191" />
+        <location filename="../ui/task_manager.py" line="191" />
         <source>Done ✓</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/task_manager.py" line="193" />
-        <location filename="../ui/task_manager.py" line="193" />
+        <location filename="../ui/task_manager.py" line="191" />
+        <location filename="../ui/task_manager.py" line="191" />
         <source>Failed</source>
         <translation type="unfinished" />
     </message>
 </context><context>
     <name>main</name>
     <message>
-        <location filename="../main.py" line="83" />
+        <location filename="../main.py" line="70" />
         <source>Fatal Error</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../main.py" line="84" />
+        <location filename="../main.py" line="71" />
         <source>A fatal error occurred:
 {0}
 

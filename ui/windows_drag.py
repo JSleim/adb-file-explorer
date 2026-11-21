@@ -1,12 +1,12 @@
-_B = None
-_A = False
-import ctypes, os, shutil, sys
+import ctypes
+import os
+import shutil
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from handler import FileItem
 
-_native_dll = _B
+_native_dll = None
 
 
 @dataclass
@@ -29,16 +29,15 @@ class NativeDragItem(ctypes.Structure):
 
 
 def _validate_windows_name(name):
-    C = "."
     A = name
     if (
         not A
-        or A in {C, ".."}
+        or A in {".", ".."}
         or any(B in A for B in '<>:"/\\|?*\x00\r\n')
-        or A.endswith((" ", C))
+        or A.endswith((" ", "."))
     ):
         raise ValueError(f"'{A}' cannot be represented as a Windows file name.")
-    D = A.split(C, 1)[0].upper()
+    D = A.split(".", 1)[0].upper()
     B = {"CON", "PRN", "AUX", "NUL"}
     B.update(f"COM{A}" for A in range(1, 10))
     B.update(f"LPT{A}" for A in range(1, 10))
@@ -62,7 +61,7 @@ def _make_manifest_item(file_item, relative_path):
     )
 
 
-def build_drag_manifest(adb_handler, selected_items, use_root=_A):
+def build_drag_manifest(adb_handler, selected_items, use_root=False):
     A = adb_handler
     C = []
 
@@ -74,9 +73,9 @@ def build_drag_manifest(adb_handler, selected_items, use_root=_A):
             return
         if not A.device_connected:
             raise RuntimeError("ADB device disconnected while preparing the drag.")
-        A.last_error = _B
+        A.last_error = None
         F = A.list_directory(B.path, use_root=use_root)
-        if F is _B or A.last_error:
+        if F is None or A.last_error:
             H = A.last_error or "Directory listing failed."
             raise RuntimeError(f"Failed to list directory '{B.path}': {H}")
         for G in F:
@@ -89,11 +88,16 @@ def build_drag_manifest(adb_handler, selected_items, use_root=_A):
 
 
 def _get_native_dll_path():
-    A = "adb_drag_source.dll"
-    if getattr(sys, "frozen", _A):
+    if getattr(sys, "frozen", False):
         B = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
-        return B / A
-    return Path(__file__).resolve().parents[1] / "cpp" / "build" / "Release" / A
+        return B / "adb_drag_source.dll"
+    return (
+        Path(__file__).resolve().parents[1]
+        / "cpp"
+        / "build"
+        / "Release"
+        / "adb_drag_source.dll"
+    )
 
 
 def native_drag_available():
@@ -102,7 +106,7 @@ def native_drag_available():
 
 def _load_native_dll():
     global _native_dll
-    if _native_dll is _B:
+    if _native_dll is None:
         _native_dll = ctypes.WinDLL(str(_get_native_dll_path()))
         A = _native_dll.start_drag
         A.argtypes = [
@@ -123,15 +127,15 @@ def _load_native_dll():
     return _native_dll
 
 
-def start_windows_drag(serial, manifest, use_su=_A):
+def start_windows_drag(serial, manifest, use_su=False):
     A = manifest
     if os.name != "nt":
         raise OSError("Native Windows file dragging is only available on Windows.")
     F = _get_native_dll_path()
     if not F.is_file():
-        return _A
+        return False
     if not A:
-        return _A
+        return False
     if len(A) > 4294967295:
         raise ValueError("Too many items to drag in one operation.")
     C = shutil.which("adb")
@@ -169,12 +173,12 @@ def cancel_windows_drag(operation_id):
     return bool(_load_native_dll().cancel_drag(operation_id))
 
 
-def build_manifest_for_paths(adb_handler, all_files, paths, use_root=_A):
+def build_manifest_for_paths(adb_handler, all_files, paths, use_root=False):
     D = {A.path: A for A in all_files}
     A = []
     for B in paths:
         C = D.get(B)
-        if C is _B:
+        if C is None:
             raise RuntimeError(f"Selected item is no longer available: {B}")
         A.append(C)
     return build_drag_manifest(adb_handler, A, use_root=use_root)

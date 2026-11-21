@@ -1,4 +1,5 @@
-import os, subprocess, sys
+import subprocess
+import sys
 
 
 def suppress_console():
@@ -8,14 +9,12 @@ def suppress_console():
     F = subprocess.Popen.__init__
 
     def A(self, args, **A):
-        D = "creationflags"
-        C = "startupinfo"
-        A[D] = A.get(D, 0) | E
-        if C not in A or A[C] is None:
+        A["creationflags"] = A.get("creationflags", 0) | E
+        if "startupinfo" not in A or A["startupinfo"] is None:
             B = subprocess.STARTUPINFO()
             B.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             B.wShowWindow = subprocess.SW_HIDE
-            A[C] = B
+            A["startupinfo"] = B
         F(self, args, **A)
 
     subprocess.Popen.__init__ = A
