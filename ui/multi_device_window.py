@@ -8,8 +8,8 @@ from PyQt6.QtCore import Qt, QTimer, QUrl
 from PyQt6.QtGui import QDesktopServices, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
-    QDockWidget,
     QDialog,
+    QDockWidget,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -28,7 +28,9 @@ from handler import ADBHandler
 from operation_control import is_cancelled
 from search_dialog import DeviceSearchPanel
 from ui.bookmarks import BookmarkStore, get_app_data_directory
+from ui.device_dashboard import DeviceDashboardDialog
 from ui.device_panel import DevicePanelGroup
+from ui.permission_lint import PermissionLintDialog
 from ui.task_manager import BackgroundTaskManager
 from ui.theme import DARK, LIGHT
 
@@ -158,6 +160,10 @@ class MultiDeviceWindow(QMainWindow):
         G.addAction(A.tr("Install XAPK..."), A._install_xapk_dialog)
         G.addSeparator()
         G.addAction(A.tr("Search on Device..."), A._open_global_search)
+        A.dashboard_action = G.addAction(A.tr("Device Dashboard..."))
+        A.dashboard_action.triggered.connect(A._open_device_dashboard)
+        A.lint_action = G.addAction(A.tr("Permission Lint..."))
+        A.lint_action.triggered.connect(A._open_permission_lint)
 
         J = D.addMenu(A.tr("Help"))
         J.addAction(A.tr("Check for Updates..."), A._open_updates)
@@ -595,6 +601,32 @@ class MultiDeviceWindow(QMainWindow):
             A._open_global_search()
         else:
             A.search_dock.hide()
+
+    def _open_device_dashboard(A):
+        B = A._active_panel()
+        if not B:
+            QMessageBox.information(
+                A, A.tr("No Devices"), A.tr("No device panel is open.")
+            )
+            return
+        DeviceDashboardDialog(B.adb_handler, A).exec()
+
+    def _open_permission_lint(A):
+        B = A._active_panel()
+        if not B:
+            QMessageBox.information(
+                A, A.tr("No Devices"), A.tr("No device panel is open.")
+            )
+            return
+        C = B.active_view
+        D = PermissionLintDialog(
+            B.adb_handler,
+            start_path=C.current_path if C else "/",
+            use_root=bool(C and getattr(C, "use_root", False)),
+            parent=A,
+        )
+        D.item_selected.connect(A._navigate_to_search_result)
+        D.exec()
 
     def _navigate_to_search_result(A, serial, remote_path, use_root=False):
         B = None
