@@ -8,6 +8,7 @@ from PyQt6.QtCore import Qt, QTimer, QUrl
 from PyQt6.QtGui import QDesktopServices, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
+    QDockWidget,
     QDialog,
     QFileDialog,
     QHBoxLayout,
@@ -25,7 +26,7 @@ from PyQt6.QtWidgets import (
 from device_chooser import DeviceChooser
 from handler import ADBHandler
 from operation_control import is_cancelled
-from search_dialog import DeviceSearchDialog
+from search_dialog import DeviceSearchPanel
 from ui.bookmarks import BookmarkStore, get_app_data_directory
 from ui.device_panel import DevicePanelGroup
 from ui.task_manager import BackgroundTaskManager
@@ -147,6 +148,11 @@ class MultiDeviceWindow(QMainWindow):
         A.dark_mode_action.setCheckable(True)
         A.dark_mode_action.setChecked(A._dark)
         A.dark_mode_action.toggled.connect(A._toggle_theme)
+        A.search_dock_action = I.addAction(A.tr("Device Search Panel"))
+        A.search_dock_action.setCheckable(True)
+        A.search_dock_action.setChecked(False)
+        A.search_dock_action.toggled.connect(A._toggle_search_panel)
+
         G = D.addMenu(A.tr("Tools"))
         G.addAction(A.tr("Install APK..."), A._install_apk_dialog)
         G.addAction(A.tr("Install XAPK..."), A._install_xapk_dialog)
@@ -163,6 +169,14 @@ class MultiDeviceWindow(QMainWindow):
         A.status_label = QLabel(A.tr("Ready"))
         A.status_bar.addWidget(A.status_label)
         A.task_manager = BackgroundTaskManager(E)
+        A.search_panel = DeviceSearchPanel(A)
+        A.search_panel.file_selected.connect(A._navigate_to_search_result)
+        A.search_dock = QDockWidget(A.tr("Device Search"), A)
+        A.search_dock.setObjectName("device_search_dock")
+        A.search_dock.setWidget(A.search_panel)
+        A.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, A.search_dock)
+        A.search_dock.hide()
+        A.search_dock.visibilityChanged.connect(A.search_dock_action.setChecked)
 
     def resizeEvent(A, event):
         super().resizeEvent(event)
@@ -177,6 +191,8 @@ class MultiDeviceWindow(QMainWindow):
     def closeEvent(A, event):
         if hasattr(A, "task_manager"):
             A.task_manager.setParent(None)
+        if hasattr(A, "search_panel"):
+            A.search_panel.shutdown()
         A.device_panels.clear()
         event.accept()
 
@@ -565,22 +581,20 @@ class MultiDeviceWindow(QMainWindow):
 
     def _open_global_search(A):
         B = A._active_panel()
-        C = B.adb_handler if B else ADBHandler()
-        if not C.get_unique_devices():
-            QMessageBox.information(
-                A, A.tr("No Devices"), A.tr("No ADB devices connected.")
-            )
-            return
-        D = bool(B and B.active_view and getattr(B.active_view, "use_root", False))
-        E = DeviceSearchDialog(
-            adb_handler=C,
-            default_serial=B.device_serial if B else None,
-            start_path="/",
-            use_root=D,
-            parent=A,
+        A.search_panel.refresh_devices(B.device_serial if B else None)
+        A.search_panel.set_use_root(
+            bool(B and B.active_view and getattr(B.active_view, "use_root", False))
         )
-        E.file_selected.connect(A._navigate_to_search_result)
-        E.exec()
+        A.search_dock.show()
+        A.resizeDocks([A.search_dock], [380], Qt.Orientation.Horizontal)
+        A.search_dock.raise_()
+        A.search_panel.focus_search()
+
+    def _toggle_search_panel(A, visible):
+        if visible:
+            A._open_global_search()
+        else:
+            A.search_dock.hide()
 
     def _navigate_to_search_result(A, serial, remote_path, use_root=False):
         B = None
