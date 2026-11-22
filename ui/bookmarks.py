@@ -1,90 +1,88 @@
-_C = "version"
-_B = "devices"
-_A = None
-import json, os, tempfile
+import json
+import os
+import tempfile
 from pathlib import Path
+
 from PyQt6.QtCore import QObject, QStandardPaths, pyqtSignal
 
 
-def get_app_data_directory():
-    A = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppDataLocation)
-    return Path(A) if A else Path.home() / ".adb-explorer"
+def get_app_data_directory() -> Path:
+    location = QStandardPaths.writableLocation(
+        QStandardPaths.StandardLocation.AppDataLocation
+    )
+    return Path(location) if location else Path.home() / ".adb-explorer"
 
 
 class BookmarkStore(QObject):
     bookmarks_changed = pyqtSignal(str)
 
-    def __init__(B, path=_A):
-        A = path
+    def __init__(self, path=None):
         super().__init__()
-        if A is _A:
-            A = get_app_data_directory() / "bookmarks.json"
-        B.path = Path(A)
+        if path is None:
+            path = get_app_data_directory() / "bookmarks.json"
+        self.path = Path(path)
 
-    def load(A, device_id):
-        C = A._read()
-        B = C[_B].get(A._device_key(device_id), [])
-        if not isinstance(B, list):
+    def load(self, device_id: str) -> list:
+        data = self._read()
+        bookmarks = data["devices"].get(self._device_key(device_id), [])
+        if not isinstance(bookmarks, list):
             raise ValueError("Bookmark list must be a JSON array")
-        for D in B:
-            A._validate_bookmark(D)
-        return B
+        for item in bookmarks:
+            self._validate_bookmark(item)
+        return bookmarks
 
-    def save(A, device_id, bookmarks):
-        G = False
-        F = bookmarks
-        E = device_id
-        for H in F:
-            A._validate_bookmark(H)
-        D = A._read()
-        D[_C] = 1
-        D[_B][A._device_key(E)] = F
-        A.path.parent.mkdir(parents=True, exist_ok=True)
-        B = _A
+    def save(self, device_id: str, bookmarks: list) -> None:
+        for item in bookmarks:
+            self._validate_bookmark(item)
+        data = self._read()
+        data["version"] = 1
+        key = self._device_key(device_id)
+        data["devices"][key] = bookmarks
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+
+        tmp_path = None
         try:
             with tempfile.NamedTemporaryFile(
                 mode="w",
                 encoding="utf-8",
-                dir=A.path.parent,
-                prefix=f"{A.path.name}.",
+                dir=self.path.parent,
+                prefix=f"{self.path.name}.",
                 suffix=".tmp",
-                delete=G,
-            ) as C:
-                B = Path(C.name)
-                json.dump(D, C, ensure_ascii=G, indent=2)
-                C.write("\n")
-                C.flush()
-                os.fsync(C.fileno())
-            os.replace(B, A.path)
+                delete=False,
+            ) as tmp_file:
+                tmp_path = Path(tmp_file.name)
+                json.dump(data, tmp_file, ensure_ascii=False, indent=2)
+                tmp_file.write("\n")
+                tmp_file.flush()
+                os.fsync(tmp_file.fileno())
+            os.replace(tmp_path, self.path)
         finally:
-            if B is not _A and B.exists():
-                B.unlink()
-        A.bookmarks_changed.emit(A._device_key(E))
+            if tmp_path is not None and tmp_path.exists():
+                tmp_path.unlink()
 
-    def _read(B):
-        if not B.path.exists():
-            return {_C: 1, _B: {}}
-        with B.path.open(encoding="utf-8") as C:
-            A = json.load(C)
-        if not isinstance(A, dict) or not isinstance(A.get(_B), dict):
+        self.bookmarks_changed.emit(key)
+
+    def _read(self) -> dict:
+        if not self.path.exists():
+            return {"version": 1, "devices": {}}
+        with self.path.open(encoding="utf-8") as file:
+            data = json.load(file)
+        if not isinstance(data, dict) or not isinstance(data.get("devices"), dict):
             raise ValueError("Bookmark file must contain a devices object")
-        return A
+        return data
 
     @staticmethod
-    def _device_key(device_id):
+    def _device_key(device_id) -> str:
         return str(device_id or "unknown")
 
     @staticmethod
-    def _validate_bookmark(bookmark):
-        C = "path"
-        B = "name"
-        A = bookmark
+    def _validate_bookmark(bookmark) -> None:
         if (
-            not isinstance(A, dict)
-            or not isinstance(A.get(B), str)
-            or not A[B].strip()
-            or not isinstance(A.get(C), str)
-            or not A[C].startswith("/")
-            or not isinstance(A.get("note", ""), str)
+            not isinstance(bookmark, dict)
+            or not isinstance(bookmark.get("name"), str)
+            or not bookmark["name"].strip()
+            or not isinstance(bookmark.get("path"), str)
+            or not bookmark["path"].startswith("/")
+            or not isinstance(bookmark.get("note", ""), str)
         ):
             raise ValueError("Bookmark requires a name and absolute device path")

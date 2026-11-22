@@ -1,11 +1,14 @@
-import logging, sys
+import logging
+import sys
 from pathlib import Path
+
 from suppress_console import suppress_console
 
 suppress_console()
 from PyQt6.QtCore import QCoreApplication, QLibraryInfo, QLocale, QTranslator
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication, QMessageBox
+
 from logging_config import setup_logging
 from ui.multi_device_window import MultiDeviceWindow
 from ui.theme import LIGHT
@@ -44,7 +47,6 @@ def setup_translations(app, logger):
 
 
 def main():
-    B = "main"
     C = setup_logging()
     D = logging.getLogger("ADBExplorer")
     try:
@@ -63,9 +65,9 @@ def main():
         C.exception("Fatal error in application")
         QMessageBox.critical(
             None,
-            QCoreApplication.translate(B, "Fatal Error"),
+            QCoreApplication.translate("main", "Fatal Error"),
             QCoreApplication.translate(
-                B,
+                "main",
                 "A fatal error occurred:\n{0}\n\nCheck the log file for more details.",
             ).format(str(F)),
         )

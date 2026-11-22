@@ -1,73 +1,30 @@
-_A4 = "This folder is already in favorites"
-_A3 = "Could not load favorites: {0}"
-_A2 = "Hide navigation pane"
-_A1 = "Documents"
-_A0 = "ScrollRightButton"
-_z = "Import cancelled"
-_y = "Create failed"
-_x = "Created '{0}'"
-_w = "Delete '{0}'?"
-_v = "Delete folder '{0}' and all of its contents, including subfolders?"
-_u = "Failed to copy {0}"
-_t = "Add to favorites"
-_s = "New Folder"
-_r = "New File"
-_q = "is_dir"
-_p = "_position_task_manager"
-_o = "color: red; font-size: 10px; padding: 0 8px 2px 8px;"
-_n = "Close device panel"
-_m = "Close this device panel"
-_l = "panel_close_btn"
-_k = "device_header"
-_j = "panel_header"
-_i = "right"
-_h = "left"
-_g = "ScrollLeftButton"
-_f = "cancel"
-_e = "Copy"
-_d = "File"
-_c = "Modified"
-_b = "Permissions"
-_a = "Size"
-_Z = "Type"
-_Y = "color: green; font-size: 10px; padding: 0 8px 2px 8px;"
-_X = "🔴 Disconnected"
-_W = "🟢 Connected"
-_V = "folder"
-_U = "existing_names_by_directory"
-_T = "directories"
-_S = "files"
-_R = "Delete"
-_Q = "Rename"
-_P = "task_manager"
-_O = "Name"
-_N = "/storage/emulated/0"
-_M = "favorite"
-_L = "note"
-_K = "operation"
-_J = "kind"
-_I = "Directory"
-_H = "name"
-_G = ".."
-_F = "items"
-_E = "path"
-_D = True
-_C = False
-_B = "/"
-_A = None
-import os, re, subprocess, sys, tempfile, uuid, logging
+import logging
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import uuid
 from datetime import datetime
+
 from PyQt6.QtCore import (
     QCoreApplication,
     QEvent,
     QFileInfo,
     QItemSelectionModel,
-    QPoint,
     QSize,
     QStringListModel,
     Qt,
     QTimer,
     pyqtSignal,
+)
+from PyQt6.QtGui import (
+    QKeySequence,
+    QPainter,
+    QPen,
+    QShortcut,
+    QStandardItem,
+    QStandardItemModel,
 )
 from PyQt6.QtWidgets import (
     QApplication,
@@ -101,17 +58,9 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from PyQt6.QtGui import (
-    QKeySequence,
-    QPainter,
-    QPen,
-    QShortcut,
-    QStandardItem,
-    QStandardItemModel,
-)
-from handler import ADBHandler
-from ui.bookmarks import BookmarkStore
+
 from operation_control import is_cancelled
+from ui.bookmarks import BookmarkStore
 from ui.task_manager import WorkerThread
 from ui.widgets import DropTreeView
 from ui.windows_drag import (
@@ -137,7 +86,7 @@ class SortableStandardItem(QStandardItem):
         B = other
         C = A.data(Qt.ItemDataRole.UserRole)
         D = B.data(Qt.ItemDataRole.UserRole)
-        if C is not _A and D is not _A:
+        if C is not None and D is not None:
             return C < D
         return _natural_sort_key(A.text()) < _natural_sort_key(B.text())
 
@@ -183,7 +132,6 @@ class ApplyToAllCheckBox(QCheckBox):
 
 class PathBreadcrumbs(QWidget):
     def __init__(A, panel):
-        C = "Edit path"
         B = panel
         super().__init__(B)
         A._panel = B
@@ -192,7 +140,7 @@ class PathBreadcrumbs(QWidget):
         A._layout.setSpacing(4)
         A._scroll_area = QScrollArea(A)
         A._scroll_area.setObjectName("path_breadcrumb_scroll")
-        A._scroll_area.setWidgetResizable(_C)
+        A._scroll_area.setWidgetResizable(False)
         A._scroll_area.viewport().setObjectName("path_breadcrumb_viewport")
         A._scroll_area.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff
@@ -217,9 +165,9 @@ class PathBreadcrumbs(QWidget):
         A._edit_button = QToolButton(A)
         A._edit_button.setObjectName("path_breadcrumb_edit")
         A._edit_button.setText("✎")
-        A._edit_button.setToolTip(A.tr(C))
-        A._edit_button.setAccessibleName(A.tr(C))
-        A._edit_button.setAutoRaise(_D)
+        A._edit_button.setToolTip(A.tr("Edit path"))
+        A._edit_button.setAccessibleName(A.tr("Edit path"))
+        A._edit_button.setAutoRaise(True)
         A._edit_button.clicked.connect(B.focus_address_bar)
         A._layout.addWidget(A._edit_button)
         A.setMinimumWidth(0)
@@ -237,10 +185,10 @@ class PathBreadcrumbs(QWidget):
         while A._content_layout.count():
             J = A._content_layout.takeAt(0)
             E = J.widget()
-            if E is not _A:
+            if E is not None:
                 E.deleteLater()
-        K = [A for A in path.split(_B) if A]
-        C = [(_B, _B)]
+        K = [A for A in path.split("/") if A]
+        C = [("/", "/")]
         F = ""
         for G in K:
             F += f"/{G}"
@@ -259,10 +207,10 @@ class PathBreadcrumbs(QWidget):
             B.setText(L)
             B.setToolTip(D)
             B.setAccessibleName(A.tr("Navigate to {0}").format(D))
-            B.setAutoRaise(_D)
+            B.setAutoRaise(True)
             B.setCursor(Qt.CursorShape.PointingHandCursor)
             B.clicked.connect(
-                lambda _checked=_C, destination=D: A._panel.navigate_to(destination)
+                lambda _checked=False, destination=D: A._panel.navigate_to(destination)
             )
             A._content_layout.addWidget(B)
         QTimer.singleShot(0, A._update_content_size)
@@ -300,25 +248,25 @@ class PathInput(QLineEdit):
         A.returnPressed.connect(A._navigate)
 
     def update_completions(A, items):
-        B = A._panel.current_path.rstrip(_B) or _B
+        B = A._panel.current_path.rstrip("/") or "/"
         A._loaded_completion_paths.add(B)
-        C = [A for A in B.split(_B) if A]
+        C = [A for A in B.split("/") if A]
         A._completion_paths.update(
-            {_B + _B.join(C[:A]) + _B for A in range(1, len(C) + 1)}
+            {"/" + "/".join(C[:A]) + "/" for A in range(1, len(C) + 1)}
         )
         A.add_directory_completions(B, items)
 
     def add_directory_completions(A, path, items):
-        B = path.rstrip(_B)
-        A._loaded_completion_paths.add(B or _B)
+        B = path.rstrip("/")
+        A._loaded_completion_paths.add(B or "/")
         A._completion_paths.update(
-            f"{B}/{A.name}/" for A in items or [] if A.is_dir and A.name != _G
+            f"{B}/{A.name}/" for A in items or [] if A.is_dir and A.name != ".."
         )
         A._completion_model.setStringList(sorted(A._completion_paths))
 
     def _request_directory_completions(A, path):
         B = path
-        B = B.rstrip(_B) or _B
+        B = B.rstrip("/") or "/"
         if (
             B in A._loaded_completion_paths
             or B in A._requested_completion_paths
@@ -339,14 +287,14 @@ class PathInput(QLineEdit):
             A._requested_completion_paths.discard(B)
             if A._panel._closing:
                 return
-            if C is _A:
+            if C is None:
                 A._panel.status_label.setText(
                     A.tr("Failed to load path suggestions for {0}").format(B)
                 )
                 return
             A.add_directory_completions(B, C)
             D = A.text()
-            if D.startswith(f"{B.rstrip(_B)}/"):
+            if D.startswith(f"{B.rstrip('/')}/"):
                 A._completer.setCompletionPrefix(D)
                 A._completer.complete()
 
@@ -369,7 +317,7 @@ class PathInput(QLineEdit):
         if not B:
             A._completer.popup().hide()
             return
-        if B.endswith(_B):
+        if B.endswith("/"):
             A._request_directory_completions(B)
         A._completer.setCompletionPrefix(B)
         A._completer.complete()
@@ -386,9 +334,9 @@ class PathInput(QLineEdit):
         A._completer.setCurrentRow(0)
         B = A._completer.currentCompletion()
         if not B:
-            return _C
+            return False
         A._accept_completion(B)
-        return _D
+        return True
 
     def eventFilter(B, watched, event):
         C = watched
@@ -401,7 +349,7 @@ class PathInput(QLineEdit):
             and B._try_accept_completion()
         ):
             A.accept()
-            return _D
+            return True
         return super().eventFilter(C, A)
 
     def keyPressEvent(A, event):
@@ -425,10 +373,10 @@ class PathInput(QLineEdit):
         B = A.text().strip()
         if not B:
             return
-        if B.startswith(_B):
+        if B.startswith("/"):
             C = B
         else:
-            C = f"{A._panel.current_path.rstrip(_B)}/{B}"
+            C = f"{A._panel.current_path.rstrip('/')}/{B}"
         A._panel.navigate_to(C)
         A._panel.show_breadcrumbs()
 
@@ -443,29 +391,29 @@ class DevicePanel(QWidget):
         A,
         parent,
         adb_handler,
-        device_info=_A,
-        start_path=_A,
-        compact_header=_C,
-        clipboard=_A,
+        device_info=None,
+        start_path=None,
+        compact_header=False,
+        clipboard=None,
     ):
         B = clipboard
         super().__init__(parent)
         A.adb_handler = adb_handler
         A.device_info = device_info or {}
-        A.clipboard = B if B is not _A else {_F: [], _K: _A}
-        A.use_root = _C
-        A._loading = _C
-        A._refresh_pending = _C
-        A._refresh_task = _A
+        A.clipboard = B if B is not None else {"items": [], "operation": None}
+        A.use_root = False
+        A._loading = False
+        A._refresh_pending = False
+        A._refresh_task = None
         A._path_completion_tasks = set()
         A._close_wait_tasks = set()
-        A._closing = _C
+        A._closing = False
         A._icon_provider = QFileIconProvider()
         A._folder_icon = A._icon_provider.icon(QFileIconProvider.IconType.Folder)
         A._file_icon = A._icon_provider.icon(QFileIconProvider.IconType.File)
         A._icon_cache = {}
-        A.root_path = _B
-        A.current_path = start_path or _N
+        A.root_path = "/"
+        A.current_path = start_path or "/storage/emulated/0"
         A.path_history = [A.current_path]
         A._history_index = 0
         A.all_files = []
@@ -488,28 +436,33 @@ class DevicePanel(QWidget):
         return C or B
 
     def _setup_ui(A):
-        J = "font-size: 10px; color: #888; padding: 0 4px;"
         B = QVBoxLayout(A)
         B.setContentsMargins(0, 0, 0, 0)
         B.setSpacing(2)
         H = QWidget()
-        H.setObjectName(_j)
+        H.setObjectName("panel_header")
         E = QHBoxLayout(H)
         E.setContentsMargins(6, 2, 4, 2)
         A.device_header = QLabel(A.device_name)
-        A.device_header.setObjectName(_k)
+        A.device_header.setObjectName("device_header")
         E.addWidget(A.device_header)
         E.addStretch()
         A.close_btn = QPushButton("X")
-        A.close_btn.setObjectName(_l)
-        A.close_btn.setToolTip(A.tr(_m))
-        A.close_btn.setAccessibleName(A.tr(_n))
+        A.close_btn.setObjectName("panel_close_btn")
+        A.close_btn.setToolTip(A.tr("Close this device panel"))
+        A.close_btn.setAccessibleName(A.tr("Close device panel"))
         A.close_btn.setFixedSize(24, 24)
         A.close_btn.clicked.connect(A.close_requested.emit)
         E.addWidget(A.close_btn)
         B.addWidget(H)
-        A.conn_label = QLabel(A.tr(_W) if A.adb_handler.device_connected else A.tr(_X))
-        A.conn_label.setStyleSheet(_Y)
+        A.conn_label = QLabel(
+            A.tr("🟢 Connected")
+            if A.adb_handler.device_connected
+            else A.tr("🔴 Disconnected")
+        )
+        A.conn_label.setStyleSheet(
+            "color: green; font-size: 10px; padding: 0 8px 2px 8px;"
+        )
         B.addWidget(A.conn_label)
         C = QHBoxLayout()
         C.setSpacing(4)
@@ -552,14 +505,20 @@ class DevicePanel(QWidget):
         A.tree_view = DropTreeView(A, A)
         A.tree_model = QStandardItemModel()
         A.tree_model.setHorizontalHeaderLabels(
-            [A.tr(_O), A.tr(_Z), A.tr(_a), A.tr(_b), A.tr(_c)]
+            [
+                A.tr("Name"),
+                A.tr("Type"),
+                A.tr("Size"),
+                A.tr("Permissions"),
+                A.tr("Modified"),
+            ]
         )
         A.tree_view.setModel(A.tree_model)
         A.tree_view.selectionModel().selectionChanged.connect(A.update_selection_count)
         A.tree_view.setSelectionMode(QTreeView.SelectionMode.ExtendedSelection)
-        A.tree_view.setSortingEnabled(_D)
+        A.tree_view.setSortingEnabled(True)
         D = A.tree_view.header()
-        D.setStretchLastSection(_C)
+        D.setStretchLastSection(False)
         D.setSectionResizeMode(0, D.ResizeMode.Stretch)
         for K in (1, 2, 3, 4):
             D.setSectionResizeMode(K, D.ResizeMode.ResizeToContents)
@@ -568,10 +527,12 @@ class DevicePanel(QWidget):
         A._setup_shortcuts()
         B.addWidget(A.tree_view)
         A.status_label = QLabel(A.tr("Ready"))
-        A.status_label.setStyleSheet(J)
+        A.status_label.setStyleSheet("font-size: 10px; color: #888; padding: 0 4px;")
         A.selection_count_label = QLabel(A.tr("0 items selected"))
         A.selection_count_label.setObjectName("selection_count_label")
-        A.selection_count_label.setStyleSheet(J)
+        A.selection_count_label.setStyleSheet(
+            "font-size: 10px; color: #888; padding: 0 4px;"
+        )
         G = QHBoxLayout()
         G.addWidget(A.status_label)
         G.addStretch()
@@ -613,11 +574,15 @@ class DevicePanel(QWidget):
 
     def update_connection_status(A):
         if A.adb_handler.device_connected:
-            A.conn_label.setText(A.tr(_W))
-            A.conn_label.setStyleSheet(_Y)
+            A.conn_label.setText(A.tr("🟢 Connected"))
+            A.conn_label.setStyleSheet(
+                "color: green; font-size: 10px; padding: 0 8px 2px 8px;"
+            )
         else:
-            A.conn_label.setText(A.tr(_X))
-            A.conn_label.setStyleSheet(_o)
+            A.conn_label.setText(A.tr("🔴 Disconnected"))
+            A.conn_label.setStyleSheet(
+                "color: red; font-size: 10px; padding: 0 8px 2px 8px;"
+            )
 
     def update_path_display(A):
         A.path_display.setText(A.current_path)
@@ -639,7 +604,7 @@ class DevicePanel(QWidget):
         A.refresh_files()
 
     def go_up(A):
-        B = _B.join(A.current_path.rstrip(_B).split(_B)[:-1]) or A.root_path
+        B = "/".join(A.current_path.rstrip("/").split("/")[:-1]) or A.root_path
         if B != A.current_path:
             A.navigate_to(B)
 
@@ -676,34 +641,34 @@ class DevicePanel(QWidget):
 
     def clear_search_on_navigation(A):
         if A.search_bar.text():
-            A.search_bar.blockSignals(_D)
+            A.search_bar.blockSignals(True)
             A.search_bar.setText("")
-            A.search_bar.blockSignals(_C)
+            A.search_bar.blockSignals(False)
         A.apply_search_filter()
 
     def start_native_drag(A, paths):
         if not native_drag_available():
-            return _C
+            return False
         E = build_manifest_for_paths(
             A.adb_handler, A.all_files, paths, use_root=A.use_root
         )
         B = start_windows_drag(
             A.device_serial, E, use_su=A.use_root and A.adb_handler.root_mode == "su"
         )
-        if B is _A:
-            return _D
+        if B is None:
+            return True
         if B:
-            D = getattr(A.window(), _P, _A)
-            if D is not _A:
+            D = getattr(A.window(), "task_manager", None)
+            if D is not None:
                 C = WorkerThread(
                     A.tr("Copying files to Windows"), wait_for_windows_drag, B
                 )
                 C.add_cancel_callback(lambda: cancel_windows_drag(B))
                 D.add_task(C, name=C.name)
                 C.start()
-                if hasattr(A.window(), _p):
+                if hasattr(A.window(), "_position_task_manager"):
                     A.window()._position_task_manager()
-        return _D
+        return True
 
     def refresh_files(A):
         if A._closing:
@@ -712,44 +677,50 @@ class DevicePanel(QWidget):
             A.status_label.setText(A.tr("No ADB device"))
             return
         if A._loading:
-            A._refresh_pending = _D
+            A._refresh_pending = True
             return
-        A._loading = _D
+        A._loading = True
         A.status_label.setText(A.tr("Loading {0}...").format(A.current_path))
         A.tree_model.clear()
         A.tree_model.setHorizontalHeaderLabels(
-            [A.tr(_O), A.tr(_Z), A.tr(_a), A.tr(_b), A.tr(_c)]
+            [
+                A.tr("Name"),
+                A.tr("Type"),
+                A.tr("Size"),
+                A.tr("Permissions"),
+                A.tr("Modified"),
+            ]
         )
         C = QStandardItem(A.tr("Loading..."))
-        C.setEnabled(_C)
+        C.setEnabled(False)
         A.tree_model.appendRow([C])
 
         def D(files):
             B = files
-            A._loading = _C
+            A._loading = False
             if A._closing:
                 return
-            if B is not _A:
+            if B is not None:
                 A.all_files = B
                 A.apply_search_filter()
                 A.status_label.setText(A.tr("Found {0} items").format(len(A.all_files)))
             else:
                 A.status_label.setText(A.tr("Failed to list directory"))
             if A._refresh_pending:
-                A._refresh_pending = _C
+                A._refresh_pending = False
                 A.refresh_files()
 
         B = WorkerThread(
-            f"List {os.path.basename(A.current_path.rstrip(_B))or _B}",
+            f"List {os.path.basename(A.current_path.rstrip('/')) or '/'}",
             A.adb_handler.list_directory,
             A.current_path,
             A.use_root,
         )
         A._refresh_task = B
 
-        def E(_=_A):
-            if getattr(A, "_refresh_task", _A) is B:
-                A._refresh_task = _A
+        def E(_=None):
+            if getattr(A, "_refresh_task", None) is B:
+                A._refresh_task = None
 
         B.finished_signal.connect(D)
         B.finished_signal.connect(E)
@@ -759,14 +730,14 @@ class DevicePanel(QWidget):
         "Keep the panel alive until its refresh worker has stopped."
         if A._closing:
             return
-        A._closing = _D
-        A._refresh_pending = _C
+        A._closing = True
+        A._refresh_pending = False
         A.hide()
         A._delete_after_background_tasks()
 
     def _delete_after_background_tasks(A):
         D = [A._refresh_task, *A._path_completion_tasks]
-        C = [A for A in D if A is not _A and A.isRunning()]
+        C = [A for A in D if A is not None and A.isRunning()]
         if C:
             for B in C:
                 if B not in A._close_wait_tasks:
@@ -777,7 +748,7 @@ class DevicePanel(QWidget):
             A.deleteLater()
 
     def apply_search_filter(A):
-        if not hasattr(A, "all_files") or A.all_files is _A:
+        if not hasattr(A, "all_files") or A.all_files is None:
             return
         B = A.search_bar.text().lower()
         C = [A for A in A.all_files if B in A.name.lower()]
@@ -787,19 +758,25 @@ class DevicePanel(QWidget):
         C = files
         A.tree_model.clear()
         A.tree_model.setHorizontalHeaderLabels(
-            [A.tr(_O), A.tr(_Z), A.tr(_a), A.tr(_b), A.tr(_c)]
+            [
+                A.tr("Name"),
+                A.tr("Type"),
+                A.tr("Size"),
+                A.tr("Permissions"),
+                A.tr("Modified"),
+            ]
         )
         A.update_selection_count()
-        if C is _A:
+        if C is None:
             return
-        J = _B if A.current_path == _B else A.current_path.rstrip(_B)
+        J = "/" if A.current_path == "/" else A.current_path.rstrip("/")
         if J != A.root_path:
-            F = QStandardItem(_G)
+            F = QStandardItem("..")
             F.setIcon(A._folder_icon)
             A.tree_model.appendRow(
                 [
                     F,
-                    QStandardItem(A.tr(_I)),
+                    QStandardItem(A.tr("Directory")),
                     QStandardItem(""),
                     QStandardItem(""),
                     QStandardItem(""),
@@ -824,13 +801,15 @@ class DevicePanel(QWidget):
                     A._icon_cache[E] = G if not G.isNull() else A._file_icon
                 D.setIcon(A._icon_cache[E])
             H = SortableStandardItem(str(B.size) if not B.is_dir else "")
-            H.setData(B.size if not B.is_dir else _A, Qt.ItemDataRole.UserRole)
+            H.setData(B.size if not B.is_dir else None, Qt.ItemDataRole.UserRole)
             I = SortableStandardItem(B.date_modified)
             I.setData(B.date_modified, Qt.ItemDataRole.UserRole)
             A.tree_model.appendRow(
                 [
                     D,
-                    SortableStandardItem(A.tr(_I) if B.is_dir else A.tr(_d)),
+                    SortableStandardItem(
+                        A.tr("Directory") if B.is_dir else A.tr("File")
+                    ),
                     H,
                     SortableStandardItem(B.permissions),
                     I,
@@ -848,16 +827,16 @@ class DevicePanel(QWidget):
         E = A.tree_model.data(H)
         if not C:
             return
-        if E == A.tr(_I):
+        if E == A.tr("Directory"):
             B = ""
-            if C == _G:
-                F = _B.join(A.current_path.rstrip(_B).split(_B)[:-1])
+            if C == "..":
+                F = "/".join(A.current_path.rstrip("/").split("/")[:-1])
                 B = F if F else A.root_path
             else:
-                B = f"{A.current_path.rstrip(_B)}/{C}"
+                B = f"{A.current_path.rstrip('/')}/{C}"
             if B and B != A.current_path:
                 A.navigate_to(B)
-        elif E == A.tr(_d):
+        elif E == A.tr("File"):
             A.open_file_on_host(C)
 
     def get_selected_items(A):
@@ -867,9 +846,9 @@ class DevicePanel(QWidget):
             E = A.tree_model.itemFromIndex(C.siblingAtColumn(1)).text()
             B.append(
                 {
-                    _H: D,
-                    _E: f"{A.current_path.rstrip(_B)}/{D}",
-                    _q: E.lower() == "directory",
+                    "name": D,
+                    "path": f"{A.current_path.rstrip('/')}/{D}",
+                    "is_dir": E.lower() == "directory",
                 }
             )
         return B
@@ -878,7 +857,7 @@ class DevicePanel(QWidget):
         B = {
             B.row()
             for B in A.tree_view.selectionModel().selectedIndexes()
-            if A.tree_model.item(B.row(), 0).text() != _G
+            if A.tree_model.item(B.row(), 0).text() != ".."
         }
         C = len(B)
         A.selection_count_label.setText(A.tr("Selected items: {0}").format(C))
@@ -887,29 +866,29 @@ class DevicePanel(QWidget):
         B = A.get_selected_items()
         if not B:
             return
-        A.clipboard.update({_F: B, _K: "copy"})
+        A.clipboard.update({"items": B, "operation": "copy"})
         A.status_label.setText(A.tr("Copied {0} item(s)").format(len(B)))
 
     def cut_selected(A):
         B = A.get_selected_items()
         if not B:
             return
-        A.clipboard.update({_F: B, _K: "cut"})
+        A.clipboard.update({"items": B, "operation": "cut"})
         A.status_label.setText(A.tr("Cut {0} item(s)").format(len(B)))
 
     def paste_items(A):
-        if not A.clipboard or not A.clipboard[_F]:
+        if not A.clipboard or not A.clipboard["items"]:
             A.status_label.setText(A.tr("Clipboard is empty"))
             return
         D = A.current_path
         B = []
-        for C in A.clipboard[_F]:
-            F = f"{D}/{os.path.basename(C[_E])}"
+        for C in A.clipboard["items"]:
+            F = f"{D}/{os.path.basename(C['path'])}"
             if A.adb_handler.path_exists(F):
-                B.append(os.path.basename(C[_E]))
+                B.append(os.path.basename(C["path"]))
         if B:
             G = "\n".join(B[:10])
-            H = f"\n...and {len(B)-10} more" if len(B) > 10 else ""
+            H = f"\n...and {len(B) - 10} more" if len(B) > 10 else ""
             I = QMessageBox.question(
                 A,
                 A.tr("Item(s) Already Exist"),
@@ -921,15 +900,15 @@ class DevicePanel(QWidget):
             if I == QMessageBox.StandardButton.No:
                 A.status_label.setText(A.tr("Paste canceled"))
                 return
-        E = A.clipboard[_K]
+        E = A.clipboard["operation"]
         J = E == "cut"
 
         def K():
             B = 0
-            for H in A.clipboard[_F]:
+            for H in A.clipboard["items"]:
                 if is_cancelled():
                     return B
-                C = H[_E]
+                C = H["path"]
                 F = f"{D}/{os.path.basename(C)}"
                 if E == "copy":
                     G = A.adb_handler.copy_on_device(C, F)
@@ -943,17 +922,19 @@ class DevicePanel(QWidget):
             B = count
             if B > 0:
                 if J:
-                    A.clipboard.update({_F: [], _K: _A})
+                    A.clipboard.update({"items": [], "operation": None})
                 A.status_label.setText(A.tr("Pasted {0} item(s)").format(B))
                 A.refresh_files()
             else:
                 A.status_label.setText(A.tr("Paste failed"))
 
-        A._run_modal(A.tr("Paste {0} items").format(len(A.clipboard[_F])), K, on_done=L)
+        A._run_modal(
+            A.tr("Paste {0} items").format(len(A.clipboard["items"])), K, on_done=L
+        )
 
     def show_context_menu(A, position):
-        K = "Save to PC..."
-        J = "Cut"
+        K = A.tr("Save to PC...")
+        J = A.tr("Cut")
         G = position
         F = A.tree_view.indexAt(G)
         if not F.isValid():
@@ -972,17 +953,17 @@ class DevicePanel(QWidget):
                 E.setCurrentIndex(F, QItemSelectionModel.SelectionFlag.NoUpdate)
             D = E.selectedRows()
         B = QMenu()
-        if A.clipboard and A.clipboard[_F]:
+        if A.clipboard and A.clipboard["items"]:
             M = B.addAction(A.tr("Paste"))
             M.triggered.connect(A.paste_items)
             B.addSeparator()
         if not D:
-            B.addAction(A.tr(_r), A.create_new_file)
-            B.addAction(A.tr(_s), A.create_new_folder)
+            B.addAction(A.tr("New File"), A.create_new_file)
+            B.addAction(A.tr("New Folder"), A.create_new_folder)
             B.addAction(A.tr("Upload to Device"), A.upload_file_to_device)
             B.addAction(A.tr("Import Folder from PC..."), A.import_folder_from_pc)
         elif len(D) > 1:
-            B.addAction(A.tr(_e), A.copy_selected)
+            B.addAction(A.tr("Copy"), A.copy_selected)
             B.addAction(A.tr(J), A.cut_selected)
             B.addSeparator()
             B.addAction(A.tr("Delete Selected"), A.delete_selected_items)
@@ -996,64 +977,63 @@ class DevicePanel(QWidget):
             )
             B.addSeparator()
             O = B.addAction(A.tr("Total Size: {0}").format(A.format_size(N)))
-            O.setEnabled(_C)
+            O.setEnabled(False)
         else:
             H = D[0]
             C = A.tree_model.data(A.tree_model.index(H.row(), 0))
             I = A.tree_model.data(A.tree_model.index(H.row(), 1))
-            B.addAction(A.tr(_e), A.copy_selected)
+            B.addAction(A.tr("Copy"), A.copy_selected)
             B.addAction(A.tr(J), A.cut_selected)
             B.addSeparator()
-            if I == A.tr(_d):
+            if I == A.tr("File"):
                 B.addAction(A.tr("Open"), lambda n=C: A.open_file_on_host(n))
                 B.addAction(A.tr(K), lambda n=C: A.copy_file_to(n))
                 B.addSeparator()
-                B.addAction(A.tr(_Q), lambda n=C: A.rename_item(n))
-                B.addAction(A.tr(_R), lambda n=C: A.delete_item(n, is_dir=_C))
-            elif I == A.tr(_I):
-                if C != _G:
-                    P = f"{A.current_path.rstrip(_B)}/{C}"
+                B.addAction(A.tr("Rename"), lambda n=C: A.rename_item(n))
+                B.addAction(A.tr("Delete"), lambda n=C: A.delete_item(n, is_dir=False))
+            elif I == A.tr("Directory"):
+                if C != "..":
+                    P = f"{A.current_path.rstrip('/')}/{C}"
                     B.addAction(
-                        A.tr(_t), lambda n=C, p=P: A.favorite_requested.emit(n, p)
+                        A.tr("Add to favorites"),
+                        lambda n=C, p=P: A.favorite_requested.emit(n, p),
                     )
                     B.addSeparator()
                 B.addAction(A.tr(K), lambda n=C: A.copy_folder_to(n))
                 B.addSeparator()
-                B.addAction(A.tr(_Q), lambda n=C: A.rename_item(n))
-                B.addAction(A.tr(_R), lambda n=C: A.delete_item(n, is_dir=_D))
+                B.addAction(A.tr("Rename"), lambda n=C: A.rename_item(n))
+                B.addAction(A.tr("Delete"), lambda n=C: A.delete_item(n, is_dir=True))
         B.addSeparator()
         Q = B.addMenu(A.tr("Send to Device..."))
         A._populate_send_to_menu(Q, D, G)
         B.exec(A.tree_view.viewport().mapToGlobal(G))
 
     def _populate_send_to_menu(A, menu, indexes, position):
-        I = "No other devices"
-        H = "No items selected"
         C = menu
         if not indexes:
-            C.addAction(A.tr(H)).setEnabled(_C)
+            C.addAction(A.tr("No items selected")).setEnabled(False)
             return
         E = A.get_selected_items()
         if not E:
-            C.addAction(A.tr(H)).setEnabled(_C)
+            C.addAction(A.tr("No items selected")).setEnabled(False)
             return
         F = A.window()
         if not hasattr(F, "device_panels"):
-            C.addAction(A.tr(I)).setEnabled(_C)
+            C.addAction(A.tr("No other devices")).setEnabled(False)
             return
         D = []
         for B in F.device_panels:
-            G = getattr(B, "contains_view", _A)
-            J = B is A or G is not _A and G(A)
+            G = getattr(B, "contains_view", None)
+            J = B is A or G is not None and G(A)
             if not J and B.adb_handler.device_connected:
                 D.append(B)
         if not D:
-            C.addAction(A.tr(I)).setEnabled(_C)
+            C.addAction(A.tr("No other devices")).setEnabled(False)
             return
         for B in D:
             K = C.addAction(B.device_name)
             K.triggered.connect(
-                lambda checked=_C, p=B, its=E: A._send_items_to_device(its, p)
+                lambda checked=False, p=B, its=E: A._send_items_to_device(its, p)
             )
 
     def _send_items_to_device(A, items, target_panel):
@@ -1063,23 +1043,23 @@ class DevicePanel(QWidget):
         def C():
             for C in D:
                 if is_cancelled():
-                    return _C
-                E = f"{B.current_path.rstrip(_B)}/{C[_H]}"
-                if C[_q]:
+                    return False
+                E = f"{B.current_path.rstrip('/')}/{C['name']}"
+                if C["is_dir"]:
                     F = A.adb_handler.stream_directory(
                         A.device_serial,
-                        C[_E],
+                        C["path"],
                         B.device_serial,
                         E,
-                        line_callback=lambda msg: _A,
+                        line_callback=lambda msg: None,
                     )
                 else:
                     F = A.adb_handler.stream_file(
-                        A.device_serial, C[_E], B.device_serial, E
+                        A.device_serial, C["path"], B.device_serial, E
                     )
                 if not F:
-                    return _C
-            return _D
+                    return False
+            return True
 
         def E(ok):
             if ok:
@@ -1099,7 +1079,7 @@ class DevicePanel(QWidget):
 
     def is_dir_from_row(A, row):
         B = A.tree_model.index(row, 1)
-        return A.tree_model.data(B) == A.tr(_I)
+        return A.tree_model.data(B) == A.tr("Directory")
 
     def format_size(C, bytes_size):
         A = bytes_size
@@ -1114,7 +1094,7 @@ class DevicePanel(QWidget):
         if not A.adb_handler.device_connected:
             A.status_label.setText(A.tr("No connection"))
             return
-        D = f"{A.current_path.rstrip(_B)}/{B}"
+        D = f"{A.current_path.rstrip('/')}/{B}"
         E = tempfile.gettempdir()
         C = os.path.join(E, B)
 
@@ -1129,9 +1109,9 @@ class DevicePanel(QWidget):
                 if sys.platform.startswith("win"):
                     os.startfile(C)
                 elif sys.platform.startswith("darwin"):
-                    subprocess.run(["open", C])
+                    subprocess.run(["open", C], check=False)
                 else:
-                    subprocess.run(["xdg-open", C])
+                    subprocess.run(["xdg-open", C], check=False)
                 A.status_label.setText(A.tr("Opened {0}").format(B))
             except Exception:
                 A.status_label.setText(A.tr("Failed to open file"))
@@ -1142,8 +1122,8 @@ class DevicePanel(QWidget):
         B = filename
         if not A.adb_handler.device_connected:
             return
-        D = f"{A.current_path.rstrip(_B)}/{B}"
-        C, E = QFileDialog.getSaveFileName(A, A.tr("Save File As"), B)
+        D = f"{A.current_path.rstrip('/')}/{B}"
+        C, _ = QFileDialog.getSaveFileName(A, A.tr("Save File As"), B)
         if not C:
             return
         A._run_transfer(
@@ -1151,14 +1131,14 @@ class DevicePanel(QWidget):
             D,
             C,
             A.tr("File copied: {0}").format(C),
-            A.tr(_u).format(B),
+            A.tr("Failed to copy {0}").format(B),
         )
 
     def copy_folder_to(A, foldername):
         B = foldername
         if not A.adb_handler.device_connected:
             return
-        E = f"{A.current_path.rstrip(_B)}/{B}"
+        E = f"{A.current_path.rstrip('/')}/{B}"
         C = QFileDialog.getExistingDirectory(A, A.tr("Select Destination"))
         if not C:
             return
@@ -1168,7 +1148,7 @@ class DevicePanel(QWidget):
             E,
             D,
             A.tr("Folder copied: {0}").format(D),
-            A.tr(_u).format(B),
+            A.tr("Failed to copy {0}").format(B),
         )
 
     def _run_transfer(A, title, src, dst, success_msg, error_msg):
@@ -1187,11 +1167,11 @@ class DevicePanel(QWidget):
         if not A.adb_handler.device_connected:
             return
         C, D = QInputDialog.getText(
-            A, A.tr(_Q), A.tr("New name for '{0}':").format(B), text=B
+            A, A.tr("Rename"), A.tr("New name for '{0}':").format(B), text=B
         )
         if D and C and C != B:
-            E = f"{A.current_path.rstrip(_B)}/{B}"
-            F = f"{A.current_path.rstrip(_B)}/{C}"
+            E = f"{A.current_path.rstrip('/')}/{B}"
+            F = f"{A.current_path.rstrip('/')}/{C}"
 
             def G(_):
                 A.status_label.setText(A.tr("Renamed to '{0}'").format(C))
@@ -1209,20 +1189,26 @@ class DevicePanel(QWidget):
                 on_error=H,
             )
 
-    def delete_item(A, name, is_dir=_C):
+    def delete_item(A, name, is_dir=False):
         C = is_dir
         B = name
         if not A.adb_handler.device_connected:
             return
-        D = A.tr(_v).format(B) if C else A.tr(_w).format(B)
+        D = (
+            A.tr(
+                "Delete folder '{0}' and all of its contents, including subfolders?"
+            ).format(B)
+            if C
+            else A.tr("Delete '{0}'?").format(B)
+        )
         E = QMessageBox.question(
             A,
-            A.tr(_R),
+            A.tr("Delete"),
             D,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if E == QMessageBox.StandardButton.Yes:
-            F = f"{A.current_path.rstrip(_B)}/{B}"
+            F = f"{A.current_path.rstrip('/')}/{B}"
 
             def G(_):
                 A.status_label.setText(A.tr("Deleted '{0}'").format(B))
@@ -1250,7 +1236,7 @@ class DevicePanel(QWidget):
         if len(C) != 1:
             return
         B = A.tree_model.data(A.tree_model.index(C[0].row(), 0))
-        if not B or B == _G:
+        if not B or B == "..":
             return
         A.rename_item(B)
 
@@ -1264,14 +1250,20 @@ class DevicePanel(QWidget):
         for F in E:
             C = A.tree_model.data(A.tree_model.index(F.row(), 0))
             G = A.tree_model.data(A.tree_model.index(F.row(), 1))
-            if C and C != _G:
-                B.append((C, G == A.tr(_I)))
+            if C and C != "..":
+                B.append((C, G == A.tr("Directory")))
         if not B:
             return
         H = any(A for (B, A) in B)
         if len(B) == 1:
             C, I = B[0]
-            D = A.tr(_v).format(C) if I else A.tr(_w).format(C)
+            D = (
+                A.tr(
+                    "Delete folder '{0}' and all of its contents, including subfolders?"
+                ).format(C)
+                if I
+                else A.tr("Delete '{0}'?").format(C)
+            )
         else:
             D = A.tr("Delete {0} selected items?").format(len(B))
             if H:
@@ -1280,7 +1272,7 @@ class DevicePanel(QWidget):
                 )
         J = QMessageBox.question(
             A,
-            A.tr(_R),
+            A.tr("Delete"),
             D,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
@@ -1291,7 +1283,7 @@ class DevicePanel(QWidget):
                 for D, E in B:
                     if is_cancelled():
                         return C
-                    F = f"{A.current_path.rstrip(_B)}/{D}"
+                    F = f"{A.current_path.rstrip('/')}/{D}"
                     if A.adb_handler.delete_item(F, E):
                         C += 1
                 return C
@@ -1305,16 +1297,16 @@ class DevicePanel(QWidget):
     def create_new_file(A):
         if not A.adb_handler.device_connected:
             return
-        B, C = QInputDialog.getText(A, A.tr(_r), A.tr("File name:"))
+        B, C = QInputDialog.getText(A, A.tr("New File"), A.tr("File name:"))
         if C and B:
-            D = f"{A.current_path.rstrip(_B)}/{B}"
+            D = f"{A.current_path.rstrip('/')}/{B}"
 
             def E(_):
-                A.status_label.setText(A.tr(_x).format(B))
+                A.status_label.setText(A.tr("Created '{0}'").format(B))
                 A.refresh_files()
 
             def F():
-                A.status_label.setText(A.tr(_y))
+                A.status_label.setText(A.tr("Create failed"))
 
             A._run_modal(
                 A.tr("Create file {0}").format(B),
@@ -1327,16 +1319,16 @@ class DevicePanel(QWidget):
     def create_new_folder(A):
         if not A.adb_handler.device_connected:
             return
-        B, C = QInputDialog.getText(A, A.tr(_s), A.tr("Folder name:"))
+        B, C = QInputDialog.getText(A, A.tr("New Folder"), A.tr("Folder name:"))
         if C and B:
-            D = f"{A.current_path.rstrip(_B)}/{B}"
+            D = f"{A.current_path.rstrip('/')}/{B}"
 
             def E(_):
-                A.status_label.setText(A.tr(_x).format(B))
+                A.status_label.setText(A.tr("Created '{0}'").format(B))
                 A.refresh_files()
 
             def F():
-                A.status_label.setText(A.tr(_y))
+                A.status_label.setText(A.tr("Create failed"))
 
             A._run_modal(
                 A.tr("Create folder {0}").format(B),
@@ -1349,7 +1341,7 @@ class DevicePanel(QWidget):
     def upload_file_to_device(A):
         if not A.adb_handler.device_connected:
             return
-        B, C = QFileDialog.getOpenFileName(A, A.tr("Select File to Upload"))
+        B, _ = QFileDialog.getOpenFileName(A, A.tr("Select File to Upload"))
         if not B:
             return
         A.upload_files_and_folders([B])
@@ -1364,13 +1356,13 @@ class DevicePanel(QWidget):
     def upload_files_and_folders(A, files):
         if not A.adb_handler.device_connected:
             return
-        C = A.current_path.rstrip(_B) or _B
+        C = A.current_path.rstrip("/") or "/"
         try:
             B = A._build_upload_plan(files, C)
         except (OSError, RuntimeError) as D:
             A.status_label.setText(A.tr("Import from PC failed: {0}").format(D))
             return
-        if not B[_S] and not B[_T]:
+        if not B["files"] and not B["directories"]:
             A.status_label.setText(A.tr("No files to upload"))
             return
         A._run_modal(
@@ -1381,18 +1373,18 @@ class DevicePanel(QWidget):
             on_error=lambda: A.status_label.setText(
                 A.tr("Could not verify destination files; import was not started")
             ),
-            on_cancel=lambda: A.status_label.setText(A.tr(_z)),
+            on_cancel=lambda: A.status_label.setText(A.tr("Import cancelled")),
         )
 
     @staticmethod
     def _next_renamed_destination(remote_path, occupied_names):
         C = occupied_names
-        G, D = remote_path.rsplit(_B, 1)
+        G, D = remote_path.rsplit("/", 1)
         A, E = os.path.splitext(D)
         if not A:
             A, E = D, ""
         F = 1
-        while _D:
+        while True:
             B = f"{A} ({F}){E}"
             if B not in C:
                 C.add(B)
@@ -1418,64 +1410,63 @@ class DevicePanel(QWidget):
                             K, "Cannot determine the folder name for '{0}'."
                         ).format(A)
                     )
-                I = f"{E.rstrip(_B)}/{H}"
+                I = f"{E.rstrip('/')}/{H}"
                 for J, O, M in os.walk(A, onerror=L):
                     B = os.path.relpath(J, A)
                     C = I
                     if B != ".":
-                        B = B.replace(os.sep, _B)
+                        B = B.replace(os.sep, "/")
                         C = f"{I}/{B}"
                     G.append(C)
                     for D in M:
                         N = os.path.join(J, D)
-                        F.append((N, C, f"{C.rstrip(_B)}/{D}"))
+                        F.append((N, C, f"{C.rstrip('/')}/{D}"))
             elif os.path.isfile(A):
                 D = os.path.basename(A)
-                F.append((A, E, f"{E.rstrip(_B)}/{D}"))
+                F.append((A, E, f"{E.rstrip('/')}/{D}"))
             else:
                 raise RuntimeError(
                     QCoreApplication.translate(
                         K, "'{0}' is not a file or folder."
                     ).format(A)
                 )
-        return {_T: list(dict.fromkeys(G)), _S: F}
+        return {"directories": list(dict.fromkeys(G)), "files": F}
 
     def _inspect_upload_conflicts(A, plan):
-        O = "last_error"
         C = plan
         D = {}
-        C[_U] = {}
+        C["existing_names_by_directory"] = {}
         E = {}
-        for I in C[_S]:
+        for I in C["files"]:
             E.setdefault(I[1], []).append(I)
-        P = list(dict.fromkeys([*C[_T], *E]))
+        P = list(dict.fromkeys([*C["directories"], *E]))
         for B in P:
             if is_cancelled():
                 return (D,)
-            A.adb_handler.last_error = _A
+            A.adb_handler.last_error = None
             J = A.adb_handler._remote_path_exists(B, use_root=A.use_root)
-            if J is _A:
-                K = getattr(A.adb_handler, O, _A)
+            if J is None:
+                K = getattr(A.adb_handler, "last_error", None)
                 raise RuntimeError(
                     A.tr("Could not verify destination folder '{0}'").format(B)
                     + (f": {K}" if K else ".")
                 )
             if not J:
-                C[_U][B] = set()
+                C["existing_names_by_directory"][B] = set()
                 continue
-            A.adb_handler.last_error = _A
+            A.adb_handler.last_error = None
             L = A.adb_handler.list_directory(B, A.use_root)
-            F = getattr(A.adb_handler, O, _A)
-            if L is _A or F:
+            F = getattr(A.adb_handler, "last_error", None)
+            if L is None or F:
                 raise RuntimeError(
                     A.tr("Could not list destination folder '{0}'").format(B)
                     + (f": {F}" if F else ".")
                 )
             M = {A.name: A for A in L}
-            C[_U][B] = set(M)
+            C["existing_names_by_directory"][B] = set(M)
             for G, Q, N in E.get(B, ()):
                 H = M.get(os.path.basename(G))
-                if H is _A:
+                if H is None:
                     continue
                 if H.is_dir:
                     raise RuntimeError(
@@ -1488,11 +1479,10 @@ class DevicePanel(QWidget):
 
     @staticmethod
     def _format_upload_size(size):
-        C = "Bytes"
         A = float(size)
-        for B in (C, "KB", "MB", "GB", "TB"):
+        for B in ("Bytes", "KB", "MB", "GB", "TB"):
             if A < 1024 or B == "TB":
-                return f"{int(A)} {B}" if B == C else f"{A:.1f} {B}"
+                return f"{int(A)} {B}" if B == "Bytes" else f"{A:.1f} {B}"
             A /= 1024
 
     def _confirm_upload_conflict(A, remote_path, local_path, existing):
@@ -1520,7 +1510,7 @@ class DevicePanel(QWidget):
             )
         )
         L = B.addButton(A.tr("Overwrite"), QMessageBox.ButtonRole.AcceptRole)
-        I = B.addButton(A.tr(_Q), QMessageBox.ButtonRole.ActionRole)
+        I = B.addButton(A.tr("Rename"), QMessageBox.ButtonRole.ActionRole)
         I.setMinimumWidth(130)
         J = B.addButton(A.tr("Skip"), QMessageBox.ButtonRole.ActionRole)
         J.setMinimumWidth(100)
@@ -1541,17 +1531,17 @@ class DevicePanel(QWidget):
         elif F is J:
             D = "skip"
         else:
-            D = _f
+            D = "cancel"
         return D, C.isChecked()
 
     def _resolve_upload_conflicts(A, plan, conflicts):
         F = plan
         H = {}
         I = {}
-        G = F.get(_U, {})
-        D = _A
+        G = F.get("existing_names_by_directory", {})
+        D = None
         for C, (E, J) in conflicts.items():
-            if D is _A:
+            if D is None:
                 try:
                     B, K = A._confirm_upload_conflict(C, E, J)
                 except (OSError, OverflowError, ValueError) as L:
@@ -1561,16 +1551,16 @@ class DevicePanel(QWidget):
                         ).format(E, L)
                     )
                     return
-                if K and B != _f:
+                if K and B != "cancel":
                     D = B
             else:
                 B = D
-            if B == _f:
+            if B == "cancel":
                 A.status_label.setText(A.tr("Import cancelled; no files were uploaded"))
                 return
             H[C] = B
             if B == "rename":
-                M = C.rsplit(_B, 1)[0] or _B
+                M = C.rsplit("/", 1)[0] or "/"
                 N = G.setdefault(M, set())
                 I[C] = DevicePanel._next_renamed_destination(C, N)
 
@@ -1578,21 +1568,21 @@ class DevicePanel(QWidget):
             C = 0
             D = 0
             E = 0
-            for J in F[_T]:
+            for J in F["directories"]:
                 if is_cancelled():
                     return C, D, E
                 if not A.adb_handler.create_folder(J):
                     raise RuntimeError(
                         A.tr("Failed to create device folder '{0}'.").format(J)
                     )
-            for K, L, B in F[_S]:
+            for K, L, B in F["files"]:
                 if is_cancelled():
                     return C, D, E
                 if H.get(B) == "skip":
                     D += 1
                     continue
                 G = I.get(B)
-                if G is not _A:
+                if G is not None:
                     if not A.adb_handler.rename_item(B, G, use_root=A.use_root):
                         raise RuntimeError(
                             A.tr(
@@ -1621,7 +1611,7 @@ class DevicePanel(QWidget):
             O,
             on_done=P,
             on_error=lambda: A.status_label.setText(A.tr("Import from PC failed")),
-            on_cancel=lambda: A.status_label.setText(A.tr(_z)),
+            on_cancel=lambda: A.status_label.setText(A.tr("Import cancelled")),
         )
 
     def download_selected_items(A):
@@ -1636,10 +1626,10 @@ class DevicePanel(QWidget):
         C = []
         for F in D:
             B = A.tree_model.data(A.tree_model.index(F.row(), 0))
-            K = A.tree_model.data(A.tree_model.index(F.row(), 1))
-            if not B or B == _G:
+            _ = A.tree_model.data(A.tree_model.index(F.row(), 1))
+            if not B or B == "..":
                 continue
-            G = f"{A.current_path.rstrip(_B)}/{B}"
+            G = f"{A.current_path.rstrip('/')}/{B}"
             H = os.path.join(E, B)
             C.append((G, H))
 
@@ -1666,8 +1656,8 @@ class DevicePanel(QWidget):
         C = []
         for E in D:
             B = A.tree_model.data(A.tree_model.index(E.row(), 0))
-            H = A.tree_model.data(A.tree_model.index(E.row(), 1)) == A.tr(_I)
-            if B and B != _G:
+            H = A.tree_model.data(A.tree_model.index(E.row(), 1)) == A.tr("Directory")
+            if B and B != "..":
                 C.append((B, H))
         if not C:
             return
@@ -1681,7 +1671,7 @@ class DevicePanel(QWidget):
             if (
                 QMessageBox.question(
                     A,
-                    A.tr(_e),
+                    A.tr("Copy"),
                     A.tr("Copy {0} items to '{1}'?").format(len(C), F),
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 )
@@ -1694,13 +1684,13 @@ class DevicePanel(QWidget):
                 for H, K in C:
                     if is_cancelled():
                         return G
-                    J = f"{A.current_path.rstrip(_B)}/{H}"
-                    B = f"{F.rstrip(_B)}/{H}"
-                    D = _A
-                    E = _C
+                    J = f"{A.current_path.rstrip('/')}/{H}"
+                    B = f"{F.rstrip('/')}/{H}"
+                    D = None
+                    E = False
                     try:
                         if A.adb_handler.path_exists(B):
-                            I = f"{B.rsplit(_B,1)[0]}/.adb-explorer-backup-{uuid.uuid4().hex}"
+                            I = f"{B.rsplit('/', 1)[0]}/.adb-explorer-backup-{uuid.uuid4().hex}"
                             if not A.adb_handler._move_remote_path_for_recovery(B, I):
                                 continue
                             D = I
@@ -1708,7 +1698,7 @@ class DevicePanel(QWidget):
                         if E:
                             G += 1
                     except Exception:
-                        E = _C
+                        E = False
                     finally:
                         if D:
                             if E:
@@ -1744,9 +1734,9 @@ class DevicePanel(QWidget):
                 if is_cancelled():
                     return C
                 H = A.tree_model.data(A.tree_model.index(G.row(), 0))
-                I = f"{D}{str(F+1).zfill(E)}"
-                J = f"{A.current_path.rstrip(_B)}/{H}"
-                K = f"{A.current_path.rstrip(_B)}/{I}"
+                I = f"{D}{str(F + 1).zfill(E)}"
+                J = f"{A.current_path.rstrip('/')}/{H}"
+                K = f"{A.current_path.rstrip('/')}/{I}"
                 if A.adb_handler.rename_item(J, K):
                     C += 1
             return C
@@ -1766,7 +1756,9 @@ class DevicePanel(QWidget):
         C = [A.toLocalFile() for A in B]
         A.upload_files_and_folders(C)
 
-    def _run_modal(C, title, fn, *P, on_done=_A, on_error=_A, on_cancel=_A, refresh=_C):
+    def _run_modal(
+        C, title, fn, *P, on_done=None, on_error=None, on_cancel=None, refresh=False
+    ):
         J = on_cancel
         I = on_done
         E = on_error
@@ -1774,7 +1766,7 @@ class DevicePanel(QWidget):
         B = WorkerThread(D, fn, *P)
         A = QDialog(C)
         A.setWindowTitle(D)
-        A.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, _C)
+        A.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, False)
         A.setWindowModality(Qt.WindowModality.WindowModal)
         A.setFixedSize(360, 130)
         F = QVBoxLayout(A)
@@ -1791,9 +1783,9 @@ class DevicePanel(QWidget):
         G.addWidget(H)
         G.addWidget(L)
         F.addLayout(G)
-        M = [_C]
-        N = [_C]
-        O = [_C]
+        M = [False]
+        N = [False]
+        O = [False]
 
         def R():
             if N[0]:
@@ -1807,16 +1799,16 @@ class DevicePanel(QWidget):
                 A.hide()
                 return
             E = C.window()
-            F = getattr(E, _P, _A)
-            if F is _A:
+            F = getattr(E, "task_manager", None)
+            if F is None:
                 return
-            M[0] = _D
+            M[0] = True
             A.hide()
             F.add_task(B, name=D, on_reopen=R)
-            if hasattr(E, _p):
+            if hasattr(E, "_position_task_manager"):
                 E._position_task_manager()
 
-        H.setEnabled(hasattr(C.window(), _P))
+        H.setEnabled(hasattr(C.window(), "task_manager"))
         H.clicked.connect(S)
 
         def T():
@@ -1827,7 +1819,7 @@ class DevicePanel(QWidget):
 
         def U(val):
             D = val
-            N[0] = _D
+            N[0] = True
             if A.isVisible():
                 A.close()
             if B.is_cancelled():
@@ -1836,7 +1828,7 @@ class DevicePanel(QWidget):
                 return
             if O[0]:
                 return
-            F = bool(D) if D is not _A else _C
+            F = bool(D) if D is not None else False
             if F:
                 if I:
                     I(D)
@@ -1846,7 +1838,7 @@ class DevicePanel(QWidget):
                 E()
 
         def V(msg):
-            O[0] = _D
+            O[0] = True
             if A.isVisible():
                 A.close()
             if E:
@@ -1858,11 +1850,11 @@ class DevicePanel(QWidget):
         B.start()
         return B
 
-    def _run_background(C, name, fn, *D, on_done=_A, on_error=_A, refresh=_C):
+    def _run_background(C, name, fn, *D, on_done=None, on_error=None, refresh=False):
         E = on_done
         B = on_error
         F = C.window()
-        if hasattr(F, _P):
+        if hasattr(F, "task_manager"):
             A = F.task_manager.submit(name, fn, *D)
         else:
             A = WorkerThread(name, fn, *D)
@@ -1870,7 +1862,7 @@ class DevicePanel(QWidget):
 
         def G(val):
             A = val
-            D = bool(A) if A is not _A else _C
+            D = bool(A) if A is not None else False
             if D:
                 if E:
                     E(A)
@@ -1880,7 +1872,7 @@ class DevicePanel(QWidget):
                 B()
 
         A.finished_signal.connect(G)
-        A.error_signal.connect(lambda msg: B() if B else _A)
+        A.error_signal.connect(lambda msg: B() if B else None)
         return A
 
 
@@ -1889,17 +1881,17 @@ class NonOverlappingTabBar(QTabBar):
         super().resizeEvent(event)
         A.separate_scroll_buttons()
 
-    def separate_scroll_buttons(A, buttons=_A):
+    def separate_scroll_buttons(A, buttons=None):
         B = buttons
-        if B is _A:
+        if B is None:
             B = {
-                _h if A.objectName() == _g else _i: A
+                "left" if A.objectName() == "ScrollLeftButton" else "right": A
                 for A in A.findChildren(QToolButton)
-                if A.objectName() in {_g, _A0}
+                if A.objectName() in {"ScrollLeftButton", "ScrollRightButton"}
             }
-        D = B.get(_h)
-        E = B.get(_i)
-        if D is _A or E is _A:
+        D = B.get("left")
+        E = B.get("right")
+        if D is None or E is None:
             return
         C = 14
         F = 24
@@ -1918,11 +1910,11 @@ class BookmarkDialog(QDialog):
         A.setWindowTitle(title)
         E = QVBoxLayout(A)
         B = QFormLayout()
-        A.name_input = QLineEdit(C.get(_H, ""))
-        A.path_input = QLineEdit(C.get(_E, ""))
-        A.path_input.setReadOnly(_D)
-        A.note_input = QLineEdit(C.get(_L, ""))
-        B.addRow(A.tr(_O), A.name_input)
+        A.name_input = QLineEdit(C.get("name", ""))
+        A.path_input = QLineEdit(C.get("path", ""))
+        A.path_input.setReadOnly(True)
+        A.note_input = QLineEdit(C.get("note", ""))
+        B.addRow(A.tr("Name"), A.name_input)
         B.addRow(A.tr("Path"), A.path_input)
         B.addRow(A.tr("Note"), A.note_input)
         E.addLayout(B)
@@ -1936,15 +1928,15 @@ class BookmarkDialog(QDialog):
 
     def bookmark(A):
         return {
-            _H: A.name_input.text().strip(),
-            _E: A.path_input.text(),
-            _L: A.note_input.text().strip(),
+            "name": A.name_input.text().strip(),
+            "path": A.path_input.text(),
+            "note": A.note_input.text().strip(),
         }
 
 
 _DEVICE_FOLDER_SHORTCUTS = (
     ("Downloads", "Download"),
-    (_A1, _A1),
+    ("Documents", "Documents"),
     ("Pictures", "Pictures"),
     ("Music", "Music"),
     ("Videos", "Movies"),
@@ -1957,24 +1949,29 @@ class DevicePanelGroup(QWidget):
     close_requested = pyqtSignal()
 
     def __init__(
-        A, parent, adb_handler, device_info=_A, bookmarks_path=_A, bookmark_store=_A
+        A,
+        parent,
+        adb_handler,
+        device_info=None,
+        bookmarks_path=None,
+        bookmark_store=None,
     ):
         super().__init__(parent)
         A.adb_handler = adb_handler
         A.device_info = device_info or {}
-        A.clipboard = {_F: [], _K: _A}
+        A.clipboard = {"items": [], "operation": None}
         A._views = []
         A._navigation_items = []
-        A._closing = _C
-        A._last_path = _N
-        A._multi_panel_mode = _C
-        A._navigation_pane_open = _D
-        A._restore_navigation_pane_open = _D
+        A._closing = False
+        A._last_path = "/storage/emulated/0"
+        A._multi_panel_mode = False
+        A._navigation_pane_open = True
+        A._restore_navigation_pane_open = True
         A._bookmark_store = bookmark_store or BookmarkStore(bookmarks_path)
         A._bookmark_store.bookmarks_changed.connect(A._on_bookmarks_changed)
         try:
             A._bookmarks = A._bookmark_store.load(A.device_serial)
-            A._bookmark_load_error = _A
+            A._bookmark_load_error = None
         except (OSError, ValueError) as E:
             A._bookmarks = []
             A._bookmark_load_error = str(E)
@@ -1982,29 +1979,29 @@ class DevicePanelGroup(QWidget):
         C.setContentsMargins(0, 0, 0, 0)
         C.setSpacing(2)
         D = QWidget()
-        D.setObjectName(_j)
+        D.setObjectName("panel_header")
         B = QHBoxLayout(D)
         B.setContentsMargins(6, 2, 4, 2)
         B.setSpacing(6)
         A.navigation_toggle_btn = QToolButton()
         A.navigation_toggle_btn.setObjectName("navigation_toggle_btn")
         A.navigation_toggle_btn.setText("◧")
-        A.navigation_toggle_btn.setCheckable(_D)
-        A.navigation_toggle_btn.setChecked(_D)
-        A.navigation_toggle_btn.setToolTip(A.tr(_A2))
+        A.navigation_toggle_btn.setCheckable(True)
+        A.navigation_toggle_btn.setChecked(True)
+        A.navigation_toggle_btn.setToolTip(A.tr("Hide navigation panel"))
         A.navigation_toggle_btn.setAccessibleName(A.tr("Toggle navigation pane"))
         A.navigation_toggle_btn.clicked.connect(A.toggle_navigation_pane)
         B.addWidget(A.navigation_toggle_btn)
         A.device_header = QLabel(A.device_name)
-        A.device_header.setObjectName(_k)
+        A.device_header.setObjectName("device_header")
         B.addWidget(A.device_header)
         B.addStretch()
         A.conn_label = QLabel()
         B.addWidget(A.conn_label)
         A.close_btn = QPushButton("X")
-        A.close_btn.setObjectName(_l)
-        A.close_btn.setToolTip(A.tr(_m))
-        A.close_btn.setAccessibleName(A.tr(_n))
+        A.close_btn.setObjectName("panel_close_btn")
+        A.close_btn.setToolTip(A.tr("Close this device panel"))
+        A.close_btn.setAccessibleName(A.tr("Close device panel"))
         A.close_btn.setFixedSize(30, 30)
         A.close_btn.clicked.connect(A.close_requested.emit)
         B.addWidget(A.close_btn)
@@ -2018,13 +2015,13 @@ class DevicePanelGroup(QWidget):
         C.addWidget(D)
         A.content_splitter = QSplitter(Qt.Orientation.Horizontal)
         A.content_splitter.setObjectName("panel_content_splitter")
-        A.content_splitter.setChildrenCollapsible(_C)
+        A.content_splitter.setChildrenCollapsible(False)
         A.favorites_pane = A._create_favorites_pane()
         A.content_splitter.addWidget(A.favorites_pane)
         A.tabs = QTabWidget(A.content_splitter)
         A.tabs.setObjectName("path_tabs")
         A.tabs.setTabBar(NonOverlappingTabBar())
-        A.tabs.setDocumentMode(_D)
+        A.tabs.setDocumentMode(True)
         A.tabs.tabBar().setElideMode(Qt.TextElideMode.ElideMiddle)
         A.tabs.currentChanged.connect(A._on_active_tab_changed)
         A.tabs.tabBar().setObjectName("path_tab_bar")
@@ -2036,7 +2033,9 @@ class DevicePanelGroup(QWidget):
         A.add_tab()
         A.update_connection_status()
         if A._bookmark_load_error:
-            A._show_bookmark_error(A.tr(_A3).format(A._bookmark_load_error))
+            A._show_bookmark_error(
+                A.tr("Could not load favorites: {0}").format(A._bookmark_load_error)
+            )
 
     def _create_favorites_pane(A):
         B = QWidget(A.content_splitter)
@@ -2054,9 +2053,9 @@ class DevicePanelGroup(QWidget):
         C.addLayout(D)
         A.navigation_tree = QTreeWidget(B)
         A.navigation_tree.setObjectName("navigation_tree")
-        A.navigation_tree.setHeaderHidden(_D)
-        A.navigation_tree.setRootIsDecorated(_D)
-        A.navigation_tree.setUniformRowHeights(_D)
+        A.navigation_tree.setHeaderHidden(True)
+        A.navigation_tree.setRootIsDecorated(True)
+        A.navigation_tree.setUniformRowHeights(True)
         A.navigation_tree.setIndentation(16)
         A.navigation_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         A.navigation_tree.customContextMenuRequested.connect(
@@ -2069,14 +2068,11 @@ class DevicePanelGroup(QWidget):
         return B
 
     def _refresh_navigation_tree(A):
-        N = "storage"
-        M = "favorites"
-        I = "section"
         G = {}
         for O in range(A.navigation_tree.topLevelItemCount()):
             B = A.navigation_tree.topLevelItem(O)
             P = B.data(0, Qt.ItemDataRole.UserRole) or {}
-            J = P.get(I)
+            J = P.get("section")
             if J:
                 G[J] = B.isExpanded()
         A.navigation_tree.clear()
@@ -2085,50 +2081,59 @@ class DevicePanelGroup(QWidget):
         C = QTreeWidgetItem([A.tr("Favorites")])
         C.setFont(0, A._navigation_group_font())
         C.setIcon(0, F)
-        C.setData(0, Qt.ItemDataRole.UserRole, {_J: "group", I: M})
+        C.setData(
+            0, Qt.ItemDataRole.UserRole, {"kind": "group", "section": "favorites"}
+        )
         A.navigation_tree.addTopLevelItem(C)
         for D in A._bookmarks:
-            B = QTreeWidgetItem([D[_H]])
+            B = QTreeWidgetItem([D["name"]])
             B.setIcon(0, F)
-            B.setData(0, Qt.ItemDataRole.UserRole, {_J: _M, _E: D[_E], "bookmark": D})
-            H = D[_E]
-            if D.get(_L):
-                H = f"{D[_L]}\n{H}"
+            B.setData(
+                0,
+                Qt.ItemDataRole.UserRole,
+                {"kind": "favorite", "path": D["path"], "bookmark": D},
+            )
+            H = D["path"]
+            if D.get("note"):
+                H = f"{D['note']}\n{H}"
             B.setToolTip(0, H)
             C.addChild(B)
-            A._navigation_items.append((B, D[_E]))
+            A._navigation_items.append((B, D["path"]))
         if not A._bookmarks:
             K = QTreeWidgetItem([A.tr("No favorites yet")])
             K.setFlags(Qt.ItemFlag.NoItemFlags)
             C.addChild(K)
-        C.setExpanded(G.get(M, _D))
+        C.setExpanded(G.get("favorites", True))
         E = QTreeWidgetItem([A.tr("Internal storage")])
         E.setFont(0, A._navigation_group_font())
         E.setIcon(0, F)
-        E.setData(0, Qt.ItemDataRole.UserRole, {_J: _V, _E: _N, I: N})
+        E.setData(
+            0,
+            Qt.ItemDataRole.UserRole,
+            {"kind": "folder", "path": "/storage/emulated/0", "section": "storage"},
+        )
         A.navigation_tree.addTopLevelItem(E)
-        A._navigation_items.append((E, _N))
+        A._navigation_items.append((E, "/storage/emulated/0"))
         for Q, R in _DEVICE_FOLDER_SHORTCUTS:
             L = f"/storage/emulated/0/{R}"
             B = QTreeWidgetItem([A.tr(Q)])
             B.setIcon(0, F)
-            B.setData(0, Qt.ItemDataRole.UserRole, {_J: _V, _E: L})
+            B.setData(0, Qt.ItemDataRole.UserRole, {"kind": "folder", "path": L})
             E.addChild(B)
             A._navigation_items.append((B, L))
-        E.setExpanded(G.get(N, _D))
+        E.setExpanded(G.get("storage", True))
         if hasattr(A, "tabs"):
             A._update_navigation_selection(A.current_path)
 
     def _navigation_group_font(B):
         A = B.navigation_tree.font()
-        A.setBold(_D)
+        A.setBold(True)
         return A
 
     def _activate_navigation_item(A, item, _column=0):
         B = item.data(0, Qt.ItemDataRole.UserRole) or {}
-        if B.get(_J) in {_V, _M}:
-            if A.active_view is not _A:
-                A.active_view.navigate_to(B[_E])
+        if B.get("kind") in {"folder", "favorite"} and A.active_view is not None:
+            A.active_view.navigate_to(B["path"])
 
     def _on_bookmarks_changed(A, device_id):
         if device_id != A.device_serial:
@@ -2136,16 +2141,17 @@ class DevicePanelGroup(QWidget):
         try:
             A._bookmarks = A._bookmark_store.load(A.device_serial)
         except (OSError, ValueError) as B:
-            A._show_bookmark_error(A.tr(_A3).format(B))
+            A._show_bookmark_error(A.tr("Could not load favorites: {0}").format(B))
             return
         A._refresh_navigation_tree()
 
-    def _show_bookmark_error(C, message, view=_A):
+    def _show_bookmark_error(C, message, view=None):
         A = message
         _logger.warning(A)
-        B = view if view is not _A else C.active_view
-        if B is not _A:
+        B = view if view is not None else C.active_view
+        if B is not None:
             B.status_label.setText(A)
+            QMessageBox.warning(B if B is not None else C, C.tr("Bookmark Error"), A)
 
     def _save_bookmarks(A, bookmarks):
         B = bookmarks
@@ -2153,17 +2159,17 @@ class DevicePanelGroup(QWidget):
             A._bookmark_store.save(A.device_serial, B)
         except (OSError, ValueError) as C:
             A._show_bookmark_error(A.tr("Could not save favorites: {0}").format(C))
-            return _C
+            return False
         A._bookmarks = B
         A._refresh_navigation_tree()
-        return _D
+        return True
 
     def add_bookmark(B, name, path, note=""):
-        A = {_H: name.strip(), _E: path, _L: note.strip()}
-        if not A[_H] or not A[_E].startswith(_B):
+        A = {"name": name.strip(), "path": path, "note": note.strip()}
+        if not A["name"] or not A["path"].startswith("/"):
             raise ValueError("A favorite needs a name and absolute device path")
-        if any(B[_E] == A[_E] for B in B._bookmarks):
-            return _C
+        if any(B["path"] == A["path"] for B in B._bookmarks):
+            return False
         return B._save_bookmarks([*B._bookmarks, A])
 
     def _edit_bookmark_dialog(A, bookmark, title):
@@ -2172,7 +2178,7 @@ class DevicePanelGroup(QWidget):
         if E.exec() != QDialog.DialogCode.Accepted:
             return
         B = E.bookmark()
-        if not B[_H]:
+        if not B["name"]:
             A._show_bookmark_error(A.tr("Favorite name cannot be empty"))
             return
         if C in A._bookmarks:
@@ -2180,79 +2186,79 @@ class DevicePanelGroup(QWidget):
             D = list(A._bookmarks)
             D[F] = B
         else:
-            if any(A[_E] == B[_E] for A in A._bookmarks):
-                A._show_bookmark_error(A.tr(_A4))
+            if any(A["path"] == B["path"] for A in A._bookmarks):
+                A._show_bookmark_error(A.tr("This folder is already in favorites"))
                 return
             D = [*A._bookmarks, B]
         A._save_bookmarks(D)
 
     def _selected_bookmark(C):
         B = C.navigation_tree.currentItem()
-        A = B.data(0, Qt.ItemDataRole.UserRole) if B else _A
-        if A and A.get(_J) == _M:
+        A = B.data(0, Qt.ItemDataRole.UserRole) if B else None
+        if A and A.get("kind") == "favorite":
             return A.get("bookmark")
 
     def _remove_bookmark(A):
         B = A._selected_bookmark()
-        if B is _A:
+        if B is None:
             return
         A._save_bookmarks([A for A in A._bookmarks if A != B])
 
     def _edit_selected_bookmark(A):
         B = A._selected_bookmark()
-        if B is not _A:
+        if B is not None:
             A._edit_bookmark_dialog(B, A.tr("Edit favorite"))
 
     def _show_bookmark_context_menu(A, position):
         D = position
         B = A.navigation_tree.itemAt(D)
-        if B is _A:
+        if B is None:
             return
         F = B.data(0, Qt.ItemDataRole.UserRole) or {}
-        E = F.get(_J)
-        if E not in {_V, _M}:
+        E = F.get("kind")
+        if E not in {"folder", "favorite"}:
             return
         A.navigation_tree.setCurrentItem(B)
         C = QMenu(A)
         C.addAction(A.tr("Open"), lambda: A._activate_navigation_item(B))
-        if E == _M:
+        if E == "favorite":
             C.addAction(A.tr("Edit"), A._edit_selected_bookmark)
             C.addAction(A.tr("Remove from favorites"), A._remove_bookmark)
         else:
-            C.addAction(A.tr(_t), lambda: A._pin_navigation_item(B))
+            C.addAction(A.tr("Add to favorites"), lambda: A._pin_navigation_item(B))
         C.exec(A.navigation_tree.viewport().mapToGlobal(D))
 
     def _pin_navigation_item(A, item):
         B = item.data(0, Qt.ItemDataRole.UserRole) or {}
-        A._add_folder_to_favorites(item.text(0), B[_E], A.active_view)
+        A._add_folder_to_favorites(item.text(0), B["path"], A.active_view)
 
-    def _add_folder_to_favorites(A, name, path, source_view=_A):
+    def _add_folder_to_favorites(A, name, path, source_view=None):
         B = source_view
-        if any(A[_E] == path for A in A._bookmarks):
-            A._show_bookmark_error(A.tr(_A4), B)
+        if any(A["path"] == path for A in A._bookmarks):
+            A._show_bookmark_error(A.tr("This folder is already in favorites"), B)
             return
-        if A.add_bookmark(name, path) and B is not _A:
+        if A.add_bookmark(name, path) and B is not None:
             B.status_label.setText(A.tr("Added '{0}' to favorites").format(name))
 
     def _update_navigation_selection(B, path):
-        D = path.rstrip(_B) or _B
-        A = _A
+        D = path.rstrip("/") or "/"
+        A = None
         E = -1
         for F, G in B._navigation_items:
-            C = G.rstrip(_B) or _B
-            if (D == C or D.startswith(C + _B)) and len(C) > E:
+            C = G.rstrip("/") or "/"
+            if (D == C or D.startswith(C + "/")) and len(C) > E:
                 A = F
                 E = len(C)
-        if A is _A:
+        if A is None:
             B.navigation_tree.clearSelection()
-            B.navigation_tree.setCurrentItem(_A)
+            B.navigation_tree.setCurrentItem(None)
             return
-        if A.parent() is not _A:
-            A.parent().setExpanded(_D)
+        if A.parent() is not None:
+            A.parent().setExpanded(True)
         B.navigation_tree.setCurrentItem(A)
         B.navigation_tree.scrollToItem(A)
 
-    def toggle_navigation_pane(A, _checked=_C):
+    def toggle_navigation_pane(A, _checked=False):
         A._set_navigation_pane_open(not A._navigation_pane_open)
         A._restore_navigation_pane_open = A._navigation_pane_open
 
@@ -2262,7 +2268,7 @@ class DevicePanelGroup(QWidget):
         A.favorites_pane.setVisible(B)
         A.navigation_toggle_btn.setChecked(B)
         A.navigation_toggle_btn.setToolTip(
-            A.tr(_A2) if B else A.tr("Show navigation pane")
+            A.tr("Hide navigation panel") if B else A.tr("Show navigation pane")
         )
 
     def set_multi_panel_mode(A, enabled):
@@ -2271,10 +2277,10 @@ class DevicePanelGroup(QWidget):
             return
         if B:
             A._restore_navigation_pane_open = A._navigation_pane_open
-            A._multi_panel_mode = _D
-            A._set_navigation_pane_open(_C)
+            A._multi_panel_mode = True
+            A._set_navigation_pane_open(False)
             return
-        A._multi_panel_mode = _C
+        A._multi_panel_mode = False
         A._set_navigation_pane_open(A._restore_navigation_pane_open)
 
     @property
@@ -2306,12 +2312,11 @@ class DevicePanelGroup(QWidget):
         C = A.__dict__.get("_views")
         if C:
             B = A.active_view
-            if B is not _A:
+            if B is not None:
                 return getattr(B, name)
         raise AttributeError(f"{type(A).__name__!s} has no attribute {name!r}")
 
-    def add_tab(A, path=_A):
-        F = "Close tab"
+    def add_tab(A, path=None):
         if A._closing:
             return
         D = path or A.current_path
@@ -2320,7 +2325,7 @@ class DevicePanelGroup(QWidget):
             A.adb_handler,
             A.device_info,
             start_path=D,
-            compact_header=_D,
+            compact_header=True,
             clipboard=A.clipboard,
         )
         A._views.append(B)
@@ -2335,11 +2340,11 @@ class DevicePanelGroup(QWidget):
         C = QToolButton(A.tabs.tabBar())
         C.setObjectName("close_path_tab_btn")
         C.setText("x")
-        C.setToolTip(A.tr(F))
-        C.setAccessibleName(A.tr(F))
-        C.setAutoRaise(_D)
+        C.setToolTip(A.tr("Close tab"))
+        C.setAccessibleName(A.tr("Close tab"))
+        C.setAutoRaise(True)
         C.setCursor(Qt.CursorShape.PointingHandCursor)
-        C.clicked.connect(lambda _checked=_C, tab=B: A._close_view(tab))
+        C.clicked.connect(lambda _checked=False, tab=B: A._close_view(tab))
         A.tabs.tabBar().setTabButton(E, A.tabs.tabBar().ButtonPosition.RightSide, C)
         A.tabs.setCurrentIndex(E)
         A._enable_click_activation()
@@ -2354,21 +2359,19 @@ class DevicePanelGroup(QWidget):
                 B.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
 
     def _style_tab_scroll_buttons(B):
-        E = "Scroll tabs right"
-        D = "Scroll tabs left"
         F = B.tabs.tabBar().findChildren(QToolButton)
         C = {}
         for A in F:
-            if A.objectName() == _g:
+            if A.objectName() == "ScrollLeftButton":
                 A.setText("<")
-                A.setToolTip(B.tr(D))
-                A.setAccessibleName(B.tr(D))
-                C[_h] = A
-            elif A.objectName() == _A0:
+                A.setToolTip(B.tr("Scroll tabs left"))
+                A.setAccessibleName(B.tr("Scroll tabs left"))
+                C["left"] = A
+            elif A.objectName() == "ScrollRightButton":
                 A.setText(">")
-                A.setToolTip(B.tr(E))
-                A.setAccessibleName(B.tr(E))
-                C[_i] = A
+                A.setToolTip(B.tr("Scroll tabs right"))
+                A.setAccessibleName(B.tr("Scroll tabs right"))
+                C["right"] = A
             else:
                 continue
             A.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -2376,7 +2379,7 @@ class DevicePanelGroup(QWidget):
 
     @staticmethod
     def _tab_title(path):
-        return path.rstrip(_B).rsplit(_B, 1)[-1] or _B
+        return path.rstrip("/").rsplit("/", 1)[-1] or "/"
 
     def _update_tab_title(A, view, path):
         B = A.tabs.indexOf(view)
@@ -2409,23 +2412,27 @@ class DevicePanelGroup(QWidget):
         A._close_view(A._views[B])
 
     def close_active_tab(A):
-        if A.active_view is not _A:
+        if A.active_view is not None:
             A._close_view(A.active_view)
 
-    def _update_connection_status(A, _index=_A):
+    def _update_connection_status(A, _index=None):
         if not A._views:
             return
         A.device_header.setText(A.device_name)
         if A.adb_handler.device_connected:
-            A.conn_label.setText(A.tr(_W))
-            A.conn_label.setStyleSheet(_Y)
+            A.conn_label.setText(A.tr("🟢 Connected"))
+            A.conn_label.setStyleSheet(
+                "color: green; font-size: 10px; padding: 0 8px 2px 8px;"
+            )
         else:
-            A.conn_label.setText(A.tr(_X))
-            A.conn_label.setStyleSheet(_o)
+            A.conn_label.setText(A.tr("🔴 Disconnected"))
+            A.conn_label.setStyleSheet(
+                "color: red; font-size: 10px; padding: 0 8px 2px 8px;"
+            )
 
-    def _on_active_tab_changed(A, _index=_A):
+    def _on_active_tab_changed(A, _index=None):
         A._update_connection_status()
-        if A.active_view is not _A:
+        if A.active_view is not None:
             A._update_navigation_selection(A.active_view.current_path)
 
     def update_connection_status(A):
@@ -2435,7 +2442,7 @@ class DevicePanelGroup(QWidget):
 
     def contains_focus(B):
         A = QApplication.focusWidget()
-        return A is not _A and (A is B or B.isAncestorOf(A))
+        return A is not None and (A is B or B.isAncestorOf(A))
 
     def contains_view(A, view):
         return view in A._views
@@ -2443,7 +2450,7 @@ class DevicePanelGroup(QWidget):
     def prepare_for_close(A):
         if A._closing:
             return
-        A._closing = _D
+        A._closing = True
         A.hide()
         for B in A._views:
             B.prepare_for_close()

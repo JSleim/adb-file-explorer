@@ -1,6 +1,6 @@
-_B = "A cancelled operation resource was already closed: %s"
-_A = None
-import logging, socket, subprocess, threading
+import logging
+import socket
+import threading
 
 _current = threading.local()
 _logger = logging.getLogger(__name__)
@@ -26,7 +26,9 @@ class OperationControl:
             try:
                 D(C)
             except OSError as E:
-                _logger.debug(_B, E)
+                _logger.debug(
+                    "A cancelled operation resource was already closed: %s", E
+                )
 
     def register(A, resource, stop):
         B = resource
@@ -38,14 +40,14 @@ class OperationControl:
 
     def unregister(A, resource):
         with A._lock:
-            A._resources.pop(resource, _A)
+            A._resources.pop(resource, None)
 
     @staticmethod
     def _stop_resource(resource, stop):
         try:
             stop(resource)
         except OSError as A:
-            _logger.debug(_B, A)
+            _logger.debug("A cancelled operation resource was already closed: %s", A)
 
 
 def set_current_operation(operation):
@@ -53,45 +55,45 @@ def set_current_operation(operation):
 
 
 def clear_current_operation():
-    _current.operation = _A
+    _current.operation = None
 
 
 def current_operation():
-    return getattr(_current, "operation", _A)
+    return getattr(_current, "operation", None)
 
 
 def is_cancelled():
     A = current_operation()
-    return A is not _A and A.cancelled
+    return A is not None and A.cancelled
 
 
 def register_process(process):
     A = current_operation()
-    if A is not _A:
+    if A is not None:
         A.register(process, _stop_process)
 
 
 def unregister_process(process):
     A = current_operation()
-    if A is not _A:
+    if A is not None:
         A.unregister(process)
 
 
 def register_socket(sock):
     A = current_operation()
-    if A is not _A:
+    if A is not None:
         A.register(sock, _stop_socket)
 
 
 def unregister_socket(sock):
     A = current_operation()
-    if A is not _A:
+    if A is not None:
         A.unregister(sock)
 
 
 def _stop_process(process):
     A = process
-    if A.poll() is _A:
+    if A.poll() is None:
         A.kill()
 
 
@@ -99,5 +101,5 @@ def _stop_socket(sock):
     try:
         sock.shutdown(socket.SHUT_RDWR)
     except OSError:
-        0
+        pass
     sock.close()

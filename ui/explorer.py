@@ -1,40 +1,24 @@
-_J = "Install Error"
-_I = "No ADB device connected"
-_H = "Install XAPK"
-_G = "Install APK"
-_F = "operation"
-_E = "task_manager"
-_D = "Ready"
-_C = True
-_B = None
-_A = False
-import os, subprocess, sys, tempfile
-from PyQt6.QtCore import QFileInfo, Qt, QTimer
-from PyQt6.QtGui import QKeySequence, QShortcut, QStandardItem, QStandardItemModel
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QCheckBox,
     QDialog,
     QFileDialog,
-    QFileIconProvider,
     QHBoxLayout,
-    QInputDialog,
     QLabel,
-    QLineEdit,
     QMainWindow,
-    QMenu,
     QMessageBox,
     QProgressBar,
     QPushButton,
     QStatusBar,
-    QTreeView,
     QVBoxLayout,
     QWidget,
 )
+
 from device_chooser import DeviceChooser
 from handler import ADBHandler
 from ui.device_panel import DevicePanel
 from ui.task_manager import BackgroundTaskManager, WorkerThread
-from ui.widgets import DropTreeView
 
 
 class ADBFileExplorer(QMainWindow):
@@ -43,7 +27,7 @@ class ADBFileExplorer(QMainWindow):
         A.setWindowTitle(A.tr("ADB File Explorer"))
         A.setGeometry(100, 100, 800, 600)
         A.adb_handler = ADBHandler()
-        A._panel = _B
+        A._panel = None
         A.setup_ui()
         A.select_device()
         if A.adb_handler.device_connected:
@@ -88,7 +72,9 @@ class ADBFileExplorer(QMainWindow):
 
     @property
     def clipboard(self):
-        return self._panel.clipboard if self._panel else {"items": [], _F: _B}
+        return (
+            self._panel.clipboard if self._panel else {"items": [], "operation": None}
+        )
 
     @clipboard.setter
     def clipboard(self, val):
@@ -97,7 +83,7 @@ class ADBFileExplorer(QMainWindow):
 
     @property
     def use_root(self):
-        return self._panel.use_root if self._panel else _A
+        return self._panel.use_root if self._panel else False
 
     @use_root.setter
     def use_root(self, val):
@@ -105,14 +91,14 @@ class ADBFileExplorer(QMainWindow):
             self._panel.use_root = val
 
     def select_device(A):
-        E = "ADB File Explorer - {0} ({1})"
+        E = A.tr("ADB File Explorer - {0} ({1})")
         if not A.adb_handler.device_connected:
             QMessageBox.critical(
                 A,
                 A.tr("No Devices"),
                 A.tr("No ADB devices found. Please connect a device and try again."),
             )
-            return _A
+            return False
         if len(A.adb_handler.devices) > 1:
             C = DeviceChooser(A.adb_handler.devices, A)
             if C.exec() == QDialog.DialogCode.Accepted:
@@ -120,32 +106,32 @@ class ADBFileExplorer(QMainWindow):
                 if B:
                     A.adb_handler = ADBHandler(device_serial=B)
                     A.setWindowTitle(A.tr(E).format(A.adb_handler.devices[B], B))
-                    return _C
-            return _A
+                    return True
+            return False
         elif len(A.adb_handler.devices) == 1:
             D = next(iter(A.adb_handler.devices.keys()))
             A.setWindowTitle(A.tr(E).format(A.adb_handler.devices[D], D))
-            return _C
-        return _A
+            return True
+        return False
 
     def setup_ui(A):
-        A.clipboard = {"items": [], _F: _B}
-        A.use_root = _A
-        A._loading = _A
-        A._refresh_pending = _A
-        A._refresh_task = _B
+        A.clipboard = {"items": [], "operation": None}
+        A.use_root = False
+        A._loading = False
+        A._refresh_pending = False
+        A._refresh_task = None
         B = QWidget()
         A.setCentralWidget(B)
         A.main_layout = QVBoxLayout(B)
         A.status_bar = QStatusBar()
         A.setStatusBar(A.status_bar)
-        A.status_label = QLabel(A.tr(_D))
+        A.status_label = QLabel(A.tr("Ready"))
         A.status_bar.addWidget(A.status_label)
         A.connection_label = QLabel("")
         A.status_bar.addPermanentWidget(A.connection_label)
         A.update_connection_status()
         A.root_checkbox = QCheckBox(A.tr("Root access"))
-        A.root_checkbox.setChecked(_A)
+        A.root_checkbox.setChecked(False)
         A.root_checkbox.stateChanged.connect(A.on_root_toggle)
         A.status_bar.addPermanentWidget(A.root_checkbox)
         A.task_manager = BackgroundTaskManager(B)
@@ -156,9 +142,9 @@ class ADBFileExplorer(QMainWindow):
         A.cut_action.triggered.connect(A.cut_selected)
         A.paste_action = A.toolbar.addAction(A.tr("Paste"))
         A.paste_action.triggered.connect(A.paste_items)
-        A.install_apk_action = A.toolbar.addAction(A.tr(_G))
+        A.install_apk_action = A.toolbar.addAction(A.tr("Install APK"))
         A.install_apk_action.triggered.connect(A.install_apk_dialog)
-        A.install_xapk_action = A.toolbar.addAction(A.tr(_H))
+        A.install_xapk_action = A.toolbar.addAction(A.tr("Install XAPK"))
         A.install_xapk_action.triggered.connect(A.install_xapk_dialog)
         A.copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, A)
         A.copy_shortcut.activated.connect(A.copy_selected)
@@ -181,16 +167,16 @@ class ADBFileExplorer(QMainWindow):
 
     def showEvent(A, event):
         super().showEvent(event)
-        if hasattr(A, _E):
+        if hasattr(A, "task_manager"):
             A._position_task_manager()
 
     def closeEvent(A, event):
-        if hasattr(A, _E):
-            A.task_manager.setParent(_B)
+        if hasattr(A, "task_manager"):
+            A.task_manager.setParent(None)
         event.accept()
 
     def _position_task_manager(C):
-        if not hasattr(C, _E):
+        if not hasattr(C, "task_manager"):
             return
         A = C.task_manager
         D = A.parentWidget() or C
@@ -205,17 +191,17 @@ class ADBFileExplorer(QMainWindow):
         if A.root_checkbox.isChecked():
 
             def B():
-                A.root_checkbox.blockSignals(_C)
-                A.root_checkbox.setChecked(_A)
-                A.root_checkbox.blockSignals(_A)
-                A.root_checkbox.setEnabled(_C)
-                A.use_root = _A
-                A.adb_handler.root_mode = _B
+                A.root_checkbox.blockSignals(True)
+                A.root_checkbox.setChecked(False)
+                A.root_checkbox.blockSignals(False)
+                A.root_checkbox.setEnabled(True)
+                A.use_root = False
+                A.adb_handler.root_mode = None
                 if A._panel:
-                    A._panel.use_root = _A
+                    A._panel.use_root = False
 
             def D(has_root):
-                A.root_checkbox.setEnabled(_C)
+                A.root_checkbox.setEnabled(True)
                 if not has_root:
                     B()
                     QMessageBox.warning(
@@ -226,9 +212,9 @@ class ADBFileExplorer(QMainWindow):
                         ),
                     )
                     return
-                A.use_root = _C
+                A.use_root = True
                 if A._panel:
-                    A._panel.use_root = _C
+                    A._panel.use_root = True
                     A.refresh_files()
 
             def E():
@@ -239,7 +225,7 @@ class ADBFileExplorer(QMainWindow):
                     A.adb_handler.last_error or A.tr("Could not enable root access."),
                 )
 
-            A.root_checkbox.setEnabled(_A)
+            A.root_checkbox.setEnabled(False)
             A._run_modal(
                 A.tr("Enable root access"),
                 A.adb_handler.enable_root,
@@ -248,10 +234,10 @@ class ADBFileExplorer(QMainWindow):
                 on_cancel=B,
             )
         else:
-            A.use_root = _A
-            A.adb_handler.root_mode = _B
+            A.use_root = False
+            A.adb_handler.root_mode = None
             if A._panel:
-                A._panel.use_root = _A
+                A._panel.use_root = False
                 A.refresh_files()
 
     def update_connection_status(A):
@@ -267,9 +253,7 @@ class ADBFileExplorer(QMainWindow):
         A.adb_handler.device_connected = A.adb_handler.check_adb_connection()
         if B != A.adb_handler.device_connected:
             A.update_connection_status()
-            if not A.adb_handler.device_connected:
-                0
-            else:
+            if A.adb_handler.device_connected:
                 A.status_label.setText(A.tr("ADB device reconnected"))
                 A.refresh_files()
 
@@ -293,7 +277,7 @@ class ADBFileExplorer(QMainWindow):
         return A._panel.get_file_size_from_row(row) if A._panel else 0
 
     def is_dir_from_row(A, row):
-        return A._panel.is_dir_from_row(row) if A._panel else _A
+        return A._panel.is_dir_from_row(row) if A._panel else False
 
     def format_size(A, bytes_size):
         B = bytes_size
@@ -318,7 +302,7 @@ class ADBFileExplorer(QMainWindow):
         if A._panel:
             A._panel.rename_item(old_name)
 
-    def delete_item(A, name, is_dir=_A):
+    def delete_item(A, name, is_dir=False):
         if A._panel:
             A._panel.delete_item(name, is_dir)
 
@@ -386,7 +370,7 @@ class ADBFileExplorer(QMainWindow):
         B = timeout
         A.status_label.setText(text)
         if B:
-            QTimer.singleShot(B, lambda: A.status_label.setText(A.tr(_D)))
+            QTimer.singleShot(B, lambda: A.status_label.setText(A.tr("Ready")))
 
     def show_error_message(A, title, msg):
         B = title
@@ -395,20 +379,20 @@ class ADBFileExplorer(QMainWindow):
 
     def show_success_message(A, msg):
         A.status_label.setText(msg)
-        QTimer.singleShot(2000, lambda: A.status_label.setText(A.tr(_D)))
+        QTimer.singleShot(2000, lambda: A.status_label.setText(A.tr("Ready")))
 
     def install_apk_dialog(A):
-        C = "APK installation failed"
+        C = A.tr("APK installation failed")
         if not A.adb_handler.device_connected:
-            A.show_error_message(A.tr(_I))
+            A.show_error_message(A.tr("No ADB device connected"))
             return
-        B, D = QFileDialog.getOpenFileName(
+        B, _ = QFileDialog.getOpenFileName(
             A, A.tr("Select APK file"), "", "APK (*.apk)"
         )
         if not B:
             return
         A._run_modal(
-            A.tr(_G),
+            A.tr("Install APK"),
             A.adb_handler.install_apk,
             B,
             on_done=lambda ok: (
@@ -417,22 +401,22 @@ class ADBFileExplorer(QMainWindow):
                 else A.show_error_message(A.tr(C))
             ),
             on_error=lambda: A.show_error_message(
-                A.tr(_J), A.adb_handler.last_error or A.tr(C)
+                A.tr("Install Error"), A.adb_handler.last_error or A.tr(C)
             ),
         )
 
     def install_xapk_dialog(A):
-        C = "XAPK installation failed"
+        C = A.tr("XAPK installation failed")
         if not A.adb_handler.device_connected:
-            A.show_error_message(A.tr(_I))
+            A.show_error_message(A.tr("No ADB device connected"))
             return
-        B, D = QFileDialog.getOpenFileName(
+        B, _ = QFileDialog.getOpenFileName(
             A, A.tr("Select XAPK file"), "", "XAPK (*.xapk)"
         )
         if not B:
             return
         A._run_modal(
-            A.tr(_H),
+            A.tr("Install XAPK"),
             A.adb_handler.install_xapk,
             B,
             on_done=lambda cnt: (
@@ -441,11 +425,13 @@ class ADBFileExplorer(QMainWindow):
                 else A.show_error_message(A.tr(C))
             ),
             on_error=lambda: A.show_error_message(
-                A.tr(_J), A.adb_handler.last_error or A.tr(C)
+                A.tr("Install Error"), A.adb_handler.last_error or A.tr(C)
             ),
         )
 
-    def _run_modal(B, title, fn, *P, on_done=_B, on_error=_B, on_cancel=_B, refresh=_A):
+    def _run_modal(
+        B, title, fn, *P, on_done=None, on_error=None, on_cancel=None, refresh=False
+    ):
         K = on_cancel
         J = on_done
         E = on_error
@@ -453,7 +439,7 @@ class ADBFileExplorer(QMainWindow):
         C = WorkerThread(D, fn, *P)
         A = QDialog(B)
         A.setWindowTitle(D)
-        A.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, _A)
+        A.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, False)
         A.setWindowModality(Qt.WindowModality.WindowModal)
         A.setFixedSize(360, 130)
         F = QVBoxLayout(A)
@@ -470,9 +456,9 @@ class ADBFileExplorer(QMainWindow):
         G.addWidget(M)
         G.addWidget(N)
         F.addLayout(G)
-        H = [_A]
-        O = [_A]
-        I = [_A]
+        H = [False]
+        O = [False]
+        I = [False]
 
         def R():
             if O[0]:
@@ -485,7 +471,7 @@ class ADBFileExplorer(QMainWindow):
             if H[0]:
                 A.hide()
                 return
-            H[0] = _C
+            H[0] = True
             A.hide()
             B.task_manager.add_task(C, name=D, on_reopen=R)
             B._position_task_manager()
@@ -500,7 +486,7 @@ class ADBFileExplorer(QMainWindow):
 
         def U(val):
             F = val
-            O[0] = _C
+            O[0] = True
             if A.isVisible():
                 A.close()
             if C.is_cancelled():
@@ -509,7 +495,7 @@ class ADBFileExplorer(QMainWindow):
                 return
             if I[0]:
                 return
-            G = not I[0] and (bool(F) if F is not _B else _A)
+            G = not I[0] and (bool(F) if F is not None else False)
             if G:
                 if J:
                     J(F)
@@ -522,7 +508,7 @@ class ADBFileExplorer(QMainWindow):
                     B.show_error_message(B.tr("{0} failed").format(D))
 
         def V(msg):
-            I[0] = _C
+            I[0] = True
             if A.isVisible():
                 A.close()
             if E:
