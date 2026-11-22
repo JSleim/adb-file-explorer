@@ -123,22 +123,58 @@ class DeviceInfoWorker(QThread):
         }
 
     def _collect_storage(self, handler):
+        output = self._call(handler, ["shell", "df", "-h"])
+        if not output:
+            output = self._call(handler, ["shell", "df"])
+
+        normalized_lines = []
+        for raw_line in output.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            parts = line.split()
+            if len(parts) == 1 and normalized_lines:
+                normalized_lines.append(line)
+            elif (
+                normalized_lines
+                and len(normalized_lines[-1].split()) == 1
+                and len(parts) >= 5
+            ):
+                normalized_lines[-1] = f"{normalized_lines[-1]} {line}"
+            else:
+                normalized_lines.append(line)
+
         mounts = []
-        for target in ("/data", "/storage/emulated/0"):
-            output = self._call(handler, ["shell", "df", "-h", target])
-            for line in output.splitlines():
-                fields = line.strip().split()
-                if len(fields) < 6 or fields[-1] != target:
-                    continue
-                mounts.append(
-                    {
-                        "mount": target,
-                        "total": fields[-5],
-                        "used": fields[-4],
-                        "available": fields[-3],
-                        "percent": fields[-2],
-                    }
-                )
+        seen_mounts = set()
+        targets = ("/data", "/storage/emulated/0", "/storage/emulated", "/sdcard")
+
+        for line in normalized_lines:
+            fields = line.split()
+            if len(fields) < 6:
+                continue
+            mount_point = fields[-1]
+            percent_str = fields[-2]
+
+            if mount_point not in targets or not percent_str.endswith("%"):
+                continue
+            if mount_point in seen_mounts:
+                continue
+
+            try:
+                percent = int(percent_str.rstrip("%"))
+            except ValueError:
+                continue
+
+            seen_mounts.add(mount_point)
+            mounts.append(
+                {
+                    "mount": mount_point,
+                    "total": fields[-5],
+                    "used": fields[-4],
+                    "available": fields[-3],
+                    "percent": percent,
+                }
+            )
         return mounts
 
     def _collect_memory(self, handler):
@@ -289,29 +325,50 @@ class DeviceDashboardDialog(QDialog):
             self._storage_layout.addWidget(QLabel(self.tr("No storage information.")))
             return
         for mount in mounts:
-            row = QWidget()
-            row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(0, 0, 0, 0)
-            mount_label = QLabel(mount.get("mount", "-"))
-            mount_label.setMinimumWidth(190)
-            bar = QProgressBar()
-            bar.setRange(0, 100)
-            percent_text = str(mount.get("percent", "")).rstrip("%")
+            self._storage_layout.addWidget(self._make_storage_row(mount))
+        if (
+            len(mounts) == 2
+            and mounts[0].get("total") == mounts[1].get("total")
+            and mounts[0].get("used") == mounts[1].get("used")
+        ):
+            note = QLabel(self.tr("Both paths share the same partition."))
+            note.setWordWrap(True)
+            note.setObjectName("storage_note")
+            self._storage_layout.addWidget(note)
+
+    def _make_storage_row(self, mount):
+        row = QWidget()
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        mount_label = QLabel(mount.get("mount", "-"))
+        mount_label.setMinimumWidth(190)
+        mount_label.setObjectName("storage_mount_name")
+        bar = QProgressBar()
+        bar.setRange(0, 100)
+        bar.setTextVisible(False)
+        bar.setFixedWidth(120)
+        # _collect_storage отдаёт готовый int; на всякий случай
+        # поддерживаем и строку с процентом
+        percent = mount.get("percent")
+        if isinstance(percent, (int, float)):
+            bar.setValue(max(0, min(100, int(percent))))
+        else:
             try:
-                bar.setValue(max(0, min(100, int(percent_text))))
-            except ValueError:
+                bar.setValue(max(0, min(100, int(str(percent).rstrip("%")))))
+            except (ValueError, TypeError):
                 pass
-            detail_label = QLabel(
-                self.tr("{0} used of {1} ({2} free)").format(
-                    mount.get("used", "-"),
-                    mount.get("total", "-"),
-                    mount.get("available", "-"),
-                )
+        detail_label = QLabel(
+            self.tr("{0} used of {1} ({2} free)").format(
+                mount.get("used", "-"),
+                mount.get("total", "-"),
+                mount.get("available", "-"),
             )
-            row_layout.addWidget(mount_label)
-            row_layout.addWidget(bar, 1)
-            row_layout.addWidget(detail_label)
-            self._storage_layout.addWidget(row)
+        )
+        detail_label.setObjectName("storage_detail")
+        row_layout.addWidget(mount_label)
+        row_layout.addWidget(bar)
+        row_layout.addWidget(detail_label, 1)
+        return row
 
     def _on_failed(self, error):
         self.refresh_btn.setEnabled(True)

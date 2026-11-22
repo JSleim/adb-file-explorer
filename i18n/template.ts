@@ -247,94 +247,100 @@ If not rooted, adb root may not be supported on production builds.</source>
 </context><context>
     <name>DeviceDashboardDialog</name>
     <message>
-        <location filename="../ui/device_dashboard.py" line="155" />
-        <location filename="../ui/device_dashboard.py" line="155" />
+        <location filename="../ui/device_dashboard.py" line="191" />
+        <location filename="../ui/device_dashboard.py" line="191" />
         <source>Device Dashboard</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="168" />
-        <location filename="../ui/device_dashboard.py" line="168" />
+        <location filename="../ui/device_dashboard.py" line="204" />
+        <location filename="../ui/device_dashboard.py" line="204" />
         <source>System</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="188" />
-        <location filename="../ui/device_dashboard.py" line="188" />
+        <location filename="../ui/device_dashboard.py" line="224" />
+        <location filename="../ui/device_dashboard.py" line="224" />
         <source>Battery</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="225" />
-        <location filename="../ui/device_dashboard.py" line="193" />
-        <location filename="../ui/device_dashboard.py" line="225" />
-        <location filename="../ui/device_dashboard.py" line="193" />
+        <location filename="../ui/device_dashboard.py" line="261" />
+        <location filename="../ui/device_dashboard.py" line="229" />
+        <location filename="../ui/device_dashboard.py" line="261" />
+        <location filename="../ui/device_dashboard.py" line="229" />
         <source>Refreshing...</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="198" />
-        <location filename="../ui/device_dashboard.py" line="198" />
+        <location filename="../ui/device_dashboard.py" line="234" />
+        <location filename="../ui/device_dashboard.py" line="234" />
         <source>Storage</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="202" />
-        <location filename="../ui/device_dashboard.py" line="202" />
+        <location filename="../ui/device_dashboard.py" line="238" />
+        <location filename="../ui/device_dashboard.py" line="238" />
         <source>Memory</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="212" />
-        <location filename="../ui/device_dashboard.py" line="212" />
+        <location filename="../ui/device_dashboard.py" line="248" />
+        <location filename="../ui/device_dashboard.py" line="248" />
         <source>Refresh</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="222" />
-        <location filename="../ui/device_dashboard.py" line="222" />
+        <location filename="../ui/device_dashboard.py" line="258" />
+        <location filename="../ui/device_dashboard.py" line="258" />
         <source>No device selected.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="245" />
-        <location filename="../ui/device_dashboard.py" line="245" />
+        <location filename="../ui/device_dashboard.py" line="281" />
+        <location filename="../ui/device_dashboard.py" line="281" />
         <source>{0:.1f} °C</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="252" />
-        <location filename="../ui/device_dashboard.py" line="252" />
+        <location filename="../ui/device_dashboard.py" line="288" />
+        <location filename="../ui/device_dashboard.py" line="288" />
         <source>{0}% - {1}, {2}, {3}, {4}</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="273" />
-        <location filename="../ui/device_dashboard.py" line="273" />
+        <location filename="../ui/device_dashboard.py" line="309" />
+        <location filename="../ui/device_dashboard.py" line="309" />
         <source>{0:.1f} GB used of {1:.1f} GB</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="277" />
-        <location filename="../ui/device_dashboard.py" line="277" />
+        <location filename="../ui/device_dashboard.py" line="313" />
+        <location filename="../ui/device_dashboard.py" line="313" />
         <source>{0:.1f} GB total</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="289" />
-        <location filename="../ui/device_dashboard.py" line="289" />
+        <location filename="../ui/device_dashboard.py" line="325" />
+        <location filename="../ui/device_dashboard.py" line="325" />
         <source>No storage information.</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="305" />
-        <location filename="../ui/device_dashboard.py" line="305" />
+        <location filename="../ui/device_dashboard.py" line="334" />
+        <location filename="../ui/device_dashboard.py" line="334" />
+        <source>Both paths share the same partition.</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="361" />
+        <location filename="../ui/device_dashboard.py" line="361" />
         <source>{0} used of {1} ({2} free)</source>
         <translation type="unfinished" />
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="318" />
-        <location filename="../ui/device_dashboard.py" line="318" />
+        <location filename="../ui/device_dashboard.py" line="375" />
+        <location filename="../ui/device_dashboard.py" line="375" />
         <source>Failed to collect info: {0}</source>
         <translation type="unfinished" />
     </message>

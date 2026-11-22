@@ -333,94 +333,100 @@ If not rooted, adb root may not be supported on production builds.</source>
 <context>
     <name>DeviceDashboardDialog</name>
     <message>
-        <location filename="../ui/device_dashboard.py" line="155"/>
-        <location filename="../ui/device_dashboard.py" line="155"/>
+        <location filename="../ui/device_dashboard.py" line="191"/>
+        <location filename="../ui/device_dashboard.py" line="191"/>
         <source>Device Dashboard</source>
         <translation>Информация об устройстве</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="168"/>
-        <location filename="../ui/device_dashboard.py" line="168"/>
+        <location filename="../ui/device_dashboard.py" line="204"/>
+        <location filename="../ui/device_dashboard.py" line="204"/>
         <source>System</source>
         <translation>Система</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="188"/>
-        <location filename="../ui/device_dashboard.py" line="188"/>
+        <location filename="../ui/device_dashboard.py" line="224"/>
+        <location filename="../ui/device_dashboard.py" line="224"/>
         <source>Battery</source>
         <translation>Батарея</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="225"/>
-        <location filename="../ui/device_dashboard.py" line="193"/>
-        <location filename="../ui/device_dashboard.py" line="225"/>
-        <location filename="../ui/device_dashboard.py" line="193"/>
+        <location filename="../ui/device_dashboard.py" line="261"/>
+        <location filename="../ui/device_dashboard.py" line="229"/>
+        <location filename="../ui/device_dashboard.py" line="261"/>
+        <location filename="../ui/device_dashboard.py" line="229"/>
         <source>Refreshing...</source>
         <translation>Обновление...</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="198"/>
-        <location filename="../ui/device_dashboard.py" line="198"/>
+        <location filename="../ui/device_dashboard.py" line="234"/>
+        <location filename="../ui/device_dashboard.py" line="234"/>
         <source>Storage</source>
         <translation>Хранилище</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="202"/>
-        <location filename="../ui/device_dashboard.py" line="202"/>
+        <location filename="../ui/device_dashboard.py" line="238"/>
+        <location filename="../ui/device_dashboard.py" line="238"/>
         <source>Memory</source>
         <translation>Оперативная память</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="212"/>
-        <location filename="../ui/device_dashboard.py" line="212"/>
+        <location filename="../ui/device_dashboard.py" line="248"/>
+        <location filename="../ui/device_dashboard.py" line="248"/>
         <source>Refresh</source>
         <translation>Обновить</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="222"/>
-        <location filename="../ui/device_dashboard.py" line="222"/>
+        <location filename="../ui/device_dashboard.py" line="258"/>
+        <location filename="../ui/device_dashboard.py" line="258"/>
         <source>No device selected.</source>
         <translation>Устройство не выбрано.</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="245"/>
-        <location filename="../ui/device_dashboard.py" line="245"/>
+        <location filename="../ui/device_dashboard.py" line="281"/>
+        <location filename="../ui/device_dashboard.py" line="281"/>
         <source>{0:.1f} °C</source>
         <translation>{0:.1f} °C</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="252"/>
-        <location filename="../ui/device_dashboard.py" line="252"/>
+        <location filename="../ui/device_dashboard.py" line="288"/>
+        <location filename="../ui/device_dashboard.py" line="288"/>
         <source>{0}% - {1}, {2}, {3}, {4}</source>
         <translation>{0}% - {1}, {2}, {3}, {4}</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="273"/>
-        <location filename="../ui/device_dashboard.py" line="273"/>
+        <location filename="../ui/device_dashboard.py" line="309"/>
+        <location filename="../ui/device_dashboard.py" line="309"/>
         <source>{0:.1f} GB used of {1:.1f} GB</source>
         <translation>{0:.1f} GB использовано из {1:.1f} GB</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="277"/>
-        <location filename="../ui/device_dashboard.py" line="277"/>
+        <location filename="../ui/device_dashboard.py" line="313"/>
+        <location filename="../ui/device_dashboard.py" line="313"/>
         <source>{0:.1f} GB total</source>
         <translation>{0:.1f} GB всего</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="289"/>
-        <location filename="../ui/device_dashboard.py" line="289"/>
+        <location filename="../ui/device_dashboard.py" line="325"/>
+        <location filename="../ui/device_dashboard.py" line="325"/>
         <source>No storage information.</source>
         <translation>Нет информации о внутреннем хранилище.</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="305"/>
-        <location filename="../ui/device_dashboard.py" line="305"/>
-        <source>{0} used of {1} ({2} free)</source>
-        <translation>{0} использовано из {1} ({2} свободных)</translation>
+        <location filename="../ui/device_dashboard.py" line="334"/>
+        <location filename="../ui/device_dashboard.py" line="334"/>
+        <source>Both paths share the same partition.</source>
+        <translation>Оба пути используют один и тот же раздел.</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="318"/>
-        <location filename="../ui/device_dashboard.py" line="318"/>
+        <location filename="../ui/device_dashboard.py" line="361"/>
+        <location filename="../ui/device_dashboard.py" line="361"/>
+        <source>{0} used of {1} ({2} free)</source>
+        <translation>{0} использовано из {1} ({2} свободно)</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="375"/>
+        <location filename="../ui/device_dashboard.py" line="375"/>
         <source>Failed to collect info: {0}</source>
         <translation>Не удалось собрать информацию: {0}</translation>
     </message>
