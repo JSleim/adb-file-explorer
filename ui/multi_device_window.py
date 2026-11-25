@@ -628,7 +628,9 @@ class MultiDeviceWindow(QMainWindow):
         D.item_selected.connect(A._navigate_to_search_result)
         D.exec()
 
-    def _navigate_to_search_result(A, serial, remote_path, use_root=False):
+    def _navigate_to_search_result(
+        A, serial, remote_path, use_root=False, is_directory=None
+    ):
         B = None
         for C in A.device_panels:
             if C.device_serial == serial:
@@ -648,16 +650,19 @@ class MultiDeviceWindow(QMainWindow):
                     "Could not enable root mode for %s", serial
                 )
 
-        if use_root and B.adb_handler.root_mode == "su":
-            quoted = B.adb_handler._shell_quote(remote_path)
-            F = B.adb_handler._run_adb_command(
-                ["exec-out", "su", "-c", f"test -d {quoted}"], timeout=10
-            )
-        else:
-            F = B.adb_handler._run_adb_command(
-                ["exec-out", "test", "-d", remote_path], timeout=10
-            )
-        if F.returncode == 0:
+        if is_directory is None:
+            if use_root and B.adb_handler.root_mode == "su":
+                quoted = B.adb_handler._shell_quote(remote_path)
+                F = B.adb_handler._run_adb_command(
+                    ["exec-out", "su", "-c", f"test -d {quoted}"], timeout=10
+                )
+            else:
+                F = B.adb_handler._run_adb_command(
+                    ["exec-out", "test", "-d", remote_path], timeout=10
+                )
+            is_directory = F.returncode == 0
+
+        if is_directory:
             D = remote_path
             G = None
         else:

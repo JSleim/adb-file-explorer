@@ -130,8 +130,8 @@ class PermissionScanWorker(QThread):
 
 
 class PermissionLintDialog(QDialog):
-    # Передает (serial_устройства, полный_путь, use_root)
-    item_selected = pyqtSignal(str, str, bool)
+    # Передает (serial_устройства, полный_путь, use_root, is_directory)
+    item_selected = pyqtSignal(str, str, bool, bool)
 
     def _translation_source(self):
         # Вызывается никогда: существует только для pylupdate6.
@@ -235,6 +235,7 @@ class PermissionLintDialog(QDialog):
         row.setData(0, Qt.ItemDataRole.UserRole, item["path"])
         row.setData(0, Qt.ItemDataRole.UserRole + 1, self.serial)
         row.setData(0, Qt.ItemDataRole.UserRole + 2, self.root_checkbox.isChecked())
+        row.setData(0, Qt.ItemDataRole.UserRole + 3, item["tag"] == "D")
         self.results_tree.addTopLevelItem(row)
         self.status_label.setText(
             self.tr("Scanning... Issues found: {0}").format(
@@ -251,8 +252,9 @@ class PermissionLintDialog(QDialog):
         path = item.data(0, Qt.ItemDataRole.UserRole)
         serial = item.data(0, Qt.ItemDataRole.UserRole + 1)
         use_root = bool(item.data(0, Qt.ItemDataRole.UserRole + 2))
+        is_directory = bool(item.data(0, Qt.ItemDataRole.UserRole + 3))
         if path and serial:
-            self.item_selected.emit(serial, path, use_root)
+            self.item_selected.emit(serial, path, use_root, is_directory)
 
     def closeEvent(self, event):
         self._shutdown_worker()
