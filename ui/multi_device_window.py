@@ -9,6 +9,7 @@ from PyQt6.QtGui import QDesktopServices, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
+    QDockWidget,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -25,9 +26,11 @@ from PyQt6.QtWidgets import (
 from device_chooser import DeviceChooser
 from handler import ADBHandler
 from operation_control import is_cancelled
-from search_dialog import DeviceSearchDialog
+from search_dialog import DeviceSearchPanel
 from ui.bookmarks import BookmarkStore, get_app_data_directory
+from ui.device_dashboard import DeviceDashboardDialog
 from ui.device_panel import DevicePanelGroup
+from ui.permission_lint import PermissionLintDialog
 from ui.task_manager import BackgroundTaskManager
 from ui.theme import DARK, LIGHT
 
@@ -147,11 +150,20 @@ class MultiDeviceWindow(QMainWindow):
         A.dark_mode_action.setCheckable(True)
         A.dark_mode_action.setChecked(A._dark)
         A.dark_mode_action.toggled.connect(A._toggle_theme)
+        A.search_dock_action = I.addAction(A.tr("Device Search Panel"))
+        A.search_dock_action.setCheckable(True)
+        A.search_dock_action.setChecked(False)
+        A.search_dock_action.toggled.connect(A._toggle_search_panel)
+
         G = D.addMenu(A.tr("Tools"))
         G.addAction(A.tr("Install APK..."), A._install_apk_dialog)
         G.addAction(A.tr("Install XAPK..."), A._install_xapk_dialog)
         G.addSeparator()
         G.addAction(A.tr("Search on Device..."), A._open_global_search)
+        A.dashboard_action = G.addAction(A.tr("Device Dashboard..."))
+        A.dashboard_action.triggered.connect(A._open_device_dashboard)
+        A.lint_action = G.addAction(A.tr("Permission Lint..."))
+        A.lint_action.triggered.connect(A._open_permission_lint)
 
         J = D.addMenu(A.tr("Help"))
         J.addAction(A.tr("Check for Updates..."), A._open_updates)
@@ -163,6 +175,14 @@ class MultiDeviceWindow(QMainWindow):
         A.status_label = QLabel(A.tr("Ready"))
         A.status_bar.addWidget(A.status_label)
         A.task_manager = BackgroundTaskManager(E)
+        A.search_panel = DeviceSearchPanel(A)
+        A.search_panel.file_selected.connect(A._navigate_to_search_result)
+        A.search_dock = QDockWidget(A.tr("Device Search"), A)
+        A.search_dock.setObjectName("device_search_dock")
+        A.search_dock.setWidget(A.search_panel)
+        A.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, A.search_dock)
+        A.search_dock.hide()
+        A.search_dock.visibilityChanged.connect(A.search_dock_action.setChecked)
 
     def resizeEvent(A, event):
         super().resizeEvent(event)
@@ -177,6 +197,8 @@ class MultiDeviceWindow(QMainWindow):
     def closeEvent(A, event):
         if hasattr(A, "task_manager"):
             A.task_manager.setParent(None)
+        if hasattr(A, "search_panel"):
+            A.search_panel.shutdown()
         A.device_panels.clear()
         event.accept()
 
@@ -565,24 +587,50 @@ class MultiDeviceWindow(QMainWindow):
 
     def _open_global_search(A):
         B = A._active_panel()
-        C = B.adb_handler if B else ADBHandler()
-        if not C.get_unique_devices():
+        A.search_panel.refresh_devices(B.device_serial if B else None)
+        A.search_panel.set_use_root(
+            bool(B and B.active_view and getattr(B.active_view, "use_root", False))
+        )
+        A.search_dock.show()
+        A.resizeDocks([A.search_dock], [380], Qt.Orientation.Horizontal)
+        A.search_dock.raise_()
+        A.search_panel.focus_search()
+
+    def _toggle_search_panel(A, visible):
+        if visible:
+            A._open_global_search()
+        else:
+            A.search_dock.hide()
+
+    def _open_device_dashboard(A):
+        B = A._active_panel()
+        if not B:
             QMessageBox.information(
-                A, A.tr("No Devices"), A.tr("No ADB devices connected.")
+                A, A.tr("No Devices"), A.tr("No device panel is open.")
             )
             return
-        D = bool(B and B.active_view and getattr(B.active_view, "use_root", False))
-        E = DeviceSearchDialog(
-            adb_handler=C,
-            default_serial=B.device_serial if B else None,
-            start_path="/",
-            use_root=D,
+        DeviceDashboardDialog(B.adb_handler, A).exec()
+
+    def _open_permission_lint(A):
+        B = A._active_panel()
+        if not B:
+            QMessageBox.information(
+                A, A.tr("No Devices"), A.tr("No device panel is open.")
+            )
+            return
+        C = B.active_view
+        D = PermissionLintDialog(
+            B.adb_handler,
+            start_path=C.current_path if C else "/",
+            use_root=bool(C and getattr(C, "use_root", False)),
             parent=A,
         )
-        E.file_selected.connect(A._navigate_to_search_result)
-        E.exec()
+        D.item_selected.connect(A._navigate_to_search_result)
+        D.exec()
 
-    def _navigate_to_search_result(A, serial, remote_path, use_root=False):
+    def _navigate_to_search_result(
+        A, serial, remote_path, use_root=False, is_directory=None
+    ):
         B = None
         for C in A.device_panels:
             if C.device_serial == serial:
@@ -602,16 +650,19 @@ class MultiDeviceWindow(QMainWindow):
                     "Could not enable root mode for %s", serial
                 )
 
-        if use_root and B.adb_handler.root_mode == "su":
-            quoted = B.adb_handler._shell_quote(remote_path)
-            F = B.adb_handler._run_adb_command(
-                ["exec-out", "su", "-c", f"test -d {quoted}"], timeout=10
-            )
-        else:
-            F = B.adb_handler._run_adb_command(
-                ["exec-out", "test", "-d", remote_path], timeout=10
-            )
-        if F.returncode == 0:
+        if is_directory is None:
+            if use_root and B.adb_handler.root_mode == "su":
+                quoted = B.adb_handler._shell_quote(remote_path)
+                F = B.adb_handler._run_adb_command(
+                    ["exec-out", "su", "-c", f"test -d {quoted}"], timeout=10
+                )
+            else:
+                F = B.adb_handler._run_adb_command(
+                    ["exec-out", "test", "-d", remote_path], timeout=10
+                )
+            is_directory = F.returncode == 0
+
+        if is_directory:
             D = remote_path
             G = None
         else:

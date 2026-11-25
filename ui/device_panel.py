@@ -386,6 +386,7 @@ class DevicePanel(QWidget):
     favorite_requested = pyqtSignal(str, str)
     close_requested = pyqtSignal()
     path_changed = pyqtSignal(str)
+    source_paths_moved = pyqtSignal(object, list)
 
     def __init__(
         A,
@@ -922,7 +923,9 @@ class DevicePanel(QWidget):
             B = count
             if B > 0:
                 if J:
+                    source_paths = [item["path"] for item in A.clipboard["items"]]
                     A.clipboard.update({"items": [], "operation": None})
+                    A.source_paths_moved.emit(A, source_paths)
                 A.status_label.setText(A.tr("Pasted {0} item(s)").format(B))
                 A.refresh_files()
             else:
@@ -1166,10 +1169,18 @@ class DevicePanel(QWidget):
         B = old_name
         if not A.adb_handler.device_connected:
             return
-        C, D = QInputDialog.getText(
-            A, A.tr("Rename"), A.tr("New name for '{0}':").format(B), text=B
-        )
-        if D and C and C != B:
+        D = QInputDialog(A)
+        D.setWindowTitle(A.tr("Rename"))
+        D.setLabelText(A.tr("New name for '{0}':").format(B))
+        D.setTextValue(B)
+        E = D.findChild(QLineEdit)
+        if E is not None:
+            F = len(B) - len(os.path.splitext(B)[1])
+            QTimer.singleShot(0, lambda edit=E, length=F: edit.setSelection(0, length))
+        if D.exec() != QDialog.DialogCode.Accepted:
+            return
+        C = D.textValue()
+        if C and C != B:
             E = f"{A.current_path.rstrip('/')}/{B}"
             F = f"{A.current_path.rstrip('/')}/{C}"
 
@@ -2336,6 +2347,7 @@ class DevicePanelGroup(QWidget):
             lambda name, path, source=B: A._add_folder_to_favorites(name, path, source)
         )
         B.cross_device_drop.connect(A.cross_device_drop)
+        B.source_paths_moved.connect(A._refresh_source_views)
         E = A.tabs.addTab(B, A._tab_title(D))
         C = QToolButton(A.tabs.tabBar())
         C.setObjectName("close_path_tab_btn")
@@ -2351,6 +2363,12 @@ class DevicePanelGroup(QWidget):
         QTimer.singleShot(0, A._style_tab_scroll_buttons)
         A._update_connection_status()
         return B
+
+    def _refresh_source_views(A, source_view, source_paths):
+        B = {path.rsplit("/", 1)[0] or "/" for path in source_paths}
+        for C in A._views:
+            if C is not source_view and C.current_path in B:
+                C.refresh_files()
 
     def _enable_click_activation(A):
         C = [A, *A.findChildren(QWidget)]

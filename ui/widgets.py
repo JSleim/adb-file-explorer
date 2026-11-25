@@ -1,3 +1,5 @@
+import posixpath
+
 from PyQt6.QtCore import QMimeData, Qt
 from PyQt6.QtGui import QDrag
 from PyQt6.QtWidgets import QMessageBox, QTreeView
@@ -170,9 +172,17 @@ class DropTreeView(QTreeView):
         B = paths
         if not B:
             return
+        C = posixpath.normpath(dest)
+        B = [
+            path
+            for path in B
+            if posixpath.dirname(posixpath.normpath(path)) != C
+        ]
+        if not B:
+            return
         D = B[0]
-        C = D.rstrip("/").split("/")[-1]
-        F = f"{dest.rstrip('/')}/{C}"
+        C = posixpath.basename(posixpath.normpath(D))
+        F = posixpath.join(dest, C)
         A.main_window._run_background(
             "Move items",
             A.main_window.adb_handler.move_on_device,
@@ -184,6 +194,6 @@ class DropTreeView(QTreeView):
             ),
         )
         for E in B[1:]:
-            C = E.rstrip("/").split("/")[-1]
-            G = f"{dest.rstrip('/')}/{C}"
+            C = posixpath.basename(posixpath.normpath(E))
+            G = posixpath.join(dest, C)
             A.main_window.adb_handler.move_on_device(E, G)
