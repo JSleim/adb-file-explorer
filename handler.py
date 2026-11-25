@@ -7,6 +7,7 @@ import struct
 import subprocess
 import tempfile
 import time
+import uuid
 import zipfile
 from dataclasses import dataclass
 
@@ -292,8 +293,7 @@ class ADBHandler:
             return False
 
     def _escape_path(self, path):
-        path = path.replace('"', '\\"').replace("'", "\\'")
-        return f'"{path}"'
+        return self._shell_quote(path)
 
     def _run_adb_command(
         self, command, use_shell=False, timeout=30, device_serial=None
@@ -717,9 +717,22 @@ class ADBHandler:
         try:
             escaped_old = self._escape_path(old_path)
             escaped_new = self._escape_path(new_path)
-            rename_command = (
-                f"mv -n {escaped_old} {escaped_new} && test ! -e {escaped_old}"
-            )
+            if old_path != new_path and old_path.casefold() == new_path.casefold():
+                parent_path = old_path.rsplit("/", 1)[0] or "/"
+                temp_name = f".adb-explorer-rename-{uuid.uuid4().hex}"
+                temp_path = f"{parent_path.rstrip('/')}/{temp_name}"
+                escaped_temp = self._escape_path(temp_path)
+                rename_command = (
+                    f"mv -n {escaped_old} {escaped_temp} && "
+                    f"test ! -e {escaped_old} && "
+                    f"if mv -n {escaped_temp} {escaped_new} && "
+                    f"test ! -e {escaped_temp}; then true; "
+                    f"else mv -n {escaped_temp} {escaped_old}; false; fi"
+                )
+            else:
+                rename_command = (
+                    f"mv -n {escaped_old} {escaped_new} && test ! -e {escaped_old}"
+                )
             command = (
                 ["shell", "su", "-c", rename_command]
                 if use_root and self.root_mode == "su"
