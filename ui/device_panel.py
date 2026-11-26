@@ -173,6 +173,8 @@ class PathBreadcrumbs(QWidget):
         A._edit_button.setAutoRaise(True)
         A._edit_button.clicked.connect(B.focus_address_bar)
         A._layout.addWidget(A._edit_button)
+        A.installEventFilter(A)
+        A._edit_button.installEventFilter(A)
         A.setMinimumWidth(0)
         A.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         A.set_path(B.current_path)
@@ -281,10 +283,26 @@ class PathInput(QLineEdit):
         A._completer.setFilterMode(Qt.MatchFlag.MatchStartsWith)
         A._completer.activated.connect(A._accept_completion)
         A._completer.popup().setObjectName("path_completion_popup")
+        A._completer.popup().installEventFilter(A)
         A.setCompleter(A._completer)
         A.installEventFilter(A)
         A.textEdited.connect(A._show_completions)
         A.returnPressed.connect(A._navigate)
+
+    def focusOutEvent(A, event):
+        super().focusOutEvent(event)
+        QTimer.singleShot(0, A._restore_breadcrumbs_after_focus_out)
+
+    def _restore_breadcrumbs_after_focus_out(A):
+        popup = A._completer.popup()
+        focus_widget = QApplication.focusWidget()
+        if A.hasFocus() or (
+            popup.isVisible()
+            and focus_widget is not None
+            and (focus_widget is popup or popup.isAncestorOf(focus_widget))
+        ):
+            return
+        A._panel.show_breadcrumbs()
 
     def update_completions(A, items):
         B = A._panel.current_path.rstrip("/") or "/"
@@ -381,14 +399,20 @@ class PathInput(QLineEdit):
         C = watched
         A = event
         if (
-            C is B
+            C in (B, B._completer.popup())
             and A.type() == QEvent.Type.KeyPress
-            and A.key() in (Qt.Key.Key_Tab, Qt.Key.Key_Right)
-            and (A.key() == Qt.Key.Key_Tab or B.cursorPosition() == len(B.text()))
-            and B._try_accept_completion()
         ):
-            A.accept()
-            return True
+            if A.key() == Qt.Key.Key_Tab:
+                B._try_accept_completion()
+                A.accept()
+                return True
+            if (
+                A.key() == Qt.Key.Key_Right
+                and B.cursorPosition() == len(B.text())
+                and B._try_accept_completion()
+            ):
+                A.accept()
+                return True
         return super().eventFilter(C, A)
 
     def keyPressEvent(A, event):
@@ -399,11 +423,15 @@ class PathInput(QLineEdit):
             A._panel.show_breadcrumbs()
             B.accept()
             return
+        if C == Qt.Key.Key_Tab:
+            A._try_accept_completion()
+            B.accept()
+            return
         if (
-            C == Qt.Key.Key_Tab
-            or C == Qt.Key.Key_Right
+            C == Qt.Key.Key_Right
             and A.cursorPosition() == len(A.text())
-        ) and A._try_accept_completion():
+            and A._try_accept_completion()
+        ):
             B.accept()
             return
         super().keyPressEvent(B)

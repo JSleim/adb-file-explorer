@@ -63,10 +63,27 @@ class PathAutocompletionTests(unittest.TestCase):
 
     def test_tab_completes_absolute_path_segment_with_trailing_slash(self):
         self._type_path_prefix("/st")
+        popup = self.panel.path_display.completer().popup()
+        self.assertTrue(popup.isVisible())
 
-        QTest.keyClick(self.panel.path_display, Qt.Key.Key_Tab)
+        QTest.keyClick(popup, Qt.Key.Key_Tab)
 
         self.assertEqual(self.panel.path_display.text(), "/storage/")
+        self.assertIs(QApplication.focusWidget(), self.panel.path_display)
+
+    def test_tab_without_a_matching_suggestion_keeps_address_bar_focused(self):
+        self.panel.focus_address_bar()
+        self.panel.path_display.setText("/directory-not-loaded")
+        self.panel.path_display._completion_model.setStringList([])
+        self.app.processEvents()
+
+        QTest.keyClick(self.panel.path_display, Qt.Key.Key_Tab)
+        self.app.processEvents()
+
+        self.assertIs(QApplication.focusWidget(), self.panel.path_display)
+        self.assertIs(
+            self.panel.path_stack.currentWidget(), self.panel.path_display
+        )
 
     def test_right_arrow_completes_current_directory_child(self):
         self._type_path_prefix("/storage/emulated/0/DC")
@@ -97,14 +114,18 @@ class PathAutocompletionTests(unittest.TestCase):
         self._wait_for_completion("/storage/emulated/0/DCIM/Camera/")
 
         QTest.keyClicks(self.panel.path_display, "Cam")
-        QTest.keyClick(self.panel.path_display, Qt.Key.Key_Tab)
+        popup = self.panel.path_display.completer().popup()
+        self.assertTrue(popup.isVisible())
+        QTest.keyClick(popup, Qt.Key.Key_Tab)
         self.assertEqual(
             self.panel.path_display.text(), "/storage/emulated/0/DCIM/Camera/"
         )
         self._wait_for_completion("/storage/emulated/0/DCIM/Camera/2026/")
 
         QTest.keyClicks(self.panel.path_display, "20")
-        QTest.keyClick(self.panel.path_display, Qt.Key.Key_Tab)
+        popup = self.panel.path_display.completer().popup()
+        self.assertTrue(popup.isVisible())
+        QTest.keyClick(popup, Qt.Key.Key_Tab)
         self.assertEqual(
             self.panel.path_display.text(),
             "/storage/emulated/0/DCIM/Camera/2026/",
