@@ -485,6 +485,7 @@ class ADBHandler:
         base_name = src_path.rstrip("/").split("/")[-1]
         target = f"{parent}/{base_name}" if parent else base_name
         ADBHandler._exec_mkdir(dst_serial, parent)
+        ADBHandler._exec_mkdir(dst_serial, target)
         try:
             r = self._run_adb_command(
                 ["exec-out", "find", src_path, "-type", "f"],

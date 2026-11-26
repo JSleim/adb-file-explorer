@@ -537,6 +537,11 @@ If not rooted, adb root may not be supported on production builds.</source>
         <translation type="unfinished" />
     </message>
     <message>
+        <location filename="../ui/device_panel.py" line="900" />
+        <source>Moving items between devices is not supported. Use Copy instead.</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
         <location filename="../ui/device_panel.py" line="894" />
         <location filename="../ui/device_panel.py" line="894" />
         <source>Item(s) Already Exist</source>
@@ -930,6 +935,10 @@ Any selected folders and all their contents, including subfolders, will also be 
         <translation type="unfinished" />
     </message>
     <message>
+        <source>A folder with this name already exists</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
         <location filename="../ui/device_panel.py" line="1334" />
         <location filename="../ui/device_panel.py" line="1334" />
         <source>Create folder {0}</source>
@@ -1304,6 +1313,26 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
         <location filename="../ui/device_panel.py" line="2228" />
         <location filename="../ui/device_panel.py" line="2228" />
         <source>Add to favorites</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Move to folder</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Could not find favorite to edit</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Could not find favorite to remove</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Could not move favorite</source>
+        <translation type="unfinished" />
+    </message>
+    <message>
+        <source>Could not find Favorites folder</source>
         <translation type="unfinished" />
     </message>
     <message>

@@ -89,6 +89,11 @@ class MultiDeviceWindow(QMainWindow):
         A.setWindowTitle(A.tr("ADB Explorer"))
         A.setGeometry(100, 100, 1100, 600)
         A.device_panels = []
+        A.clipboard = {
+            "items": [],
+            "operation": None,
+            "source_device_serial": None,
+        }
         A._last_active_panel = None
         A.bookmark_store = BookmarkStore()
         A._dark = _load_theme()
@@ -235,7 +240,11 @@ class MultiDeviceWindow(QMainWindow):
         try:
             E = ADBHandler(device_serial=C)
             B = DevicePanelGroup(
-                A.splitter, E, device_info={"model": D}, bookmark_store=A.bookmark_store
+                A.splitter,
+                E,
+                device_info={"model": D},
+                bookmark_store=A.bookmark_store,
+                clipboard=A.clipboard,
             )
             A.splitter.addWidget(B)
             A.device_panels.append(B)

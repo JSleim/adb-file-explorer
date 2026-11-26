@@ -624,6 +624,11 @@ If not rooted, adb root may not be supported on production builds.</source>
         <translation>Буфер обмена пуст</translation>
     </message>
     <message>
+        <location filename="../ui/device_panel.py" line="900"/>
+        <source>Moving items between devices is not supported. Use Copy instead.</source>
+        <translation>Перемещение между устройствами не поддерживается. Используйте копирование.</translation>
+    </message>
+    <message>
         <location filename="../ui/device_panel.py" line="894"/>
         <location filename="../ui/device_panel.py" line="894"/>
         <source>Item(s) Already Exist</source>
@@ -1020,6 +1025,10 @@ Any selected folders and all their contents, including subfolders, will also be 
         <location filename="../ui/device_panel.py" line="1322"/>
         <source>Folder name:</source>
         <translation>Имя папки:</translation>
+    </message>
+    <message>
+        <source>A folder with this name already exists</source>
+        <translation>Папка с таким именем уже существует</translation>
     </message>
     <message>
         <location filename="../ui/device_panel.py" line="1334"/>
@@ -1423,6 +1432,26 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
         <location filename="../ui/device_panel.py" line="2228"/>
         <source>Add to favorites</source>
         <translation>Добавить в избранное</translation>
+    </message>
+    <message>
+        <source>Move to folder</source>
+        <translation>Переместить в папку</translation>
+    </message>
+    <message>
+        <source>Could not find favorite to edit</source>
+        <translation>Не удалось найти избранное для редактирования</translation>
+    </message>
+    <message>
+        <source>Could not find favorite to remove</source>
+        <translation>Не удалось найти избранное для удаления</translation>
+    </message>
+    <message>
+        <source>Could not move favorite</source>
+        <translation>Не удалось переместить избранное</translation>
+    </message>
+    <message>
+        <source>Could not find Favorites folder</source>
+        <translation>Не удалось найти папку избранного</translation>
     </message>
     <message>
         <location filename="../ui/device_panel.py" line="2241"/>

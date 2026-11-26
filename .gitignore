@@ -3,5 +3,4 @@ logs
 __pycache__
 dist
 build
-tests/*
 ui/*.ini

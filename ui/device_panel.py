@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import uuid
+from copy import deepcopy
 from datetime import datetime
 
 from PyQt6.QtCore import (
@@ -158,6 +159,8 @@ class PathBreadcrumbs(QWidget):
         A._content_layout.setContentsMargins(0, 0, 0, 0)
         A._content_layout.setSpacing(0)
         A._scroll_area.setWidget(A._content)
+        for C in (A._scroll_area, A._scroll_area.viewport(), A._content):
+            C.installEventFilter(A)
         A._scroll_area.horizontalScrollBar().rangeChanged.connect(
             lambda _minimum, _maximum: A._scroll_to_end()
         )
@@ -197,6 +200,7 @@ class PathBreadcrumbs(QWidget):
             if H:
                 I = QLabel("›", A)
                 I.setObjectName("path_breadcrumb_separator")
+                I.installEventFilter(A)
                 A._content_layout.addWidget(I)
             B = QToolButton(A)
             B.setObjectName(
@@ -209,11 +213,46 @@ class PathBreadcrumbs(QWidget):
             B.setAccessibleName(A.tr("Navigate to {0}").format(D))
             B.setAutoRaise(True)
             B.setCursor(Qt.CursorShape.PointingHandCursor)
+            B.installEventFilter(A)
             B.clicked.connect(
                 lambda _checked=False, destination=D: A._panel.navigate_to(destination)
             )
+            B.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            B.customContextMenuRequested.connect(
+                lambda position, button=B, name=L, path=D: A._show_context_menu(
+                    button, position, name, path
+                )
+            )
             A._content_layout.addWidget(B)
         QTimer.singleShot(0, A._update_content_size)
+
+    def eventFilter(A, _watched, event):
+        if event.type() == QEvent.Type.MouseButtonDblClick:
+            A._panel.focus_address_bar()
+            event.accept()
+            return True
+        if event.type() == QEvent.Type.Wheel:
+            delta = event.angleDelta().y() or event.angleDelta().x()
+            if not delta:
+                delta = event.pixelDelta().y() or event.pixelDelta().x()
+            if delta:
+                scroll_bar = A._scroll_area.horizontalScrollBar()
+                scroll_bar.setValue(scroll_bar.value() - delta)
+                event.accept()
+                return True
+        return super().eventFilter(_watched, event)
+
+    def mouseDoubleClickEvent(A, event):
+        A._panel.focus_address_bar()
+        event.accept()
+
+    def _show_context_menu(A, button, position, name, path):
+        menu = QMenu(A)
+        menu.addAction(
+            A._panel.tr("Add to favorites"),
+            lambda: A._panel.favorite_requested.emit(name, path),
+        )
+        menu.exec(button.mapToGlobal(position))
 
     def _update_content_size(A):
         A._content_layout.activate()
@@ -562,6 +601,8 @@ class DevicePanel(QWidget):
             (QKeySequence(Qt.Key.Key_F5), A.refresh_files),
             (QKeySequence("Ctrl+F"), A.focus_filter),
             (QKeySequence("Ctrl+L"), A.focus_address_bar),
+            (QKeySequence("Ctrl+Shift+N"), A.create_new_folder),
+            (QKeySequence("Ctrl+Shift+T"), A.create_new_file),
         )
         for E, F in D:
             B = QShortcut(E, A)
@@ -630,9 +671,10 @@ class DevicePanel(QWidget):
         A.search_bar.selectAll()
 
     def focus_address_bar(A):
+        A.path_display.setText(A.current_path)
         A.path_stack.setCurrentWidget(A.path_display)
         A.path_display.setFocus()
-        A.path_display.selectAll()
+        A.path_display.setCursorPosition(len(A.path_display.text()))
 
     def show_breadcrumbs(A):
         A.path_display.setText(A.current_path)
@@ -867,26 +909,78 @@ class DevicePanel(QWidget):
         B = A.get_selected_items()
         if not B:
             return
-        A.clipboard.update({"items": B, "operation": "copy"})
+        A.clipboard.update(
+            {
+                "items": B,
+                "operation": "copy",
+                "source_device_serial": A.device_serial,
+            }
+        )
         A.status_label.setText(A.tr("Copied {0} item(s)").format(len(B)))
 
     def cut_selected(A):
         B = A.get_selected_items()
         if not B:
             return
-        A.clipboard.update({"items": B, "operation": "cut"})
+        A.clipboard.update(
+            {
+                "items": B,
+                "operation": "cut",
+                "source_device_serial": A.device_serial,
+            }
+        )
         A.status_label.setText(A.tr("Cut {0} item(s)").format(len(B)))
 
     def paste_items(A):
         if not A.clipboard or not A.clipboard["items"]:
             A.status_label.setText(A.tr("Clipboard is empty"))
             return
+        E = A.clipboard["operation"]
+        source_serial = A.clipboard.get("source_device_serial") or A.device_serial
+        if E == "cut" and source_serial != A.device_serial:
+            A.status_label.setText(
+                A.tr("Moving items between devices is not supported. Use Copy instead.")
+            )
+            return
+        items = [dict(item) for item in A.clipboard["items"]]
         D = A.current_path
+        destination_root = D.rstrip("/") or "/"
+        destination_paths = []
+        for item in items:
+            source_path = item["path"]
+            name = os.path.basename(source_path)
+            destination = (
+                f"{destination_root.rstrip('/')}/{name}"
+                if destination_root != "/"
+                else f"/{name}"
+            )
+            source_parent = source_path.rpartition("/")[0] or "/"
+            if (
+                E == "copy"
+                and source_serial == A.device_serial
+                and source_parent == destination_root
+            ):
+                if item.get("is_dir"):
+                    stem, extension = name, ""
+                else:
+                    stem, extension = os.path.splitext(name)
+                copy_number = 1
+                while True:
+                    suffix = " (copy)" if copy_number == 1 else f" (copy {copy_number})"
+                    candidate_name = f"{stem}{suffix}{extension}"
+                    destination = (
+                        f"{destination_root.rstrip('/')}/{candidate_name}"
+                        if destination_root != "/"
+                        else f"/{candidate_name}"
+                    )
+                    if not A.adb_handler.path_exists(destination):
+                        break
+                    copy_number += 1
+            destination_paths.append(destination)
         B = []
-        for C in A.clipboard["items"]:
-            F = f"{D}/{os.path.basename(C['path'])}"
-            if A.adb_handler.path_exists(F):
-                B.append(os.path.basename(C["path"]))
+        for destination in destination_paths:
+            if A.adb_handler.path_exists(destination):
+                B.append(os.path.basename(destination))
         if B:
             G = "\n".join(B[:10])
             H = f"\n...and {len(B) - 10} more" if len(B) > 10 else ""
@@ -901,17 +995,24 @@ class DevicePanel(QWidget):
             if I == QMessageBox.StandardButton.No:
                 A.status_label.setText(A.tr("Paste canceled"))
                 return
-        E = A.clipboard["operation"]
         J = E == "cut"
 
         def K():
             B = 0
-            for H in A.clipboard["items"]:
+            for H, F in zip(items, destination_paths):
                 if is_cancelled():
                     return B
                 C = H["path"]
-                F = f"{D}/{os.path.basename(C)}"
-                if E == "copy":
+                if source_serial != A.device_serial:
+                    if H.get("is_dir"):
+                        G = A.adb_handler.stream_directory(
+                            source_serial, C, A.device_serial, F
+                        )
+                    else:
+                        G = A.adb_handler.stream_file(
+                            source_serial, C, A.device_serial, F
+                        )
+                elif E == "copy":
                     G = A.adb_handler.copy_on_device(C, F)
                 else:
                     G = A.adb_handler.move_on_device(C, F)
@@ -923,8 +1024,19 @@ class DevicePanel(QWidget):
             B = count
             if B > 0:
                 if J:
-                    source_paths = [item["path"] for item in A.clipboard["items"]]
-                    A.clipboard.update({"items": [], "operation": None})
+                    source_paths = [item["path"] for item in items]
+                    if (
+                        A.clipboard.get("items") == items
+                        and A.clipboard.get("operation") == E
+                        and A.clipboard.get("source_device_serial") == source_serial
+                    ):
+                        A.clipboard.update(
+                            {
+                                "items": [],
+                                "operation": None,
+                                "source_device_serial": None,
+                            }
+                        )
                     A.source_paths_moved.emit(A, source_paths)
                 A.status_label.setText(A.tr("Pasted {0} item(s)").format(B))
                 A.refresh_files()
@@ -1966,11 +2078,20 @@ class DevicePanelGroup(QWidget):
         device_info=None,
         bookmarks_path=None,
         bookmark_store=None,
+        clipboard=None,
     ):
         super().__init__(parent)
         A.adb_handler = adb_handler
         A.device_info = device_info or {}
-        A.clipboard = {"items": [], "operation": None}
+        A.clipboard = (
+            clipboard
+            if clipboard is not None
+            else {
+                "items": [],
+                "operation": None,
+                "source_device_serial": None,
+            }
+        )
         A._views = []
         A._navigation_items = []
         A._closing = False
@@ -2036,6 +2157,10 @@ class DevicePanelGroup(QWidget):
         A.tabs.tabBar().setElideMode(Qt.TextElideMode.ElideMiddle)
         A.tabs.currentChanged.connect(A._on_active_tab_changed)
         A.tabs.tabBar().setObjectName("path_tab_bar")
+        A.tabs.tabBar().setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        A.tabs.tabBar().customContextMenuRequested.connect(
+            A._show_tab_context_menu
+        )
         A.content_splitter.addWidget(A.tabs)
         A.content_splitter.setStretchFactor(0, 0)
         A.content_splitter.setStretchFactor(1, 1)
@@ -2096,20 +2221,39 @@ class DevicePanelGroup(QWidget):
             0, Qt.ItemDataRole.UserRole, {"kind": "group", "section": "favorites"}
         )
         A.navigation_tree.addTopLevelItem(C)
-        for D in A._bookmarks:
-            B = QTreeWidgetItem([D["name"]])
-            B.setIcon(0, F)
-            B.setData(
-                0,
-                Qt.ItemDataRole.UserRole,
-                {"kind": "favorite", "path": D["path"], "bookmark": D},
-            )
-            H = D["path"]
-            if D.get("note"):
-                H = f"{D['note']}\n{H}"
-            B.setToolTip(0, H)
-            C.addChild(B)
-            A._navigation_items.append((B, D["path"]))
+
+        def add_favorites(parent, entries):
+            for entry in entries:
+                if entry.get("kind") == "folder":
+                    folder_item = QTreeWidgetItem([entry["name"]])
+                    folder_item.setIcon(0, F)
+                    folder_item.setData(
+                        0,
+                        Qt.ItemDataRole.UserRole,
+                        {"kind": "favorite_folder", "folder": entry},
+                    )
+                    parent.addChild(folder_item)
+                    add_favorites(folder_item, entry["children"])
+                    continue
+                bookmark_item = QTreeWidgetItem([entry["name"]])
+                bookmark_item.setIcon(0, F)
+                bookmark_item.setData(
+                    0,
+                    Qt.ItemDataRole.UserRole,
+                    {
+                        "kind": "favorite",
+                        "path": entry["path"],
+                        "bookmark": entry,
+                    },
+                )
+                tooltip = entry["path"]
+                if entry.get("note"):
+                    tooltip = f"{entry['note']}\n{tooltip}"
+                bookmark_item.setToolTip(0, tooltip)
+                parent.addChild(bookmark_item)
+                A._navigation_items.append((bookmark_item, entry["path"]))
+
+        add_favorites(C, A._bookmarks)
         if not A._bookmarks:
             K = QTreeWidgetItem([A.tr("No favorites yet")])
             K.setFlags(Qt.ItemFlag.NoItemFlags)
@@ -2175,13 +2319,105 @@ class DevicePanelGroup(QWidget):
         A._refresh_navigation_tree()
         return True
 
-    def add_bookmark(B, name, path, note=""):
-        A = {"name": name.strip(), "path": path, "note": note.strip()}
-        if not A["name"] or not A["path"].startswith("/"):
+    @staticmethod
+    def _folder_children_for(bookmarks, folder_id):
+        if folder_id is None:
+            return bookmarks
+        for item in bookmarks:
+            if item.get("kind") != "folder":
+                continue
+            if item["id"] == folder_id:
+                return item["children"]
+            children = DevicePanelGroup._folder_children_for(
+                item["children"], folder_id
+            )
+            if children is not None:
+                return children
+        return None
+
+    @staticmethod
+    def _bookmark_parent_list(bookmarks, path):
+        for item in bookmarks:
+            if item.get("kind") == "folder":
+                parent = DevicePanelGroup._bookmark_parent_list(
+                    item["children"], path
+                )
+                if parent is not None:
+                    return parent
+            elif item.get("path") == path:
+                return bookmarks
+        return None
+
+    @staticmethod
+    def _favorite_path_exists(bookmarks, path):
+        return any(
+            DevicePanelGroup._favorite_path_exists(item["children"], path)
+            if item.get("kind") == "folder"
+            else item.get("path") == path
+            for item in bookmarks
+        )
+
+    def _iter_favorite_folders(A, bookmarks=None, parent_name=""):
+        for item in A._bookmarks if bookmarks is None else bookmarks:
+            if item.get("kind") != "folder":
+                continue
+            name = (
+                f"{parent_name} / {item['name']}"
+                if parent_name
+                else item["name"]
+            )
+            yield item, name
+            yield from A._iter_favorite_folders(item["children"], name)
+
+    def add_bookmark(B, name, path, note="", parent_folder_id=None):
+        bookmark = {"name": name.strip(), "path": path, "note": note.strip()}
+        if not bookmark["name"] or not bookmark["path"].startswith("/"):
             raise ValueError("A favorite needs a name and absolute device path")
-        if any(B["path"] == A["path"] for B in B._bookmarks):
+        if B._favorite_path_exists(B._bookmarks, bookmark["path"]):
             return False
-        return B._save_bookmarks([*B._bookmarks, A])
+        bookmarks = deepcopy(B._bookmarks)
+        destination = B._folder_children_for(bookmarks, parent_folder_id)
+        if destination is None:
+            raise ValueError("Favorites folder not found")
+        destination.append(bookmark)
+        return B._save_bookmarks(bookmarks)
+
+    def _create_bookmark_folder(A, parent_folder=None):
+        view = A.active_view
+        if view is None:
+            return
+        name, accepted = QInputDialog.getText(
+            view, view.tr("New Folder"), view.tr("Folder name:")
+        )
+        if not accepted or not name.strip():
+            return
+        name = name.strip()
+        parent_id = parent_folder.get("id") if parent_folder else None
+        bookmarks = deepcopy(A._bookmarks)
+        destination = A._folder_children_for(bookmarks, parent_id)
+        if destination is None:
+            A._show_bookmark_error(
+                A.tr("Could not find Favorites folder"), view
+            )
+            return
+        if any(
+            item["name"].casefold() == name.casefold()
+            for item in destination
+        ):
+            A._show_bookmark_error(
+                view.tr("A folder with this name already exists"), view
+            )
+            return
+        destination.append(
+            {
+                "kind": "folder",
+                "id": uuid.uuid4().hex,
+                "name": name,
+                "children": [],
+            }
+        )
+        if A._save_bookmarks(bookmarks):
+            view.status_label.setText(view.tr("Created '{0}'").format(name))
 
     def _edit_bookmark_dialog(A, bookmark, title):
         C = bookmark
@@ -2192,15 +2428,29 @@ class DevicePanelGroup(QWidget):
         if not B["name"]:
             A._show_bookmark_error(A.tr("Favorite name cannot be empty"))
             return
-        if C in A._bookmarks:
-            F = A._bookmarks.index(C)
-            D = list(A._bookmarks)
-            D[F] = B
-        else:
-            if any(A["path"] == B["path"] for A in A._bookmarks):
+        if C is not None:
+            if B["path"] != C["path"] and A._favorite_path_exists(
+                A._bookmarks, B["path"]
+            ):
                 A._show_bookmark_error(A.tr("This folder is already in favorites"))
                 return
-            D = [*A._bookmarks, B]
+            D = deepcopy(A._bookmarks)
+            parent = A._bookmark_parent_list(D, C["path"])
+            if parent is None:
+                A._show_bookmark_error(A.tr("Could not find favorite to edit"))
+                return
+            index = next(
+                index
+                for index, item in enumerate(parent)
+                if item.get("path") == C["path"]
+            )
+            parent[index] = B
+        else:
+            if A._favorite_path_exists(A._bookmarks, B["path"]):
+                A._show_bookmark_error(A.tr("This folder is already in favorites"))
+                return
+            D = deepcopy(A._bookmarks)
+            D.append(B)
         A._save_bookmarks(D)
 
     def _selected_bookmark(C):
@@ -2210,10 +2460,48 @@ class DevicePanelGroup(QWidget):
             return A.get("bookmark")
 
     def _remove_bookmark(A):
-        B = A._selected_bookmark()
-        if B is None:
+        bookmark = A._selected_bookmark()
+        if bookmark is None:
             return
-        A._save_bookmarks([A for A in A._bookmarks if A != B])
+        bookmarks = deepcopy(A._bookmarks)
+        parent = A._bookmark_parent_list(bookmarks, bookmark["path"])
+        if parent is None:
+            A._show_bookmark_error(A.tr("Could not find favorite to remove"))
+            return
+        index = next(
+            index
+            for index, item in enumerate(parent)
+            if item.get("path") == bookmark["path"]
+        )
+        del parent[index]
+        A._save_bookmarks(bookmarks)
+
+    def _move_bookmark_to_folder(A, bookmark, folder_id):
+        bookmarks = deepcopy(A._bookmarks)
+        source = A._bookmark_parent_list(bookmarks, bookmark["path"])
+        destination = A._folder_children_for(bookmarks, folder_id)
+        if source is None or destination is None:
+            A._show_bookmark_error(A.tr("Could not move favorite"))
+            return
+        if source is destination:
+            return
+        index = next(
+            index
+            for index, item in enumerate(source)
+            if item.get("path") == bookmark["path"]
+        )
+        destination.append(source.pop(index))
+        A._save_bookmarks(bookmarks)
+
+    def _add_current_folder_to_favorites(A, parent_folder):
+        view = A.active_view
+        if view is None:
+            return
+        path = view.current_path
+        name = path.rstrip("/").rsplit("/", 1)[-1] or "/"
+        A._add_folder_to_favorites(
+            name, path, view, parent_folder.get("id")
+        )
 
     def _edit_selected_bookmark(A):
         B = A._selected_bookmark()
@@ -2221,34 +2509,67 @@ class DevicePanelGroup(QWidget):
             A._edit_bookmark_dialog(B, A.tr("Edit favorite"))
 
     def _show_bookmark_context_menu(A, position):
-        D = position
-        B = A.navigation_tree.itemAt(D)
-        if B is None:
+        item = A.navigation_tree.itemAt(position)
+        if item is None:
             return
-        F = B.data(0, Qt.ItemDataRole.UserRole) or {}
-        E = F.get("kind")
-        if E not in {"folder", "favorite"}:
+        data = item.data(0, Qt.ItemDataRole.UserRole) or {}
+        kind = data.get("kind")
+        if kind not in {"folder", "favorite", "favorite_folder", "group"}:
             return
-        A.navigation_tree.setCurrentItem(B)
-        C = QMenu(A)
-        C.addAction(A.tr("Open"), lambda: A._activate_navigation_item(B))
-        if E == "favorite":
-            C.addAction(A.tr("Edit"), A._edit_selected_bookmark)
-            C.addAction(A.tr("Remove from favorites"), A._remove_bookmark)
+        A.navigation_tree.setCurrentItem(item)
+        menu = QMenu(A)
+        if kind in {"group", "favorite_folder"}:
+            parent_folder = data.get("folder")
+            view = A.active_view
+            if view is None:
+                return
+            menu.addAction(
+                view.tr("New Folder"),
+                lambda: A._create_bookmark_folder(parent_folder),
+            )
+            if parent_folder is not None:
+                menu.addAction(
+                    view.tr("Add to favorites"),
+                    lambda: A._add_current_folder_to_favorites(parent_folder),
+                )
         else:
-            C.addAction(A.tr("Add to favorites"), lambda: A._pin_navigation_item(B))
-        C.exec(A.navigation_tree.viewport().mapToGlobal(D))
+            menu.addAction(A.tr("Open"), lambda: A._activate_navigation_item(item))
+            if kind == "favorite":
+                bookmark = data["bookmark"]
+                menu.addAction(A.tr("Edit"), A._edit_selected_bookmark)
+                menu.addAction(A.tr("Remove from favorites"), A._remove_bookmark)
+                move_menu = menu.addMenu(A.tr("Move to folder"))
+                move_menu.addAction(
+                    A.tr("Favorites"),
+                    lambda: A._move_bookmark_to_folder(bookmark, None),
+                )
+                for folder, label in A._iter_favorite_folders():
+                    move_menu.addAction(
+                        label,
+                        lambda _checked=False, folder_id=folder["id"]: (
+                            A._move_bookmark_to_folder(bookmark, folder_id)
+                        ),
+                    )
+            else:
+                menu.addAction(
+                    A.tr("Add to favorites"),
+                    lambda: A._pin_navigation_item(item),
+                )
+        menu.exec(A.navigation_tree.viewport().mapToGlobal(position))
 
     def _pin_navigation_item(A, item):
         B = item.data(0, Qt.ItemDataRole.UserRole) or {}
         A._add_folder_to_favorites(item.text(0), B["path"], A.active_view)
 
-    def _add_folder_to_favorites(A, name, path, source_view=None):
+    def _add_folder_to_favorites(
+        A, name, path, source_view=None, parent_folder_id=None
+    ):
         B = source_view
-        if any(A["path"] == path for A in A._bookmarks):
+        if A._favorite_path_exists(A._bookmarks, path):
             A._show_bookmark_error(A.tr("This folder is already in favorites"), B)
-            return
-        if A.add_bookmark(name, path) and B is not None:
+        elif A.add_bookmark(
+            name, path, parent_folder_id=parent_folder_id
+        ) and B is not None:
             B.status_label.setText(A.tr("Added '{0}' to favorites").format(name))
 
     def _update_navigation_selection(B, path):
@@ -2369,6 +2690,23 @@ class DevicePanelGroup(QWidget):
         for C in A._views:
             if C is not source_view and C.current_path in B:
                 C.refresh_files()
+
+    def _show_tab_context_menu(A, position):
+        tab_bar = A.tabs.tabBar()
+        index = tab_bar.tabAt(position)
+        if index < 0:
+            return
+        view = A.tabs.widget(index)
+        if not isinstance(view, DevicePanel):
+            return
+        path = view.current_path
+        name = path.rstrip("/").rsplit("/", 1)[-1] or "/"
+        menu = QMenu(A)
+        menu.addAction(
+            A.tr("Add to favorites"),
+            lambda: A._add_folder_to_favorites(name, path, view),
+        )
+        menu.exec(tab_bar.mapToGlobal(position))
 
     def _enable_click_activation(A):
         C = [A, *A.findChildren(QWidget)]

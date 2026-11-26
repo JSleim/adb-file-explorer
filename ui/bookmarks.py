@@ -35,7 +35,7 @@ class BookmarkStore(QObject):
         for item in bookmarks:
             self._validate_bookmark(item)
         data = self._read()
-        data["version"] = 1
+        data["version"] = 2
         key = self._device_key(device_id)
         data["devices"][key] = bookmarks
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -81,7 +81,21 @@ class BookmarkStore(QObject):
             not isinstance(bookmark, dict)
             or not isinstance(bookmark.get("name"), str)
             or not bookmark["name"].strip()
-            or not isinstance(bookmark.get("path"), str)
+        ):
+            raise ValueError("Favorites entries require a name")
+        if bookmark.get("kind") == "folder":
+            children = bookmark.get("children")
+            if (
+                not isinstance(bookmark.get("id"), str)
+                or not bookmark["id"]
+                or not isinstance(children, list)
+            ):
+                raise ValueError("Favorites folders require an id and children list")
+            for child in children:
+                BookmarkStore._validate_bookmark(child)
+            return
+        if bookmark.get("kind") not in (None, "favorite") or (
+            not isinstance(bookmark.get("path"), str)
             or not bookmark["path"].startswith("/")
             or not isinstance(bookmark.get("note", ""), str)
         ):
