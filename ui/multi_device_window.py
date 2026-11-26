@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QSplitter,
     QStatusBar,
     QToolBar,
@@ -159,6 +160,10 @@ class MultiDeviceWindow(QMainWindow):
         A.search_dock_action.setCheckable(True)
         A.search_dock_action.setChecked(False)
         A.search_dock_action.toggled.connect(A._toggle_search_panel)
+        A.dashboard_dock_action = I.addAction(A.tr("Device Dashboard Panel"))
+        A.dashboard_dock_action.setCheckable(True)
+        A.dashboard_dock_action.setChecked(False)
+        A.dashboard_dock_action.toggled.connect(A._toggle_dashboard_panel)
 
         G = D.addMenu(A.tr("Tools"))
         G.addAction(A.tr("Install APK..."), A._install_apk_dialog)
@@ -188,6 +193,20 @@ class MultiDeviceWindow(QMainWindow):
         A.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, A.search_dock)
         A.search_dock.hide()
         A.search_dock.visibilityChanged.connect(A.search_dock_action.setChecked)
+        A.dashboard_panel = DeviceDashboardDialog(parent=A)
+        dashboard_scroll = QScrollArea(A)
+        dashboard_scroll.setWidgetResizable(True)
+        dashboard_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        dashboard_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        dashboard_scroll.setWidget(A.dashboard_panel)
+        A.dashboard_dock = QDockWidget(A.tr("Device Dashboard"), A)
+        A.dashboard_dock.setObjectName("device_dashboard_dock")
+        A.dashboard_dock.setWidget(dashboard_scroll)
+        A.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, A.dashboard_dock)
+        A.dashboard_dock.hide()
+        A.dashboard_dock.visibilityChanged.connect(A.dashboard_dock_action.setChecked)
 
     def resizeEvent(A, event):
         super().resizeEvent(event)
@@ -204,6 +223,8 @@ class MultiDeviceWindow(QMainWindow):
             A.task_manager.setParent(None)
         if hasattr(A, "search_panel"):
             A.search_panel.shutdown()
+        if hasattr(A, "dashboard_panel"):
+            A.dashboard_panel._shutdown_worker()
         A.device_panels.clear()
         event.accept()
 
@@ -301,6 +322,9 @@ class MultiDeviceWindow(QMainWindow):
         B.prepare_for_close()
         A._update_panel_count_ui()
         A._reconnect_drop_signals()
+        if hasattr(A, "dashboard_dock") and A.dashboard_dock.isVisible():
+            active = A._active_panel()
+            A.dashboard_panel.set_device(active.adb_handler if active else None)
         A.status_label.setText(A.tr("Panel closed"))
 
     def _update_panel_count_ui(A):
@@ -426,6 +450,8 @@ class MultiDeviceWindow(QMainWindow):
         B = panel
         if B in A.device_panels:
             A._last_active_panel = B
+            if hasattr(A, "dashboard_dock") and A.dashboard_dock.isVisible():
+                A.dashboard_panel.set_device(B.adb_handler)
 
     def _remember_active_panel(C, _old_widget, new_widget):
         A = new_widget
@@ -497,6 +523,12 @@ class MultiDeviceWindow(QMainWindow):
                 else:
                     A.status_label.setText(B.tr("Reconnected"))
                     A.refresh_files()
+                    if (
+                        hasattr(B, "dashboard_dock")
+                        and B.dashboard_dock.isVisible()
+                        and B._active_panel() is A
+                    ):
+                        B.dashboard_panel.refresh()
 
     def _run_modal(
         B, title, fn, *Q, on_done=None, on_error=None, on_cancel=None, refresh=False
@@ -613,12 +645,16 @@ class MultiDeviceWindow(QMainWindow):
 
     def _open_device_dashboard(A):
         B = A._active_panel()
-        if not B:
-            QMessageBox.information(
-                A, A.tr("No Devices"), A.tr("No device panel is open.")
-            )
-            return
-        DeviceDashboardDialog(B.adb_handler, A).exec()
+        A.dashboard_panel.set_device(B.adb_handler if B else None)
+        A.dashboard_dock.show()
+        A.resizeDocks([A.dashboard_dock], [380], Qt.Orientation.Horizontal)
+        A.dashboard_dock.raise_()
+
+    def _toggle_dashboard_panel(A, visible):
+        if visible:
+            A._open_device_dashboard()
+        else:
+            A.dashboard_dock.hide()
 
     def _open_permission_lint(A):
         B = A._active_panel()
