@@ -530,101 +530,101 @@ class MultiDeviceWindow(QMainWindow):
                     ):
                         B.dashboard_panel.refresh()
 
-    def _run_modal(
-        B, title, fn, *Q, on_done=None, on_error=None, on_cancel=None, refresh=False
+    def _create_modal_dialog(self, title: str):
+        from PyQt6.QtWidgets import QProgressBar, QPushButton
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(title)
+        dialog.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, False)
+        dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        dialog.setFixedSize(360, 130)
+
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.addWidget(QLabel(f"{title}..."))
+
+        progress = QProgressBar()
+        progress.setRange(0, 0)
+        layout.addWidget(progress)
+
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        bg_btn = QPushButton(self.tr("Background"))
+        cancel_btn = QPushButton(self.tr("Cancel"))
+        btn_row.addWidget(bg_btn)
+        btn_row.addWidget(cancel_btn)
+        layout.addLayout(btn_row)
+
+        return dialog, bg_btn, cancel_btn
+
+    def _handle_modal_finished(
+        self, val, title, worker, state, on_done, on_error, on_cancel
     ):
-        K = on_cancel
-        J = on_done
-        E = on_error
-        D = title
-        from PyQt6.QtWidgets import QProgressBar as R
-        from PyQt6.QtWidgets import QPushButton as L
+        state["finished"] = True
+        if worker.is_cancelled():
+            if on_cancel:
+                on_cancel()
+            return
+        if state["errored"]:
+            return
 
-        from ui.task_manager import WorkerThread as S
+        if val:
+            if on_done:
+                on_done(val)
+        elif not state["backgrounded"]:
+            if on_error:
+                on_error()
+            else:
+                self.status_label.setText(self.tr("{0} failed").format(title))
 
-        C = S(D, fn, *Q)
-        A = QDialog(B)
-        A.setWindowTitle(D)
-        A.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, False)
-        A.setWindowModality(Qt.WindowModality.WindowModal)
-        A.setFixedSize(360, 130)
-        F = QVBoxLayout(A)
-        F.setContentsMargins(16, 16, 16, 16)
-        T = QLabel(f"{D}...")
-        F.addWidget(T)
-        M = R()
-        M.setRange(0, 0)
-        F.addWidget(M)
-        G = QHBoxLayout()
-        G.addStretch()
-        N = L(B.tr("Background"))
-        O = L(B.tr("Cancel"))
-        G.addWidget(N)
-        G.addWidget(O)
-        F.addLayout(G)
-        H = [False]
-        P = [False]
-        I = [False]
+    def _run_modal(
+        self, title, fn, *args, on_done=None, on_error=None, on_cancel=None, refresh=False
+    ):
+        from ui.task_manager import WorkerThread
 
-        def U():
-            if P[0]:
-                return
-            A.show()
-            A.raise_()
-            A.activateWindow()
+        worker = WorkerThread(title, fn, *args)
+        dialog, bg_btn, cancel_btn = self._create_modal_dialog(title)
+        state = {"backgrounded": False, "finished": False, "errored": False}
 
-        def V():
-            if H[0]:
-                A.hide()
-                return
-            H[0] = True
-            A.hide()
-            B.task_manager.add_task(C, name=D, on_reopen=U)
-            B._position_task_manager()
+        def reopen():
+            if not state["finished"]:
+                dialog.show()
+                dialog.raise_()
+                dialog.activateWindow()
 
-        N.clicked.connect(V)
+        def move_to_background():
+            dialog.hide()
+            if not state["backgrounded"]:
+                state["backgrounded"] = True
+                self.task_manager.add_task(worker, name=title, on_reopen=reopen)
+                self._position_task_manager()
 
-        def W():
-            C.cancel()
-            A.close()
+        def cancel_task():
+            worker.cancel()
+            dialog.close()
 
-        O.clicked.connect(W)
+        def on_finished(val):
+            if dialog.isVisible():
+                dialog.close()
+            self._handle_modal_finished(
+                val, title, worker, state, on_done, on_error, on_cancel
+            )
 
-        def X(val):
-            F = val
-            P[0] = True
-            if A.isVisible():
-                A.close()
-            if C.is_cancelled():
-                if K:
-                    K()
-                return
-            if I[0]:
-                return
-            G = not I[0] and (bool(F) if F is not None else False)
-            if G:
-                if J:
-                    J(F)
-                if refresh:
-                    pass
-            elif not H[0]:
-                if E:
-                    E()
-                else:
-                    B.status_label.setText(B.tr("{0} failed").format(D))
+        def on_worker_error(msg):
+            state["errored"] = True
+            if dialog.isVisible():
+                dialog.close()
+            if on_error:
+                on_error()
 
-        def Y(msg):
-            I[0] = True
-            if A.isVisible():
-                A.close()
-            if E:
-                E()
+        bg_btn.clicked.connect(move_to_background)
+        cancel_btn.clicked.connect(cancel_task)
+        worker.finished_signal.connect(on_finished)
+        worker.error_signal.connect(on_worker_error)
 
-        C.finished_signal.connect(X)
-        C.error_signal.connect(Y)
-        A.show()
-        C.start()
-        return C
+        dialog.show()
+        worker.start()
+        return worker
 
     def _open_global_search(A):
         B = A._active_panel()
@@ -673,61 +673,72 @@ class MultiDeviceWindow(QMainWindow):
         D.item_selected.connect(A._navigate_to_search_result)
         D.exec()
 
+    def _get_or_create_device_panel(self, serial: str):
+        for panel in self.device_panels:
+            if panel.device_serial == serial:
+                return panel
+        devices = ADBHandler().get_unique_devices()
+        return self._add_panel_for_device(serial, devices.get(serial, self.tr("Unknown")))
+
+    def _is_remote_directory(self, panel, remote_path: str, use_root: bool) -> bool:
+        if use_root and panel.adb_handler.root_mode == "su":
+            quoted = panel.adb_handler._shell_quote(remote_path)
+            res = panel.adb_handler._run_adb_command(
+                ["exec-out", "su", "-c", f"test -d {quoted}"], timeout=10
+            )
+        else:
+            res = panel.adb_handler._run_adb_command(
+                ["exec-out", "test", "-d", remote_path], timeout=10
+            )
+        return res.returncode == 0
+
+    def _focus_item_in_tab(self, tab, filename: str, retries: int = 10):
+        for row in range(tab.tree_model.rowCount()):
+            idx = tab.tree_model.index(row, 0)
+            if tab.tree_model.data(idx) == filename:
+                tab.tree_view.setCurrentIndex(idx)
+                tab.tree_view.scrollTo(idx)
+                tab.tree_view.setFocus()
+                return
+
+        # Если список файлов ещё загружается в фоне — повторяем проверку каждые 150 мс
+        if retries > 0:
+            QTimer.singleShot(
+                150, lambda: self._focus_item_in_tab(tab, filename, retries - 1)
+            )
+
     def _navigate_to_search_result(
-        A, serial, remote_path, use_root=False, is_directory=None
+        self, serial, remote_path, use_root=False, is_directory=None
     ):
-        B = None
-        for C in A.device_panels:
-            if C.device_serial == serial:
-                B = C
-                break
-        if B is None:
-            E = ADBHandler().get_unique_devices()
-            B = A._add_panel_for_device(serial, E.get(serial, A.tr("Unknown")))
-        if B is None:
+        panel = self._get_or_create_device_panel(serial)
+        if panel is None:
             return
 
-        if use_root and B.adb_handler.root_mode != "su":
+        if use_root and panel.adb_handler.root_mode != "su":
             try:
-                B.adb_handler.enable_root()
+                panel.adb_handler.enable_root()
             except Exception:
                 logging.getLogger(__name__).exception(
                     "Could not enable root mode for %s", serial
                 )
 
         if is_directory is None:
-            if use_root and B.adb_handler.root_mode == "su":
-                quoted = B.adb_handler._shell_quote(remote_path)
-                F = B.adb_handler._run_adb_command(
-                    ["exec-out", "su", "-c", f"test -d {quoted}"], timeout=10
-                )
-            else:
-                F = B.adb_handler._run_adb_command(
-                    ["exec-out", "test", "-d", remote_path], timeout=10
-                )
-            is_directory = F.returncode == 0
+            is_directory = self._is_remote_directory(panel, remote_path, use_root)
 
         if is_directory:
-            D = remote_path
-            G = None
+            target_dir, target_file = remote_path, None
         else:
-            D = remote_path.rsplit("/", 1)[0] or "/"
-            G = remote_path.rsplit("/", 1)[-1]
+            parent, _, name = remote_path.rpartition("/")
+            target_dir = parent or "/"
+            target_file = name
 
-        H = B.add_tab(path=D)
-        if H is None:
+        tab = panel.add_tab(path=target_dir)
+        if tab is None:
             return
-        if use_root and not H.use_root:
-            H.use_root = True
-            H.refresh_files()
-        if G:
 
-            def _select_found_item():
-                for row in range(H.tree_model.rowCount()):
-                    idx = H.tree_model.index(row, 0)
-                    if H.tree_model.data(idx) == G:
-                        H.tree_view.setCurrentIndex(idx)
-                        H.tree_view.scrollTo(idx)
-                        break
+        if use_root and not tab.use_root:
+            tab.use_root = True
+            tab.refresh_files()
 
-            QTimer.singleShot(800, _select_found_item)
+        if target_file:
+            QTimer.singleShot(150, lambda: self._focus_item_in_tab(tab, target_file))
