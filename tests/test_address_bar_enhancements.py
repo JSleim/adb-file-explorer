@@ -50,6 +50,18 @@ class AddressBarEnhancementTests(unittest.TestCase):
         )
         self.assertEqual(self.panel.path_display.selectedText(), "")
 
+    def test_clicking_outside_address_bar_returns_to_breadcrumbs(self):
+        self.panel.focus_address_bar()
+        self.panel.path_display.setText("/unfinished/path")
+
+        QTest.mouseClick(self.panel.search_bar, Qt.MouseButton.LeftButton)
+        self.app.processEvents()
+
+        self.assertIs(
+            self.panel.path_stack.currentWidget(), self.panel.path_breadcrumbs
+        )
+        self.assertEqual(self.panel.path_display.text(), self.panel.current_path)
+
     def test_double_clicking_current_breadcrumb_enters_edit_mode(self):
         QTest.mouseDClick(self._current_breadcrumb(), Qt.MouseButton.LeftButton)
 
@@ -147,6 +159,37 @@ class AddressBarEnhancementTests(unittest.TestCase):
         )
 
         QApplication.sendEvent(button, event)
+
+        self.assertLess(scroll_bar.value(), before)
+
+    def test_wheel_over_address_bar_background_scrolls_breadcrumbs(self):
+        self.panel.current_path = (
+            "/storage/emulated/0/Android/data/"
+            "com.example.long.package/files/a_deep_folder"
+        )
+        self.panel.update_path_display()
+        self.panel.resize(420, 500)
+        self.app.processEvents()
+        QTest.qWait(10)
+
+        scroll_bar = self.panel.path_breadcrumbs._scroll_area.horizontalScrollBar()
+        before = scroll_bar.value()
+        self.assertGreater(scroll_bar.maximum(), 0)
+        position = QPointF(2, 2)
+        event = QWheelEvent(
+            position,
+            QPointF(
+                self.panel.path_breadcrumbs.mapToGlobal(position.toPoint())
+            ),
+            QPoint(),
+            QPoint(0, 120),
+            Qt.MouseButton.NoButton,
+            Qt.KeyboardModifier.NoModifier,
+            Qt.ScrollPhase.NoScrollPhase,
+            False,
+        )
+
+        QApplication.sendEvent(self.panel.path_breadcrumbs, event)
 
         self.assertLess(scroll_bar.value(), before)
 

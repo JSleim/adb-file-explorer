@@ -38,6 +38,21 @@ class NestedFavoritesTests(unittest.TestCase):
         panel.deleteLater()
         self.app.processEvents()
 
+    def _trigger_tree_action(self, panel, item, action_text):
+        panel.show()
+        self.app.processEvents()
+        position = panel.navigation_tree.visualItemRect(item).center()
+
+        def trigger(menu, _position):
+            next(
+                action
+                for action in menu.actions()
+                if action.text() == action_text
+            ).trigger()
+
+        with patch.object(QMenu, "exec", new=trigger):
+            panel._show_bookmark_context_menu(position)
+
     def test_create_nested_favorites_and_keep_them_per_device(self):
         with tempfile.TemporaryDirectory() as directory:
             store = BookmarkStore(os.path.join(directory, "bookmarks.json"))
@@ -145,6 +160,7 @@ class NestedFavoritesTests(unittest.TestCase):
             with patch("ui.device_panel.BookmarkDialog") as dialog_class:
                 dialog = dialog_class.return_value
                 dialog.exec.return_value = QDialog.DialogCode.Accepted
+                dialog.is_common.return_value = False
                 dialog.bookmark.return_value = {
                     "name": "Camera",
                     "path": bookmark["path"],
@@ -164,6 +180,163 @@ class NestedFavoritesTests(unittest.TestCase):
             self.assertEqual(
                 BookmarkStore(store.path).load("device-a")[0]["children"], []
             )
+
+    def test_editing_favorite_shares_and_unshares_it_across_devices(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = BookmarkStore(os.path.join(directory, "bookmarks.json"))
+            first = self._new_panel(store, "device-a")
+            second = self._new_panel(store, "device-b")
+            first.add_bookmark("Photos", "/storage/DCIM")
+            bookmark = first._bookmarks[0]
+
+            with patch("ui.device_panel.BookmarkDialog") as dialog_class:
+                dialog = dialog_class.return_value
+                dialog.exec.return_value = QDialog.DialogCode.Accepted
+                dialog.is_common.return_value = True
+                dialog.bookmark.return_value = {
+                    "name": "Photos",
+                    "path": "/storage/DCIM",
+                    "note": "Shared camera folder",
+                }
+                first._edit_bookmark_dialog(bookmark, "Edit favorite")
+
+            self.assertEqual(first._bookmarks, [])
+            self.assertEqual(
+                first._common_bookmarks[0]["note"], "Shared camera folder"
+            )
+            self.assertEqual(
+                BookmarkStore(store.path).load_common()[0]["path"],
+                "/storage/DCIM",
+            )
+            common_root = second.navigation_tree.topLevelItem(1)
+            self.assertEqual(common_root.text(0), "Common Favorites")
+            self.assertEqual(common_root.child(0).text(0), "Photos")
+
+            shared_bookmark = second._common_bookmarks[0]
+            with patch("ui.device_panel.BookmarkDialog") as dialog_class:
+                dialog = dialog_class.return_value
+                dialog.exec.return_value = QDialog.DialogCode.Accepted
+                dialog.is_common.return_value = True
+                dialog.bookmark.return_value = {
+                    "name": "Photos",
+                    "path": "/storage/DCIM",
+                    "note": "Edited from device B",
+                }
+                second._edit_bookmark_dialog(
+                    shared_bookmark, "Edit favorite", is_common=True
+                )
+
+            self.assertEqual(
+                first._common_bookmarks[0]["note"], "Edited from device B"
+            )
+            shared_bookmark = second._common_bookmarks[0]
+            with patch("ui.device_panel.BookmarkDialog") as dialog_class:
+                dialog = dialog_class.return_value
+                dialog.exec.return_value = QDialog.DialogCode.Accepted
+                dialog.is_common.return_value = False
+                dialog.bookmark.return_value = {
+                    "name": "Photos",
+                    "path": "/storage/DCIM",
+                    "note": "Only on device B",
+                }
+                second._edit_bookmark_dialog(
+                    shared_bookmark, "Edit favorite", is_common=True
+                )
+
+            self.assertEqual(first._common_bookmarks, [])
+            self.assertEqual(second._common_bookmarks, [])
+            self.assertEqual(first._bookmarks, [])
+            self.assertEqual(second._bookmarks[0]["note"], "Only on device B")
+            self.assertEqual(
+                BookmarkStore(store.path).load("device-a"), []
+            )
+            self.assertEqual(
+                BookmarkStore(store.path).load_common(), []
+            )
+
+    def test_moving_favorite_folder_to_common_keeps_nested_contents(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = BookmarkStore(os.path.join(directory, "bookmarks.json"))
+            first = self._new_panel(store, "device-a")
+            second = self._new_panel(store, "device-b")
+            with patch(
+                "ui.device_panel.QInputDialog.getText",
+                side_effect=[("Devices", True), ("Phone", True)],
+            ):
+                first._create_bookmark_folder()
+                devices = first._bookmarks[0]
+                first._create_bookmark_folder(devices)
+            phone = first._bookmarks[0]["children"][0]
+            first.add_bookmark(
+                "Photos", "/storage/DCIM", parent_folder_id=phone["id"]
+            )
+
+            devices_item = first.navigation_tree.topLevelItem(0).child(0)
+            self._trigger_tree_action(
+                first, devices_item, "Move folder to Common Favorites"
+            )
+
+            self.assertEqual(first._bookmarks, [])
+            self.assertEqual(
+                second._common_bookmarks[0]["children"][0]["children"][0][
+                    "path"
+                ],
+                "/storage/DCIM",
+            )
+            self.assertEqual(
+                BookmarkStore(store.path).load_common()[0]["children"][0][
+                    "children"
+                ][0]["path"],
+                "/storage/DCIM",
+            )
+            common_root = second.navigation_tree.topLevelItem(1)
+            self.assertEqual(common_root.child(0).text(0), "Devices")
+            self.assertEqual(
+                common_root.child(0).child(0).child(0).text(0), "Photos"
+            )
+            self.assertEqual(
+                BookmarkStore(store.path).load("device-a"), []
+            )
+
+            common_folder_item = (
+                second.navigation_tree.topLevelItem(1).child(0)
+            )
+            self._trigger_tree_action(
+                second,
+                common_folder_item,
+                "Move folder to Device Favorites",
+            )
+            self.assertEqual(second._common_bookmarks, [])
+            self.assertEqual(
+                second._bookmarks[0]["children"][0]["children"][0]["path"],
+                "/storage/DCIM",
+            )
+            self.assertEqual(
+                BookmarkStore(store.path).load_common(), []
+            )
+
+    def test_removing_common_favorite_updates_all_device_panels(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = BookmarkStore(os.path.join(directory, "bookmarks.json"))
+            first = self._new_panel(store, "device-a")
+            second = self._new_panel(store, "device-b")
+            first.add_bookmark("Photos", "/storage/DCIM")
+            bookmark = first._bookmarks[0]
+
+            with patch("ui.device_panel.BookmarkDialog") as dialog_class:
+                dialog = dialog_class.return_value
+                dialog.exec.return_value = QDialog.DialogCode.Accepted
+                dialog.is_common.return_value = True
+                dialog.bookmark.return_value = bookmark
+                first._edit_bookmark_dialog(bookmark, "Edit favorite")
+
+            common_favorite = second.navigation_tree.topLevelItem(1).child(0)
+            second.navigation_tree.setCurrentItem(common_favorite)
+            second._remove_bookmark()
+
+            self.assertEqual(first._common_bookmarks, [])
+            self.assertEqual(second._common_bookmarks, [])
+            self.assertEqual(BookmarkStore(store.path).load_common(), [])
 
 
 if __name__ == "__main__":

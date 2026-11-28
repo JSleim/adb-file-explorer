@@ -292,20 +292,20 @@ If not rooted, adb root may not be supported on production builds.</source>
 <context>
     <name>BookmarkDialog</name>
     <message>
-        <location filename="../ui/device_panel.py" line="1917"/>
-        <location filename="../ui/device_panel.py" line="1917"/>
+        <location filename="../ui/device_panel.py" line="2068"/>
+        <location filename="../ui/device_panel.py" line="2068"/>
         <source>Name</source>
         <translation>Имя</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1918"/>
-        <location filename="../ui/device_panel.py" line="1918"/>
+        <location filename="../ui/device_panel.py" line="2069"/>
+        <location filename="../ui/device_panel.py" line="2069"/>
         <source>Path</source>
         <translation>Путь</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1919"/>
-        <location filename="../ui/device_panel.py" line="1919"/>
+        <location filename="../ui/device_panel.py" line="2070"/>
+        <location filename="../ui/device_panel.py" line="2070"/>
         <source>Note</source>
         <translation>Описание</translation>
     </message>
@@ -333,310 +333,423 @@ If not rooted, adb root may not be supported on production builds.</source>
 <context>
     <name>DeviceDashboardDialog</name>
     <message>
-        <location filename="../ui/device_dashboard.py" line="191"/>
-        <location filename="../ui/device_dashboard.py" line="191"/>
-        <source>Device Dashboard</source>
-        <translation>Информация об устройстве</translation>
+        <location filename="../ui/device_dashboard.py" line="35"/>
+        <location filename="../ui/device_dashboard.py" line="27"/>
+        <location filename="../ui/device_dashboard.py" line="35"/>
+        <location filename="../ui/device_dashboard.py" line="27"/>
+        <source>Unknown</source>
+        <translation>Неизвестно</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="204"/>
-        <location filename="../ui/device_dashboard.py" line="204"/>
-        <source>System</source>
-        <translation>Система</translation>
+        <location filename="../ui/device_dashboard.py" line="28"/>
+        <location filename="../ui/device_dashboard.py" line="28"/>
+        <source>Charging</source>
+        <translation>Зарядка</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="224"/>
-        <location filename="../ui/device_dashboard.py" line="224"/>
-        <source>Battery</source>
-        <translation>Батарея</translation>
+        <location filename="../ui/device_dashboard.py" line="29"/>
+        <location filename="../ui/device_dashboard.py" line="29"/>
+        <source>Discharging</source>
+        <translation>Разрядка</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="261"/>
-        <location filename="../ui/device_dashboard.py" line="229"/>
-        <location filename="../ui/device_dashboard.py" line="261"/>
-        <location filename="../ui/device_dashboard.py" line="229"/>
-        <source>Refreshing...</source>
-        <translation>Обновление...</translation>
+        <location filename="../ui/device_dashboard.py" line="30"/>
+        <location filename="../ui/device_dashboard.py" line="30"/>
+        <source>Not charging</source>
+        <translation>Не заряжается</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="234"/>
-        <location filename="../ui/device_dashboard.py" line="234"/>
-        <source>Storage</source>
-        <translation>Хранилище</translation>
+        <location filename="../ui/device_dashboard.py" line="31"/>
+        <location filename="../ui/device_dashboard.py" line="31"/>
+        <source>Full</source>
+        <translation>Заряжена</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="238"/>
-        <location filename="../ui/device_dashboard.py" line="238"/>
-        <source>Memory</source>
-        <translation>Оперативная память</translation>
+        <location filename="../ui/device_dashboard.py" line="36"/>
+        <location filename="../ui/device_dashboard.py" line="36"/>
+        <source>Good</source>
+        <translation>Отличное</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="248"/>
-        <location filename="../ui/device_dashboard.py" line="248"/>
-        <source>Refresh</source>
-        <translation>Обновить</translation>
+        <location filename="../ui/device_dashboard.py" line="37"/>
+        <location filename="../ui/device_dashboard.py" line="37"/>
+        <source>Overheat</source>
+        <translation>Перегрев</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="258"/>
-        <location filename="../ui/device_dashboard.py" line="258"/>
+        <location filename="../ui/device_dashboard.py" line="38"/>
+        <location filename="../ui/device_dashboard.py" line="38"/>
+        <source>Dead</source>
+        <translation>Разряжена</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="39"/>
+        <location filename="../ui/device_dashboard.py" line="39"/>
+        <source>Over voltage</source>
+        <translation>Избыточное напряжение</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="40"/>
+        <location filename="../ui/device_dashboard.py" line="40"/>
+        <source>Failure</source>
+        <translation>Ошибка</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="41"/>
+        <location filename="../ui/device_dashboard.py" line="41"/>
+        <source>Cold</source>
+        <translation>Низкая т емпература</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="283"/>
+        <location filename="../ui/device_dashboard.py" line="213"/>
+        <location filename="../ui/device_dashboard.py" line="198"/>
+        <location filename="../ui/device_dashboard.py" line="283"/>
+        <location filename="../ui/device_dashboard.py" line="213"/>
+        <location filename="../ui/device_dashboard.py" line="198"/>
         <source>No device selected.</source>
         <translation>Устройство не выбрано.</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="281"/>
-        <location filename="../ui/device_dashboard.py" line="281"/>
+        <location filename="../ui/device_dashboard.py" line="221"/>
+        <location filename="../ui/device_dashboard.py" line="221"/>
+        <source>System</source>
+        <translation>Система</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="228"/>
+        <location filename="../ui/device_dashboard.py" line="228"/>
+        <source>Model</source>
+        <translation>Модель</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="229"/>
+        <location filename="../ui/device_dashboard.py" line="229"/>
+        <source>Device</source>
+        <translation>Устройство</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="230"/>
+        <location filename="../ui/device_dashboard.py" line="230"/>
+        <source>Serial</source>
+        <translation>Серийный номер</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="231"/>
+        <location filename="../ui/device_dashboard.py" line="231"/>
+        <source>Android</source>
+        <translation>Android</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="232"/>
+        <location filename="../ui/device_dashboard.py" line="232"/>
+        <source>API level</source>
+        <translation>Уровень API</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="233"/>
+        <location filename="../ui/device_dashboard.py" line="233"/>
+        <source>ABI</source>
+        <translation>ABI</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="234"/>
+        <location filename="../ui/device_dashboard.py" line="234"/>
+        <source>Security patch</source>
+        <translation>Патч безопасности</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="248"/>
+        <location filename="../ui/device_dashboard.py" line="248"/>
+        <source>Battery</source>
+        <translation>Батарея</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="286"/>
+        <location filename="../ui/device_dashboard.py" line="253"/>
+        <location filename="../ui/device_dashboard.py" line="286"/>
+        <location filename="../ui/device_dashboard.py" line="253"/>
+        <source>Refreshing...</source>
+        <translation>Обновление...</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="258"/>
+        <location filename="../ui/device_dashboard.py" line="258"/>
+        <source>Storage</source>
+        <translation>Хранилище</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="262"/>
+        <location filename="../ui/device_dashboard.py" line="262"/>
+        <source>Memory</source>
+        <translation>Оперативная память</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="273"/>
+        <location filename="../ui/device_dashboard.py" line="273"/>
+        <source>Refresh</source>
+        <translation>Обновить</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_dashboard.py" line="306"/>
+        <location filename="../ui/device_dashboard.py" line="306"/>
         <source>{0:.1f} °C</source>
         <translation>{0:.1f} °C</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="288"/>
-        <location filename="../ui/device_dashboard.py" line="288"/>
+        <location filename="../ui/device_dashboard.py" line="313"/>
+        <location filename="../ui/device_dashboard.py" line="313"/>
         <source>{0}% - {1}, {2}, {3}, {4}</source>
         <translation>{0}% - {1}, {2}, {3}, {4}</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="309"/>
-        <location filename="../ui/device_dashboard.py" line="309"/>
+        <location filename="../ui/device_dashboard.py" line="334"/>
+        <location filename="../ui/device_dashboard.py" line="334"/>
         <source>{0:.1f} GB used of {1:.1f} GB</source>
         <translation>{0:.1f} GB использовано из {1:.1f} GB</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="313"/>
-        <location filename="../ui/device_dashboard.py" line="313"/>
+        <location filename="../ui/device_dashboard.py" line="338"/>
+        <location filename="../ui/device_dashboard.py" line="338"/>
         <source>{0:.1f} GB total</source>
         <translation>{0:.1f} GB всего</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="325"/>
-        <location filename="../ui/device_dashboard.py" line="325"/>
+        <location filename="../ui/device_dashboard.py" line="350"/>
+        <location filename="../ui/device_dashboard.py" line="350"/>
         <source>No storage information.</source>
         <translation>Нет информации о внутреннем хранилище.</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="334"/>
-        <location filename="../ui/device_dashboard.py" line="334"/>
+        <location filename="../ui/device_dashboard.py" line="359"/>
+        <location filename="../ui/device_dashboard.py" line="359"/>
         <source>Both paths share the same partition.</source>
         <translation>Оба пути используют один и тот же раздел.</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="361"/>
-        <location filename="../ui/device_dashboard.py" line="361"/>
+        <location filename="../ui/device_dashboard.py" line="384"/>
+        <location filename="../ui/device_dashboard.py" line="384"/>
         <source>{0} used of {1} ({2} free)</source>
         <translation>{0} использовано из {1} ({2} свободно)</translation>
     </message>
     <message>
-        <location filename="../ui/device_dashboard.py" line="375"/>
-        <location filename="../ui/device_dashboard.py" line="375"/>
+        <location filename="../ui/device_dashboard.py" line="399"/>
+        <location filename="../ui/device_dashboard.py" line="399"/>
         <source>Failed to collect info: {0}</source>
         <translation>Не удалось собрать информацию: {0}</translation>
+    </message>
+    <message>
+        <source>Device Dashboard</source>
+        <translation type="vanished">Информация об устройстве</translation>
     </message>
 </context>
 <context>
     <name>DevicePanel</name>
     <message>
-        <location filename="../ui/device_panel.py" line="452"/>
-        <location filename="../ui/device_panel.py" line="452"/>
+        <location filename="../ui/device_panel.py" line="520"/>
+        <location filename="../ui/device_panel.py" line="520"/>
         <source>Close this device panel</source>
         <translation>Закрыть эту панель устройств</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="453"/>
-        <location filename="../ui/device_panel.py" line="453"/>
+        <location filename="../ui/device_panel.py" line="521"/>
+        <location filename="../ui/device_panel.py" line="521"/>
         <source>Close device panel</source>
         <translation>Закрыть панель устройств</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="577"/>
-        <location filename="../ui/device_panel.py" line="459"/>
-        <location filename="../ui/device_panel.py" line="577"/>
-        <location filename="../ui/device_panel.py" line="459"/>
+        <location filename="../ui/device_panel.py" line="647"/>
+        <location filename="../ui/device_panel.py" line="527"/>
+        <location filename="../ui/device_panel.py" line="647"/>
+        <location filename="../ui/device_panel.py" line="527"/>
         <source>🟢 Connected</source>
         <translation>🟢 Подключено</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="582"/>
-        <location filename="../ui/device_panel.py" line="461"/>
-        <location filename="../ui/device_panel.py" line="582"/>
-        <location filename="../ui/device_panel.py" line="461"/>
+        <location filename="../ui/device_panel.py" line="652"/>
+        <location filename="../ui/device_panel.py" line="529"/>
+        <location filename="../ui/device_panel.py" line="652"/>
+        <location filename="../ui/device_panel.py" line="529"/>
         <source>🔴 Disconnected</source>
         <translation>🔴 Отключено</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="501"/>
-        <location filename="../ui/device_panel.py" line="501"/>
+        <location filename="../ui/device_panel.py" line="569"/>
+        <location filename="../ui/device_panel.py" line="569"/>
         <source>Filter files</source>
         <translation>Фильтр файлов</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="762"/>
-        <location filename="../ui/device_panel.py" line="687"/>
-        <location filename="../ui/device_panel.py" line="509"/>
-        <location filename="../ui/device_panel.py" line="762"/>
-        <location filename="../ui/device_panel.py" line="687"/>
-        <location filename="../ui/device_panel.py" line="509"/>
+        <location filename="../ui/device_panel.py" line="833"/>
+        <location filename="../ui/device_panel.py" line="758"/>
+        <location filename="../ui/device_panel.py" line="577"/>
+        <location filename="../ui/device_panel.py" line="833"/>
+        <location filename="../ui/device_panel.py" line="758"/>
+        <location filename="../ui/device_panel.py" line="577"/>
         <source>Name</source>
         <translation>Имя</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="763"/>
-        <location filename="../ui/device_panel.py" line="688"/>
-        <location filename="../ui/device_panel.py" line="510"/>
-        <location filename="../ui/device_panel.py" line="763"/>
-        <location filename="../ui/device_panel.py" line="688"/>
-        <location filename="../ui/device_panel.py" line="510"/>
+        <location filename="../ui/device_panel.py" line="834"/>
+        <location filename="../ui/device_panel.py" line="759"/>
+        <location filename="../ui/device_panel.py" line="578"/>
+        <location filename="../ui/device_panel.py" line="834"/>
+        <location filename="../ui/device_panel.py" line="759"/>
+        <location filename="../ui/device_panel.py" line="578"/>
         <source>Type</source>
         <translation>Тип</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="764"/>
-        <location filename="../ui/device_panel.py" line="689"/>
-        <location filename="../ui/device_panel.py" line="511"/>
-        <location filename="../ui/device_panel.py" line="764"/>
-        <location filename="../ui/device_panel.py" line="689"/>
-        <location filename="../ui/device_panel.py" line="511"/>
+        <location filename="../ui/device_panel.py" line="835"/>
+        <location filename="../ui/device_panel.py" line="760"/>
+        <location filename="../ui/device_panel.py" line="579"/>
+        <location filename="../ui/device_panel.py" line="835"/>
+        <location filename="../ui/device_panel.py" line="760"/>
+        <location filename="../ui/device_panel.py" line="579"/>
         <source>Size</source>
         <translation>Размер</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="765"/>
-        <location filename="../ui/device_panel.py" line="690"/>
-        <location filename="../ui/device_panel.py" line="512"/>
-        <location filename="../ui/device_panel.py" line="765"/>
-        <location filename="../ui/device_panel.py" line="690"/>
-        <location filename="../ui/device_panel.py" line="512"/>
+        <location filename="../ui/device_panel.py" line="836"/>
+        <location filename="../ui/device_panel.py" line="761"/>
+        <location filename="../ui/device_panel.py" line="580"/>
+        <location filename="../ui/device_panel.py" line="836"/>
+        <location filename="../ui/device_panel.py" line="761"/>
+        <location filename="../ui/device_panel.py" line="580"/>
         <source>Permissions</source>
         <translation>Права</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="766"/>
-        <location filename="../ui/device_panel.py" line="691"/>
-        <location filename="../ui/device_panel.py" line="513"/>
-        <location filename="../ui/device_panel.py" line="766"/>
-        <location filename="../ui/device_panel.py" line="691"/>
-        <location filename="../ui/device_panel.py" line="513"/>
+        <location filename="../ui/device_panel.py" line="837"/>
+        <location filename="../ui/device_panel.py" line="762"/>
+        <location filename="../ui/device_panel.py" line="581"/>
+        <location filename="../ui/device_panel.py" line="837"/>
+        <location filename="../ui/device_panel.py" line="762"/>
+        <location filename="../ui/device_panel.py" line="581"/>
         <source>Modified</source>
         <translation>Изменён</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="529"/>
-        <location filename="../ui/device_panel.py" line="529"/>
+        <location filename="../ui/device_panel.py" line="597"/>
+        <location filename="../ui/device_panel.py" line="597"/>
         <source>Ready</source>
         <translation>Готов</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="531"/>
-        <location filename="../ui/device_panel.py" line="531"/>
+        <location filename="../ui/device_panel.py" line="599"/>
+        <location filename="../ui/device_panel.py" line="599"/>
         <source>0 items selected</source>
         <translation>Выбрано элементов: 0</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="544"/>
-        <location filename="../ui/device_panel.py" line="544"/>
+        <location filename="../ui/device_panel.py" line="612"/>
+        <location filename="../ui/device_panel.py" line="612"/>
         <source>No ADB device connected</source>
         <translation>Устройство ADB не подключено</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="664"/>
-        <location filename="../ui/device_panel.py" line="664"/>
+        <location filename="../ui/device_panel.py" line="735"/>
+        <location filename="../ui/device_panel.py" line="735"/>
         <source>Copying files to Windows</source>
         <translation>Копирование файлов в Windows</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="677"/>
-        <location filename="../ui/device_panel.py" line="677"/>
+        <location filename="../ui/device_panel.py" line="748"/>
+        <location filename="../ui/device_panel.py" line="748"/>
         <source>No ADB device</source>
         <translation>Нет Adb-устройства</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="683"/>
-        <location filename="../ui/device_panel.py" line="683"/>
+        <location filename="../ui/device_panel.py" line="754"/>
+        <location filename="../ui/device_panel.py" line="754"/>
         <source>Loading {0}...</source>
         <translation>Загрузка {0}...</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="694"/>
-        <location filename="../ui/device_panel.py" line="694"/>
+        <location filename="../ui/device_panel.py" line="765"/>
+        <location filename="../ui/device_panel.py" line="765"/>
         <source>Loading...</source>
         <translation>Загрузка...</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="706"/>
-        <location filename="../ui/device_panel.py" line="706"/>
+        <location filename="../ui/device_panel.py" line="777"/>
+        <location filename="../ui/device_panel.py" line="777"/>
         <source>Found {0} items</source>
         <translation>Найдено {0} элементов</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="708"/>
-        <location filename="../ui/device_panel.py" line="708"/>
+        <location filename="../ui/device_panel.py" line="779"/>
+        <location filename="../ui/device_panel.py" line="779"/>
         <source>Failed to list directory</source>
         <translation>Не удалось вывести список каталогов</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1659"/>
-        <location filename="../ui/device_panel.py" line="1254"/>
-        <location filename="../ui/device_panel.py" line="1082"/>
-        <location filename="../ui/device_panel.py" line="994"/>
-        <location filename="../ui/device_panel.py" line="830"/>
-        <location filename="../ui/device_panel.py" line="811"/>
-        <location filename="../ui/device_panel.py" line="779"/>
-        <location filename="../ui/device_panel.py" line="1659"/>
-        <location filename="../ui/device_panel.py" line="1254"/>
-        <location filename="../ui/device_panel.py" line="1082"/>
-        <location filename="../ui/device_panel.py" line="994"/>
-        <location filename="../ui/device_panel.py" line="830"/>
-        <location filename="../ui/device_panel.py" line="811"/>
-        <location filename="../ui/device_panel.py" line="779"/>
+        <location filename="../ui/device_panel.py" line="1810"/>
+        <location filename="../ui/device_panel.py" line="1405"/>
+        <location filename="../ui/device_panel.py" line="1225"/>
+        <location filename="../ui/device_panel.py" line="1137"/>
+        <location filename="../ui/device_panel.py" line="901"/>
+        <location filename="../ui/device_panel.py" line="882"/>
+        <location filename="../ui/device_panel.py" line="850"/>
+        <location filename="../ui/device_panel.py" line="1810"/>
+        <location filename="../ui/device_panel.py" line="1405"/>
+        <location filename="../ui/device_panel.py" line="1225"/>
+        <location filename="../ui/device_panel.py" line="1137"/>
+        <location filename="../ui/device_panel.py" line="901"/>
+        <location filename="../ui/device_panel.py" line="882"/>
+        <location filename="../ui/device_panel.py" line="850"/>
         <source>Directory</source>
         <translation>Папка</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="988"/>
-        <location filename="../ui/device_panel.py" line="839"/>
-        <location filename="../ui/device_panel.py" line="811"/>
-        <location filename="../ui/device_panel.py" line="988"/>
-        <location filename="../ui/device_panel.py" line="839"/>
-        <location filename="../ui/device_panel.py" line="811"/>
+        <location filename="../ui/device_panel.py" line="1131"/>
+        <location filename="../ui/device_panel.py" line="910"/>
+        <location filename="../ui/device_panel.py" line="882"/>
+        <location filename="../ui/device_panel.py" line="1131"/>
+        <location filename="../ui/device_panel.py" line="910"/>
+        <location filename="../ui/device_panel.py" line="882"/>
         <source>File</source>
         <translation>Файл</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="863"/>
-        <location filename="../ui/device_panel.py" line="863"/>
+        <location filename="../ui/device_panel.py" line="934"/>
+        <location filename="../ui/device_panel.py" line="934"/>
         <source>Selected items: {0}</source>
         <translation>Выбрано элементов: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="870"/>
-        <location filename="../ui/device_panel.py" line="870"/>
+        <location filename="../ui/device_panel.py" line="947"/>
+        <location filename="../ui/device_panel.py" line="947"/>
         <source>Copied {0} item(s)</source>
         <translation>Скопировано элементов: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="877"/>
-        <location filename="../ui/device_panel.py" line="877"/>
+        <location filename="../ui/device_panel.py" line="960"/>
+        <location filename="../ui/device_panel.py" line="960"/>
         <source>Cut {0} item(s)</source>
         <translation>Вырезано элементов: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="881"/>
-        <location filename="../ui/device_panel.py" line="881"/>
+        <location filename="../ui/device_panel.py" line="964"/>
+        <location filename="../ui/device_panel.py" line="964"/>
         <source>Clipboard is empty</source>
         <translation>Буфер обмена пуст</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="900"/>
+        <location filename="../ui/device_panel.py" line="970"/>
+        <location filename="../ui/device_panel.py" line="970"/>
         <source>Moving items between devices is not supported. Use Copy instead.</source>
-        <translation>Перемещение между устройствами не поддерживается. Используйте копирование.</translation>
+        <translation>Перемещение элементов между устройствами не поддерживается. Вместо этого используйте функцию копирования.</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="894"/>
-        <location filename="../ui/device_panel.py" line="894"/>
+        <location filename="../ui/device_panel.py" line="1017"/>
+        <location filename="../ui/device_panel.py" line="1017"/>
         <source>Item(s) Already Exist</source>
         <translation>Элемент(ы) уже существует</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="895"/>
-        <location filename="../ui/device_panel.py" line="895"/>
+        <location filename="../ui/device_panel.py" line="1018"/>
+        <location filename="../ui/device_panel.py" line="1018"/>
         <source>The following already exist in the destination:
 
 {0}{1}
@@ -649,470 +762,466 @@ Overwrite?</source>
 Заменить?</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="901"/>
-        <location filename="../ui/device_panel.py" line="901"/>
+        <location filename="../ui/device_panel.py" line="1024"/>
+        <location filename="../ui/device_panel.py" line="1024"/>
         <source>Paste canceled</source>
         <translation>Вставка отменена</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="926"/>
-        <location filename="../ui/device_panel.py" line="926"/>
+        <location filename="../ui/device_panel.py" line="1069"/>
+        <location filename="../ui/device_panel.py" line="1069"/>
         <source>Pasted {0} item(s)</source>
         <translation>Вставлено элементов: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="929"/>
-        <location filename="../ui/device_panel.py" line="929"/>
+        <location filename="../ui/device_panel.py" line="1072"/>
+        <location filename="../ui/device_panel.py" line="1072"/>
         <source>Paste failed</source>
         <translation>Не удалось вставить</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="932"/>
-        <location filename="../ui/device_panel.py" line="932"/>
+        <location filename="../ui/device_panel.py" line="1075"/>
+        <location filename="../ui/device_panel.py" line="1075"/>
         <source>Paste {0} items</source>
         <translation>Вставить {0} элементов</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="936"/>
-        <location filename="../ui/device_panel.py" line="936"/>
+        <location filename="../ui/device_panel.py" line="1079"/>
+        <location filename="../ui/device_panel.py" line="1079"/>
         <source>Save to PC...</source>
         <translation>Сохранить на ПК...</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="937"/>
-        <location filename="../ui/device_panel.py" line="937"/>
+        <location filename="../ui/device_panel.py" line="1080"/>
+        <location filename="../ui/device_panel.py" line="1080"/>
         <source>Cut</source>
         <translation>Вырезать</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="957"/>
-        <location filename="../ui/device_panel.py" line="957"/>
+        <location filename="../ui/device_panel.py" line="1100"/>
+        <location filename="../ui/device_panel.py" line="1100"/>
         <source>Paste</source>
         <translation>Вставить</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1300"/>
-        <location filename="../ui/device_panel.py" line="961"/>
-        <location filename="../ui/device_panel.py" line="1300"/>
-        <location filename="../ui/device_panel.py" line="961"/>
+        <location filename="../ui/device_panel.py" line="1451"/>
+        <location filename="../ui/device_panel.py" line="1104"/>
+        <location filename="../ui/device_panel.py" line="1451"/>
+        <location filename="../ui/device_panel.py" line="1104"/>
         <source>New File</source>
         <translation>Новый файл</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1322"/>
-        <location filename="../ui/device_panel.py" line="962"/>
-        <location filename="../ui/device_panel.py" line="1322"/>
-        <location filename="../ui/device_panel.py" line="962"/>
+        <location filename="../ui/device_panel.py" line="1473"/>
+        <location filename="../ui/device_panel.py" line="1105"/>
+        <location filename="../ui/device_panel.py" line="1473"/>
+        <location filename="../ui/device_panel.py" line="1105"/>
         <source>New Folder</source>
         <translation>Новая папка</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="963"/>
-        <location filename="../ui/device_panel.py" line="963"/>
+        <location filename="../ui/device_panel.py" line="1106"/>
+        <location filename="../ui/device_panel.py" line="1106"/>
         <source>Upload to Device</source>
         <translation>Загрузить на устройство</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="964"/>
-        <location filename="../ui/device_panel.py" line="964"/>
+        <location filename="../ui/device_panel.py" line="1107"/>
+        <location filename="../ui/device_panel.py" line="1107"/>
         <source>Import Folder from PC...</source>
         <translation>Импорт папки с ПК...</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1674"/>
-        <location filename="../ui/device_panel.py" line="985"/>
-        <location filename="../ui/device_panel.py" line="966"/>
-        <location filename="../ui/device_panel.py" line="1674"/>
-        <location filename="../ui/device_panel.py" line="985"/>
-        <location filename="../ui/device_panel.py" line="966"/>
+        <location filename="../ui/device_panel.py" line="1825"/>
+        <location filename="../ui/device_panel.py" line="1128"/>
+        <location filename="../ui/device_panel.py" line="1109"/>
+        <location filename="../ui/device_panel.py" line="1825"/>
+        <location filename="../ui/device_panel.py" line="1128"/>
+        <location filename="../ui/device_panel.py" line="1109"/>
         <source>Copy</source>
         <translation>Копировать</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="969"/>
-        <location filename="../ui/device_panel.py" line="969"/>
+        <location filename="../ui/device_panel.py" line="1112"/>
+        <location filename="../ui/device_panel.py" line="1112"/>
         <source>Delete Selected</source>
         <translation>Удалить выбранные</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="970"/>
-        <location filename="../ui/device_panel.py" line="970"/>
+        <location filename="../ui/device_panel.py" line="1113"/>
+        <location filename="../ui/device_panel.py" line="1113"/>
         <source>Download to PC</source>
         <translation>Скачать на ПК</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="971"/>
-        <location filename="../ui/device_panel.py" line="971"/>
+        <location filename="../ui/device_panel.py" line="1114"/>
+        <location filename="../ui/device_panel.py" line="1114"/>
         <source>Copy to Device Folder...</source>
         <translation>Копировать в папку устройства...</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="972"/>
-        <location filename="../ui/device_panel.py" line="972"/>
+        <location filename="../ui/device_panel.py" line="1115"/>
+        <location filename="../ui/device_panel.py" line="1115"/>
         <source>Batch Rename...</source>
         <translation>Пакетное переименование...</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="979"/>
-        <location filename="../ui/device_panel.py" line="979"/>
+        <location filename="../ui/device_panel.py" line="1122"/>
+        <location filename="../ui/device_panel.py" line="1122"/>
         <source>Total Size: {0}</source>
         <translation>Общий размер: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="989"/>
-        <location filename="../ui/device_panel.py" line="989"/>
+        <location filename="../ui/device_panel.py" line="1132"/>
+        <location filename="../ui/device_panel.py" line="1132"/>
         <source>Open</source>
         <translation>Открыть</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1513"/>
-        <location filename="../ui/device_panel.py" line="1170"/>
-        <location filename="../ui/device_panel.py" line="1004"/>
-        <location filename="../ui/device_panel.py" line="992"/>
-        <location filename="../ui/device_panel.py" line="1513"/>
-        <location filename="../ui/device_panel.py" line="1170"/>
-        <location filename="../ui/device_panel.py" line="1004"/>
-        <location filename="../ui/device_panel.py" line="992"/>
+        <location filename="../ui/device_panel.py" line="1664"/>
+        <location filename="../ui/device_panel.py" line="1313"/>
+        <location filename="../ui/device_panel.py" line="1147"/>
+        <location filename="../ui/device_panel.py" line="1135"/>
+        <location filename="../ui/device_panel.py" line="1664"/>
+        <location filename="../ui/device_panel.py" line="1313"/>
+        <location filename="../ui/device_panel.py" line="1147"/>
+        <location filename="../ui/device_panel.py" line="1135"/>
         <source>Rename</source>
         <translation>Переименовать</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1275"/>
-        <location filename="../ui/device_panel.py" line="1206"/>
-        <location filename="../ui/device_panel.py" line="1005"/>
-        <location filename="../ui/device_panel.py" line="993"/>
-        <location filename="../ui/device_panel.py" line="1275"/>
-        <location filename="../ui/device_panel.py" line="1206"/>
-        <location filename="../ui/device_panel.py" line="1005"/>
-        <location filename="../ui/device_panel.py" line="993"/>
+        <location filename="../ui/device_panel.py" line="1426"/>
+        <location filename="../ui/device_panel.py" line="1357"/>
+        <location filename="../ui/device_panel.py" line="1148"/>
+        <location filename="../ui/device_panel.py" line="1136"/>
+        <location filename="../ui/device_panel.py" line="1426"/>
+        <location filename="../ui/device_panel.py" line="1357"/>
+        <location filename="../ui/device_panel.py" line="1148"/>
+        <location filename="../ui/device_panel.py" line="1136"/>
         <source>Delete</source>
         <translation>Удалить</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="998"/>
-        <location filename="../ui/device_panel.py" line="998"/>
+        <location filename="../ui/device_panel.py" line="1141"/>
+        <location filename="../ui/device_panel.py" line="1141"/>
         <source>Add to favorites</source>
         <translation>Добавить в избранное</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1007"/>
-        <location filename="../ui/device_panel.py" line="1007"/>
+        <location filename="../ui/device_panel.py" line="1150"/>
+        <location filename="../ui/device_panel.py" line="1150"/>
         <source>Send to Device...</source>
         <translation>Отправить на устройство...</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1018"/>
-        <location filename="../ui/device_panel.py" line="1014"/>
-        <location filename="../ui/device_panel.py" line="1018"/>
-        <location filename="../ui/device_panel.py" line="1014"/>
+        <location filename="../ui/device_panel.py" line="1161"/>
+        <location filename="../ui/device_panel.py" line="1157"/>
+        <location filename="../ui/device_panel.py" line="1161"/>
+        <location filename="../ui/device_panel.py" line="1157"/>
         <source>No items selected</source>
         <translation>Ничего не выбрано</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1031"/>
-        <location filename="../ui/device_panel.py" line="1022"/>
-        <location filename="../ui/device_panel.py" line="1031"/>
-        <location filename="../ui/device_panel.py" line="1022"/>
+        <location filename="../ui/device_panel.py" line="1174"/>
+        <location filename="../ui/device_panel.py" line="1165"/>
+        <location filename="../ui/device_panel.py" line="1174"/>
+        <location filename="../ui/device_panel.py" line="1165"/>
         <source>No other devices</source>
         <translation>Нет других устройств</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1067"/>
-        <location filename="../ui/device_panel.py" line="1067"/>
+        <location filename="../ui/device_panel.py" line="1210"/>
+        <location filename="../ui/device_panel.py" line="1210"/>
         <source>Sent {0} item(s) to {1}</source>
         <translation>Отправлено элементов: {0} на {1}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1071"/>
-        <location filename="../ui/device_panel.py" line="1071"/>
+        <location filename="../ui/device_panel.py" line="1214"/>
+        <location filename="../ui/device_panel.py" line="1214"/>
         <source>Stream failed</source>
         <translation>Ошибка передачи</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1073"/>
-        <location filename="../ui/device_panel.py" line="1073"/>
+        <location filename="../ui/device_panel.py" line="1216"/>
+        <location filename="../ui/device_panel.py" line="1216"/>
         <source>Streaming to {0}</source>
         <translation>Передача на {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1095"/>
-        <location filename="../ui/device_panel.py" line="1095"/>
+        <location filename="../ui/device_panel.py" line="1238"/>
+        <location filename="../ui/device_panel.py" line="1238"/>
         <source>No connection</source>
         <translation>Нет подключения</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1106"/>
-        <location filename="../ui/device_panel.py" line="1106"/>
+        <location filename="../ui/device_panel.py" line="1249"/>
+        <location filename="../ui/device_panel.py" line="1249"/>
         <source>Failed to open {0}</source>
         <translation>Не удалось открыть {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1115"/>
-        <location filename="../ui/device_panel.py" line="1115"/>
+        <location filename="../ui/device_panel.py" line="1258"/>
+        <location filename="../ui/device_panel.py" line="1258"/>
         <source>Opened {0}</source>
         <translation>Открыто: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1117"/>
-        <location filename="../ui/device_panel.py" line="1117"/>
+        <location filename="../ui/device_panel.py" line="1260"/>
+        <location filename="../ui/device_panel.py" line="1260"/>
         <source>Failed to open file</source>
         <translation>Не удалось открыть файл</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1119"/>
-        <location filename="../ui/device_panel.py" line="1119"/>
+        <location filename="../ui/device_panel.py" line="1262"/>
+        <location filename="../ui/device_panel.py" line="1262"/>
         <source>Downloading file</source>
         <translation>Загрузка файла</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1126"/>
-        <location filename="../ui/device_panel.py" line="1126"/>
+        <location filename="../ui/device_panel.py" line="1269"/>
+        <location filename="../ui/device_panel.py" line="1269"/>
         <source>Save File As</source>
         <translation>Сохранить файл как</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1130"/>
-        <location filename="../ui/device_panel.py" line="1130"/>
+        <location filename="../ui/device_panel.py" line="1273"/>
+        <location filename="../ui/device_panel.py" line="1273"/>
         <source>Copying file</source>
         <translation>Копирование файла</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1133"/>
-        <location filename="../ui/device_panel.py" line="1133"/>
+        <location filename="../ui/device_panel.py" line="1276"/>
+        <location filename="../ui/device_panel.py" line="1276"/>
         <source>File copied: {0}</source>
         <translation>Скопирован файл: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1151"/>
-        <location filename="../ui/device_panel.py" line="1134"/>
-        <location filename="../ui/device_panel.py" line="1151"/>
-        <location filename="../ui/device_panel.py" line="1134"/>
+        <location filename="../ui/device_panel.py" line="1294"/>
+        <location filename="../ui/device_panel.py" line="1277"/>
+        <location filename="../ui/device_panel.py" line="1294"/>
+        <location filename="../ui/device_panel.py" line="1277"/>
         <source>Failed to copy {0}</source>
         <translation>Не удалось скопировать {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1142"/>
-        <location filename="../ui/device_panel.py" line="1142"/>
+        <location filename="../ui/device_panel.py" line="1285"/>
+        <location filename="../ui/device_panel.py" line="1285"/>
         <source>Select Destination</source>
         <translation>Выбрать расположение</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1147"/>
-        <location filename="../ui/device_panel.py" line="1147"/>
+        <location filename="../ui/device_panel.py" line="1290"/>
+        <location filename="../ui/device_panel.py" line="1290"/>
         <source>Copying folder</source>
         <translation>Копирование папки</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1150"/>
-        <location filename="../ui/device_panel.py" line="1150"/>
+        <location filename="../ui/device_panel.py" line="1293"/>
+        <location filename="../ui/device_panel.py" line="1293"/>
         <source>Folder copied: {0}</source>
         <translation>Скопирована папка: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1170"/>
-        <location filename="../ui/device_panel.py" line="1170"/>
+        <location filename="../ui/device_panel.py" line="1314"/>
+        <location filename="../ui/device_panel.py" line="1314"/>
         <source>New name for &apos;{0}&apos;:</source>
         <translation>Новое имя для &apos;{0}&apos;:</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1177"/>
-        <location filename="../ui/device_panel.py" line="1177"/>
+        <location filename="../ui/device_panel.py" line="1328"/>
+        <location filename="../ui/device_panel.py" line="1328"/>
         <source>Renamed to &apos;{0}&apos;</source>
         <translation>Переименовано в &apos;{0}&apos;</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1181"/>
-        <location filename="../ui/device_panel.py" line="1181"/>
+        <location filename="../ui/device_panel.py" line="1332"/>
+        <location filename="../ui/device_panel.py" line="1332"/>
         <source>Rename failed</source>
         <translation>Не удалось переименовать</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1184"/>
-        <location filename="../ui/device_panel.py" line="1184"/>
+        <location filename="../ui/device_panel.py" line="1335"/>
+        <location filename="../ui/device_panel.py" line="1335"/>
         <source>Rename {0}</source>
         <translation>Переименовать {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1261"/>
-        <location filename="../ui/device_panel.py" line="1198"/>
-        <location filename="../ui/device_panel.py" line="1261"/>
-        <location filename="../ui/device_panel.py" line="1198"/>
+        <location filename="../ui/device_panel.py" line="1412"/>
+        <location filename="../ui/device_panel.py" line="1349"/>
+        <location filename="../ui/device_panel.py" line="1412"/>
+        <location filename="../ui/device_panel.py" line="1349"/>
         <source>Delete folder &apos;{0}&apos; and all of its contents, including subfolders?</source>
         <translation>Удалить папку &quot;{0}&quot; и все ее содержимое, включая вложенные папки?</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1265"/>
-        <location filename="../ui/device_panel.py" line="1202"/>
-        <location filename="../ui/device_panel.py" line="1265"/>
-        <location filename="../ui/device_panel.py" line="1202"/>
+        <location filename="../ui/device_panel.py" line="1416"/>
+        <location filename="../ui/device_panel.py" line="1353"/>
+        <location filename="../ui/device_panel.py" line="1416"/>
+        <location filename="../ui/device_panel.py" line="1353"/>
         <source>Delete &apos;{0}&apos;?</source>
         <translation>Удалить &apos;{0}&apos;?</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1214"/>
-        <location filename="../ui/device_panel.py" line="1214"/>
+        <location filename="../ui/device_panel.py" line="1365"/>
+        <location filename="../ui/device_panel.py" line="1365"/>
         <source>Deleted &apos;{0}&apos;</source>
         <translation>Удалено: &apos;{0}&apos;</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1218"/>
-        <location filename="../ui/device_panel.py" line="1218"/>
+        <location filename="../ui/device_panel.py" line="1369"/>
+        <location filename="../ui/device_panel.py" line="1369"/>
         <source>Delete failed</source>
         <translation>Не удалось удалить</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1221"/>
-        <location filename="../ui/device_panel.py" line="1221"/>
+        <location filename="../ui/device_panel.py" line="1372"/>
+        <location filename="../ui/device_panel.py" line="1372"/>
         <source>Delete {0}</source>
         <translation>Удалить {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1268"/>
-        <location filename="../ui/device_panel.py" line="1268"/>
+        <location filename="../ui/device_panel.py" line="1419"/>
+        <location filename="../ui/device_panel.py" line="1419"/>
         <source>Delete {0} selected items?</source>
         <translation>Удалить {0} выбранных элементов?</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1270"/>
-        <location filename="../ui/device_panel.py" line="1270"/>
+        <location filename="../ui/device_panel.py" line="1421"/>
+        <location filename="../ui/device_panel.py" line="1421"/>
         <source>
 Any selected folders and all their contents, including subfolders, will also be deleted.</source>
         <translation>
 Все выбранные папки и все их содержимое, включая подпапки, также будут удалены.</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1292"/>
-        <location filename="../ui/device_panel.py" line="1292"/>
+        <location filename="../ui/device_panel.py" line="1443"/>
+        <location filename="../ui/device_panel.py" line="1443"/>
         <source>Deleted {0} items</source>
         <translation>Удалено элементов: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1295"/>
-        <location filename="../ui/device_panel.py" line="1295"/>
+        <location filename="../ui/device_panel.py" line="1446"/>
+        <location filename="../ui/device_panel.py" line="1446"/>
         <source>Delete {0} items</source>
         <translation>Удалить {0} элементов</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1300"/>
-        <location filename="../ui/device_panel.py" line="1300"/>
+        <location filename="../ui/device_panel.py" line="1451"/>
+        <location filename="../ui/device_panel.py" line="1451"/>
         <source>File name:</source>
         <translation>Имя файла:</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1327"/>
-        <location filename="../ui/device_panel.py" line="1305"/>
-        <location filename="../ui/device_panel.py" line="1327"/>
-        <location filename="../ui/device_panel.py" line="1305"/>
+        <location filename="../ui/device_panel.py" line="1478"/>
+        <location filename="../ui/device_panel.py" line="1456"/>
+        <location filename="../ui/device_panel.py" line="1478"/>
+        <location filename="../ui/device_panel.py" line="1456"/>
         <source>Created &apos;{0}&apos;</source>
         <translation>Создано: &apos;{0}&apos;</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1331"/>
-        <location filename="../ui/device_panel.py" line="1309"/>
-        <location filename="../ui/device_panel.py" line="1331"/>
-        <location filename="../ui/device_panel.py" line="1309"/>
+        <location filename="../ui/device_panel.py" line="1482"/>
+        <location filename="../ui/device_panel.py" line="1460"/>
+        <location filename="../ui/device_panel.py" line="1482"/>
+        <location filename="../ui/device_panel.py" line="1460"/>
         <source>Create failed</source>
         <translation>Не удалось создать</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1312"/>
-        <location filename="../ui/device_panel.py" line="1312"/>
+        <location filename="../ui/device_panel.py" line="1463"/>
+        <location filename="../ui/device_panel.py" line="1463"/>
         <source>Create file {0}</source>
         <translation>Создать файл {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1322"/>
-        <location filename="../ui/device_panel.py" line="1322"/>
+        <location filename="../ui/device_panel.py" line="1473"/>
+        <location filename="../ui/device_panel.py" line="1473"/>
         <source>Folder name:</source>
         <translation>Имя папки:</translation>
     </message>
     <message>
-        <source>A folder with this name already exists</source>
-        <translation>Папка с таким именем уже существует</translation>
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="1334"/>
-        <location filename="../ui/device_panel.py" line="1334"/>
+        <location filename="../ui/device_panel.py" line="1485"/>
+        <location filename="../ui/device_panel.py" line="1485"/>
         <source>Create folder {0}</source>
         <translation>Создать папку {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1344"/>
-        <location filename="../ui/device_panel.py" line="1344"/>
+        <location filename="../ui/device_panel.py" line="1495"/>
+        <location filename="../ui/device_panel.py" line="1495"/>
         <source>Select File to Upload</source>
         <translation>Выбрать файл для отправки</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1352"/>
-        <location filename="../ui/device_panel.py" line="1352"/>
+        <location filename="../ui/device_panel.py" line="1503"/>
+        <location filename="../ui/device_panel.py" line="1503"/>
         <source>Select Folder to Import</source>
         <translation>Выбрать папку для импорта</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1363"/>
-        <location filename="../ui/device_panel.py" line="1363"/>
+        <location filename="../ui/device_panel.py" line="1514"/>
+        <location filename="../ui/device_panel.py" line="1514"/>
         <source>Import from PC failed: {0}</source>
         <translation>Не удалось импортировать с ПК: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1366"/>
-        <location filename="../ui/device_panel.py" line="1366"/>
+        <location filename="../ui/device_panel.py" line="1517"/>
+        <location filename="../ui/device_panel.py" line="1517"/>
         <source>No files to upload</source>
         <translation>Нет файлов для загрузки</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1369"/>
-        <location filename="../ui/device_panel.py" line="1369"/>
+        <location filename="../ui/device_panel.py" line="1520"/>
+        <location filename="../ui/device_panel.py" line="1520"/>
         <source>Checking destination files</source>
         <translation>Проверка файлов назначения</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1374"/>
-        <location filename="../ui/device_panel.py" line="1374"/>
+        <location filename="../ui/device_panel.py" line="1525"/>
+        <location filename="../ui/device_panel.py" line="1525"/>
         <source>Could not verify destination files; import was not started</source>
         <translation>Не удалось проверить файлы в папке назначения; импорт не запущен</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1614"/>
-        <location filename="../ui/device_panel.py" line="1376"/>
-        <location filename="../ui/device_panel.py" line="1614"/>
-        <location filename="../ui/device_panel.py" line="1376"/>
+        <location filename="../ui/device_panel.py" line="1765"/>
+        <location filename="../ui/device_panel.py" line="1527"/>
+        <location filename="../ui/device_panel.py" line="1765"/>
+        <location filename="../ui/device_panel.py" line="1527"/>
         <source>Import cancelled</source>
         <translation>Импорт отменён</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1451"/>
-        <location filename="../ui/device_panel.py" line="1451"/>
+        <location filename="../ui/device_panel.py" line="1602"/>
+        <location filename="../ui/device_panel.py" line="1602"/>
         <source>Could not verify destination folder &apos;{0}&apos;</source>
         <translation>Не удалось проверить папку назначения &apos;{0}&apos;</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1462"/>
-        <location filename="../ui/device_panel.py" line="1462"/>
+        <location filename="../ui/device_panel.py" line="1613"/>
+        <location filename="../ui/device_panel.py" line="1613"/>
         <source>Could not list destination folder &apos;{0}&apos;</source>
         <translation>Не удалось вывести список папок назначения &apos;{0}&apos;</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1473"/>
-        <location filename="../ui/device_panel.py" line="1473"/>
+        <location filename="../ui/device_panel.py" line="1624"/>
+        <location filename="../ui/device_panel.py" line="1624"/>
         <source>Cannot upload file &apos;{0}&apos;: a folder already exists at &apos;{1}&apos;.</source>
         <translation>Не удается загрузить файл &quot;{0}&quot;: папка уже существует по адресу &quot;{1}&quot;.</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1499"/>
-        <location filename="../ui/device_panel.py" line="1499"/>
+        <location filename="../ui/device_panel.py" line="1650"/>
+        <location filename="../ui/device_panel.py" line="1650"/>
         <source>File already exists</source>
         <translation>Файл уже существует</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1500"/>
-        <location filename="../ui/device_panel.py" line="1500"/>
+        <location filename="../ui/device_panel.py" line="1651"/>
+        <location filename="../ui/device_panel.py" line="1651"/>
         <source>The following file already exists:</source>
         <translation>Следующий файл уже существует:</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1502"/>
-        <location filename="../ui/device_panel.py" line="1502"/>
+        <location filename="../ui/device_panel.py" line="1653"/>
+        <location filename="../ui/device_panel.py" line="1653"/>
         <source>{0}
 
 Source: {1}, Modified {2}
@@ -1127,160 +1236,160 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
 При перезаписи существующее содержимое заменяется. При переименовании адресата существующий файл сохраняется под нумерованным именем перед загрузкой.</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1512"/>
-        <location filename="../ui/device_panel.py" line="1512"/>
+        <location filename="../ui/device_panel.py" line="1663"/>
+        <location filename="../ui/device_panel.py" line="1663"/>
         <source>Overwrite</source>
         <translation>Заменить</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1515"/>
-        <location filename="../ui/device_panel.py" line="1515"/>
+        <location filename="../ui/device_panel.py" line="1666"/>
+        <location filename="../ui/device_panel.py" line="1666"/>
         <source>Skip</source>
         <translation>Пропустить</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1782"/>
-        <location filename="../ui/device_panel.py" line="1517"/>
-        <location filename="../ui/device_panel.py" line="1782"/>
-        <location filename="../ui/device_panel.py" line="1517"/>
+        <location filename="../ui/device_panel.py" line="1933"/>
+        <location filename="../ui/device_panel.py" line="1668"/>
+        <location filename="../ui/device_panel.py" line="1933"/>
+        <location filename="../ui/device_panel.py" line="1668"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1518"/>
-        <location filename="../ui/device_panel.py" line="1518"/>
+        <location filename="../ui/device_panel.py" line="1669"/>
+        <location filename="../ui/device_panel.py" line="1669"/>
         <source>Apply to all conflicts</source>
         <translation>Применять ко всем конфликтам</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1520"/>
-        <location filename="../ui/device_panel.py" line="1520"/>
+        <location filename="../ui/device_panel.py" line="1671"/>
+        <location filename="../ui/device_panel.py" line="1671"/>
         <source>Apply to all file conflicts</source>
         <translation>Применить ко всем конфликтным файлам</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1522"/>
-        <location filename="../ui/device_panel.py" line="1522"/>
+        <location filename="../ui/device_panel.py" line="1673"/>
+        <location filename="../ui/device_panel.py" line="1673"/>
         <source>Use this choice for every remaining file conflict in this import.</source>
         <translation>Применить этот выбор ко всем оставшимся конфликтам файлов при этом импорте.</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1549"/>
-        <location filename="../ui/device_panel.py" line="1549"/>
+        <location filename="../ui/device_panel.py" line="1700"/>
+        <location filename="../ui/device_panel.py" line="1700"/>
         <source>Could not read source file &apos;{0}&apos;: {1}; import was not started</source>
         <translation>Не удалось прочитать исходный файл &apos;{0}&apos;: {1}; импорт не запущен</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1559"/>
-        <location filename="../ui/device_panel.py" line="1559"/>
+        <location filename="../ui/device_panel.py" line="1710"/>
+        <location filename="../ui/device_panel.py" line="1710"/>
         <source>Import cancelled; no files were uploaded</source>
         <translation>Импорт отменён; файлы не загружены</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1576"/>
-        <location filename="../ui/device_panel.py" line="1576"/>
+        <location filename="../ui/device_panel.py" line="1727"/>
+        <location filename="../ui/device_panel.py" line="1727"/>
         <source>Failed to create device folder &apos;{0}&apos;.</source>
         <translation>Не удалось создать папку устройства &apos;{0}&apos;.</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1595"/>
-        <location filename="../ui/device_panel.py" line="1595"/>
+        <location filename="../ui/device_panel.py" line="1746"/>
+        <location filename="../ui/device_panel.py" line="1746"/>
         <source>Failed to upload &apos;{0}&apos; to &apos;{1}&apos;.</source>
         <translation>Не удалось загрузить &quot;{0}&quot; в &quot;{1}&quot;.</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1603"/>
-        <location filename="../ui/device_panel.py" line="1603"/>
+        <location filename="../ui/device_panel.py" line="1754"/>
+        <location filename="../ui/device_panel.py" line="1754"/>
         <source>Uploaded {0} files; skipped {1}; preserved {2} existing files</source>
         <translation>Загружено файлов: {0}; пропущено: {1}; сохранено существующих: {2}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1610"/>
-        <location filename="../ui/device_panel.py" line="1610"/>
+        <location filename="../ui/device_panel.py" line="1761"/>
+        <location filename="../ui/device_panel.py" line="1761"/>
         <source>Importing files from PC</source>
         <translation>Импорт файлов с ПК</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1613"/>
-        <location filename="../ui/device_panel.py" line="1613"/>
+        <location filename="../ui/device_panel.py" line="1764"/>
+        <location filename="../ui/device_panel.py" line="1764"/>
         <source>Import from PC failed</source>
         <translation>Не удалось импортировать с ПК</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1623"/>
-        <location filename="../ui/device_panel.py" line="1623"/>
+        <location filename="../ui/device_panel.py" line="1774"/>
+        <location filename="../ui/device_panel.py" line="1774"/>
         <source>Download Location</source>
         <translation>Расположение загрузки</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1646"/>
-        <location filename="../ui/device_panel.py" line="1646"/>
+        <location filename="../ui/device_panel.py" line="1797"/>
+        <location filename="../ui/device_panel.py" line="1797"/>
         <source>Downloaded {0} files</source>
         <translation>Скачано файлов: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1648"/>
-        <location filename="../ui/device_panel.py" line="1648"/>
+        <location filename="../ui/device_panel.py" line="1799"/>
+        <location filename="../ui/device_panel.py" line="1799"/>
         <source>Download {0} files</source>
         <translation>Загрузить {0} файлов</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1675"/>
-        <location filename="../ui/device_panel.py" line="1675"/>
+        <location filename="../ui/device_panel.py" line="1826"/>
+        <location filename="../ui/device_panel.py" line="1826"/>
         <source>Copy {0} items to &apos;{1}&apos;?</source>
         <translation>Копировать {0} элементов в &apos;{1}&apos;?</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1712"/>
-        <location filename="../ui/device_panel.py" line="1712"/>
+        <location filename="../ui/device_panel.py" line="1863"/>
+        <location filename="../ui/device_panel.py" line="1863"/>
         <source>Copied {0} items</source>
         <translation>Скопировано элементов: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1715"/>
-        <location filename="../ui/device_panel.py" line="1715"/>
+        <location filename="../ui/device_panel.py" line="1866"/>
+        <location filename="../ui/device_panel.py" line="1866"/>
         <source>Copy {0} items</source>
         <translation>Скопировать {0} элементов</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1723"/>
-        <location filename="../ui/device_panel.py" line="1723"/>
+        <location filename="../ui/device_panel.py" line="1874"/>
+        <location filename="../ui/device_panel.py" line="1874"/>
         <source>Info</source>
         <translation>Информация</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1723"/>
-        <location filename="../ui/device_panel.py" line="1723"/>
+        <location filename="../ui/device_panel.py" line="1874"/>
+        <location filename="../ui/device_panel.py" line="1874"/>
         <source>Select 2+ items to batch rename.</source>
         <translation>Выберите более 2 элементов для пакетного переименования.</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1726"/>
-        <location filename="../ui/device_panel.py" line="1726"/>
+        <location filename="../ui/device_panel.py" line="1877"/>
+        <location filename="../ui/device_panel.py" line="1877"/>
         <source>Batch Rename</source>
         <translation>Пакетное переименование</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1726"/>
-        <location filename="../ui/device_panel.py" line="1726"/>
+        <location filename="../ui/device_panel.py" line="1877"/>
+        <location filename="../ui/device_panel.py" line="1877"/>
         <source>Base name:</source>
         <translation>Базовое имя:</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1745"/>
-        <location filename="../ui/device_panel.py" line="1745"/>
+        <location filename="../ui/device_panel.py" line="1896"/>
+        <location filename="../ui/device_panel.py" line="1896"/>
         <source>Renamed {0} items</source>
         <translation>Переименовано элементов: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1748"/>
-        <location filename="../ui/device_panel.py" line="1748"/>
+        <location filename="../ui/device_panel.py" line="1899"/>
+        <location filename="../ui/device_panel.py" line="1899"/>
         <source>Rename {0} items</source>
         <translation>Переименовать {0} элементов</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1781"/>
-        <location filename="../ui/device_panel.py" line="1781"/>
+        <location filename="../ui/device_panel.py" line="1932"/>
+        <location filename="../ui/device_panel.py" line="1932"/>
         <source>Background</source>
         <translation>Задачи</translation>
     </message>
@@ -1308,196 +1417,240 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
 <context>
     <name>DevicePanelGroup</name>
     <message>
-        <location filename="../ui/device_panel.py" line="2271"/>
-        <location filename="../ui/device_panel.py" line="1991"/>
-        <location filename="../ui/device_panel.py" line="2271"/>
-        <location filename="../ui/device_panel.py" line="1991"/>
+        <location filename="../ui/device_panel.py" line="2631"/>
+        <location filename="../ui/device_panel.py" line="2151"/>
+        <location filename="../ui/device_panel.py" line="2631"/>
+        <location filename="../ui/device_panel.py" line="2151"/>
         <source>Hide navigation panel</source>
         <translation>Скрыть панель навигации</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="1992"/>
-        <location filename="../ui/device_panel.py" line="1992"/>
+        <location filename="../ui/device_panel.py" line="2152"/>
+        <location filename="../ui/device_panel.py" line="2152"/>
         <source>Toggle navigation pane</source>
         <translation>Переключение панели навигации</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2003"/>
-        <location filename="../ui/device_panel.py" line="2003"/>
+        <location filename="../ui/device_panel.py" line="2163"/>
+        <location filename="../ui/device_panel.py" line="2163"/>
         <source>Close this device panel</source>
         <translation>Закрыть эту панель устройств</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2004"/>
-        <location filename="../ui/device_panel.py" line="2004"/>
+        <location filename="../ui/device_panel.py" line="2164"/>
+        <location filename="../ui/device_panel.py" line="2164"/>
         <source>Close device panel</source>
         <translation>Закрыть панель устройств</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2010"/>
-        <location filename="../ui/device_panel.py" line="2010"/>
+        <location filename="../ui/device_panel.py" line="2170"/>
+        <location filename="../ui/device_panel.py" line="2170"/>
         <source>Add a path tab</source>
         <translation>Добавить вкладку пути</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2011"/>
-        <location filename="../ui/device_panel.py" line="2011"/>
+        <location filename="../ui/device_panel.py" line="2171"/>
+        <location filename="../ui/device_panel.py" line="2171"/>
         <source>Add path tab</source>
         <translation>Добавить вкладку пути</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2144"/>
-        <location filename="../ui/device_panel.py" line="2037"/>
-        <location filename="../ui/device_panel.py" line="2144"/>
-        <location filename="../ui/device_panel.py" line="2037"/>
+        <location filename="../ui/device_panel.py" line="2327"/>
+        <location filename="../ui/device_panel.py" line="2201"/>
+        <location filename="../ui/device_panel.py" line="2327"/>
+        <location filename="../ui/device_panel.py" line="2201"/>
         <source>Could not load favorites: {0}</source>
         <translation>Не удалось загрузить избранное: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2049"/>
-        <location filename="../ui/device_panel.py" line="2049"/>
+        <location filename="../ui/device_panel.py" line="2213"/>
+        <location filename="../ui/device_panel.py" line="2213"/>
         <source>Folders</source>
         <translation>Папки</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2081"/>
-        <location filename="../ui/device_panel.py" line="2081"/>
+        <location filename="../ui/device_panel.py" line="2571"/>
+        <location filename="../ui/device_panel.py" line="2245"/>
+        <location filename="../ui/device_panel.py" line="2571"/>
+        <location filename="../ui/device_panel.py" line="2245"/>
         <source>Favorites</source>
         <translation>Избранное</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2103"/>
-        <location filename="../ui/device_panel.py" line="2103"/>
+        <location filename="../ui/device_panel.py" line="2286"/>
+        <location filename="../ui/device_panel.py" line="2286"/>
         <source>No favorites yet</source>
         <translation>Избранных пока нет</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2107"/>
-        <location filename="../ui/device_panel.py" line="2107"/>
+        <location filename="../ui/device_panel.py" line="2290"/>
+        <location filename="../ui/device_panel.py" line="2290"/>
         <source>Internal storage</source>
         <translation>Внутреннее хранилище</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2154"/>
-        <location filename="../ui/device_panel.py" line="2154"/>
+        <location filename="../ui/device_panel.py" line="2337"/>
+        <location filename="../ui/device_panel.py" line="2337"/>
         <source>Bookmark Error</source>
         <translation>Избранное</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2161"/>
-        <location filename="../ui/device_panel.py" line="2161"/>
+        <location filename="../ui/device_panel.py" line="2344"/>
+        <location filename="../ui/device_panel.py" line="2344"/>
         <source>Could not save favorites: {0}</source>
         <translation>Не удалось сохранить избранное: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2182"/>
-        <location filename="../ui/device_panel.py" line="2182"/>
+        <location filename="../ui/device_panel.py" line="2555"/>
+        <location filename="../ui/device_panel.py" line="2418"/>
+        <location filename="../ui/device_panel.py" line="2555"/>
+        <location filename="../ui/device_panel.py" line="2418"/>
+        <source>New Folder</source>
+        <translation>Новая папка</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2418"/>
+        <location filename="../ui/device_panel.py" line="2418"/>
+        <source>Folder name:</source>
+        <translation>Имя папки:</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2428"/>
+        <location filename="../ui/device_panel.py" line="2428"/>
+        <source>Could not find Favorites folder</source>
+        <translation>Не удалось найти папку &quot;Избранное&quot;</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2436"/>
+        <location filename="../ui/device_panel.py" line="2436"/>
+        <source>A folder with this name already exists</source>
+        <translation>Папка с таким именем уже существует</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2448"/>
+        <location filename="../ui/device_panel.py" line="2448"/>
+        <source>Created &apos;{0}&apos;</source>
+        <translation>Создано &apos;{0}&apos;</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2457"/>
+        <location filename="../ui/device_panel.py" line="2457"/>
         <source>Favorite name cannot be empty</source>
         <translation>Имя избранного не может быть пустым</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2238"/>
-        <location filename="../ui/device_panel.py" line="2190"/>
-        <location filename="../ui/device_panel.py" line="2238"/>
-        <location filename="../ui/device_panel.py" line="2190"/>
+        <location filename="../ui/device_panel.py" line="2597"/>
+        <location filename="../ui/device_panel.py" line="2478"/>
+        <location filename="../ui/device_panel.py" line="2463"/>
+        <location filename="../ui/device_panel.py" line="2597"/>
+        <location filename="../ui/device_panel.py" line="2478"/>
+        <location filename="../ui/device_panel.py" line="2463"/>
         <source>This folder is already in favorites</source>
         <translation>Эта папка уже есть в избранном</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2210"/>
-        <location filename="../ui/device_panel.py" line="2210"/>
-        <source>Edit favorite</source>
-        <translation>Редактировать избранное</translation>
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="2223"/>
-        <location filename="../ui/device_panel.py" line="2223"/>
-        <source>Open</source>
-        <translation>Открыть</translation>
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="2225"/>
-        <location filename="../ui/device_panel.py" line="2225"/>
-        <source>Edit</source>
-        <translation>Правка</translation>
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="2226"/>
-        <location filename="../ui/device_panel.py" line="2226"/>
-        <source>Remove from favorites</source>
-        <translation>Удалить из избранного</translation>
-    </message>
-    <message>
-        <location filename="../ui/device_panel.py" line="2228"/>
-        <location filename="../ui/device_panel.py" line="2228"/>
-        <source>Add to favorites</source>
-        <translation>Добавить в избранное</translation>
-    </message>
-    <message>
-        <source>Move to folder</source>
-        <translation>Переместить в папку</translation>
-    </message>
-    <message>
+        <location filename="../ui/device_panel.py" line="2468"/>
+        <location filename="../ui/device_panel.py" line="2468"/>
         <source>Could not find favorite to edit</source>
         <translation>Не удалось найти избранное для редактирования</translation>
     </message>
     <message>
+        <location filename="../ui/device_panel.py" line="2497"/>
+        <location filename="../ui/device_panel.py" line="2497"/>
         <source>Could not find favorite to remove</source>
         <translation>Не удалось найти избранное для удаления</translation>
     </message>
     <message>
+        <location filename="../ui/device_panel.py" line="2512"/>
+        <location filename="../ui/device_panel.py" line="2512"/>
         <source>Could not move favorite</source>
         <translation>Не удалось переместить избранное</translation>
     </message>
     <message>
-        <source>Could not find Favorites folder</source>
-        <translation>Не удалось найти папку избранного</translation>
+        <location filename="../ui/device_panel.py" line="2537"/>
+        <location filename="../ui/device_panel.py" line="2537"/>
+        <source>Edit favorite</source>
+        <translation>Редактировать избранное</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2241"/>
-        <location filename="../ui/device_panel.py" line="2241"/>
+        <location filename="../ui/device_panel.py" line="2734"/>
+        <location filename="../ui/device_panel.py" line="2583"/>
+        <location filename="../ui/device_panel.py" line="2560"/>
+        <location filename="../ui/device_panel.py" line="2734"/>
+        <location filename="../ui/device_panel.py" line="2583"/>
+        <location filename="../ui/device_panel.py" line="2560"/>
+        <source>Add to favorites</source>
+        <translation>Добавить в избранное</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2564"/>
+        <location filename="../ui/device_panel.py" line="2564"/>
+        <source>Open</source>
+        <translation>Открыть</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2567"/>
+        <location filename="../ui/device_panel.py" line="2567"/>
+        <source>Edit</source>
+        <translation>Правка</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2568"/>
+        <location filename="../ui/device_panel.py" line="2568"/>
+        <source>Remove from favorites</source>
+        <translation>Удалить из избранного</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2569"/>
+        <location filename="../ui/device_panel.py" line="2569"/>
+        <source>Move to folder</source>
+        <translation>Переместить в папку</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="2601"/>
+        <location filename="../ui/device_panel.py" line="2601"/>
         <source>Added &apos;{0}&apos; to favorites</source>
         <translation>Добавлено &quot;{0}&quot; в избранное</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2271"/>
-        <location filename="../ui/device_panel.py" line="2271"/>
+        <location filename="../ui/device_panel.py" line="2631"/>
+        <location filename="../ui/device_panel.py" line="2631"/>
         <source>Show navigation pane</source>
         <translation>Показать панель навигации</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2344"/>
-        <location filename="../ui/device_panel.py" line="2343"/>
-        <location filename="../ui/device_panel.py" line="2344"/>
-        <location filename="../ui/device_panel.py" line="2343"/>
+        <location filename="../ui/device_panel.py" line="2705"/>
+        <location filename="../ui/device_panel.py" line="2704"/>
+        <location filename="../ui/device_panel.py" line="2705"/>
+        <location filename="../ui/device_panel.py" line="2704"/>
         <source>Close tab</source>
         <translation>Закрыть вкладку</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2368"/>
-        <location filename="../ui/device_panel.py" line="2367"/>
-        <location filename="../ui/device_panel.py" line="2368"/>
-        <location filename="../ui/device_panel.py" line="2367"/>
+        <location filename="../ui/device_panel.py" line="2752"/>
+        <location filename="../ui/device_panel.py" line="2751"/>
+        <location filename="../ui/device_panel.py" line="2752"/>
+        <location filename="../ui/device_panel.py" line="2751"/>
         <source>Scroll tabs left</source>
         <translation>Прокрутить вкладки влево</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2373"/>
-        <location filename="../ui/device_panel.py" line="2372"/>
-        <location filename="../ui/device_panel.py" line="2373"/>
-        <location filename="../ui/device_panel.py" line="2372"/>
+        <location filename="../ui/device_panel.py" line="2757"/>
+        <location filename="../ui/device_panel.py" line="2756"/>
+        <location filename="../ui/device_panel.py" line="2757"/>
+        <location filename="../ui/device_panel.py" line="2756"/>
         <source>Scroll tabs right</source>
         <translation>Прокрутить вкладки вправо</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2423"/>
-        <location filename="../ui/device_panel.py" line="2423"/>
+        <location filename="../ui/device_panel.py" line="2807"/>
+        <location filename="../ui/device_panel.py" line="2807"/>
         <source>🟢 Connected</source>
         <translation>🟢 Подключено</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="2428"/>
-        <location filename="../ui/device_panel.py" line="2428"/>
+        <location filename="../ui/device_panel.py" line="2812"/>
+        <location filename="../ui/device_panel.py" line="2812"/>
         <source>🔴 Disconnected</source>
         <translation>🔴 Отключено</translation>
     </message>
@@ -1584,74 +1737,74 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
 <context>
     <name>DeviceSearchPanel</name>
     <message>
-        <location filename="../search_dialog.py" line="100"/>
+        <location filename="../search_dialog.py" line="98"/>
         <source>File or folder name (e.g. photo or .pdf)</source>
         <translation>Имя файла или папки (например, photo или .pdf)</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="103"/>
+        <location filename="../search_dialog.py" line="101"/>
         <source>Text inside file (optional)</source>
         <translation>Содержимое файла(опционально)</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="105"/>
+        <location filename="../search_dialog.py" line="103"/>
         <source>Search with Root (su)</source>
         <translation>Поиск с Root (su)</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="107"/>
+        <location filename="../search_dialog.py" line="105"/>
         <source>Device:</source>
         <translation>Устройство:</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="108"/>
+        <location filename="../search_dialog.py" line="106"/>
         <source>Start directory:</source>
         <translation>Начальный каталог:</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="109"/>
+        <location filename="../search_dialog.py" line="107"/>
         <source>Name:</source>
         <translation>Имя:</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="110"/>
+        <location filename="../search_dialog.py" line="108"/>
         <source>Content:</source>
         <translation>Содержание:</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="115"/>
+        <location filename="../search_dialog.py" line="113"/>
         <source>Search</source>
         <translation>Найти</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="116"/>
+        <location filename="../search_dialog.py" line="114"/>
         <source>Stop</source>
         <translation>Стоп</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="118"/>
+        <location filename="../search_dialog.py" line="116"/>
         <source>Clear</source>
         <translation>Очистить</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="127"/>
+        <location filename="../search_dialog.py" line="125"/>
         <source>Name</source>
         <translation>Имя</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="127"/>
+        <location filename="../search_dialog.py" line="125"/>
         <source>Path</source>
         <translation>Путь</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="224"/>
+        <location filename="../search_dialog.py" line="240"/>
         <location filename="../search_dialog.py" line="166"/>
-        <location filename="../search_dialog.py" line="132"/>
+        <location filename="../search_dialog.py" line="130"/>
         <source>Ready</source>
         <translation>Готов</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="154"/>
+        <location filename="../search_dialog.py" line="151"/>
         <source>Scanning devices...</source>
         <translation>Выполняется поиск на устройстве...</translation>
     </message>
@@ -1661,12 +1814,12 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
         <translation>Устройства ADB не подключены</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="172"/>
+        <location filename="../search_dialog.py" line="175"/>
         <source>No device selected.</source>
         <translation>Устройство не выбрано.</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="180"/>
+        <location filename="../search_dialog.py" line="183"/>
         <source>Enter file name or content text.</source>
         <translation>Введите имя файла или текст содержимого.</translation>
     </message>
@@ -1676,17 +1829,17 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
         <translation>Поиск...</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="208"/>
+        <location filename="../search_dialog.py" line="215"/>
         <source>Stopping...</source>
         <translation>Остановка...</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="252"/>
+        <location filename="../search_dialog.py" line="269"/>
         <source>Searching... Found: {0}</source>
         <translation>Поиск... Найдено: {0}</translation>
     </message>
     <message>
-        <location filename="../search_dialog.py" line="263"/>
+        <location filename="../search_dialog.py" line="277"/>
         <source>Done. Found: {0}</source>
         <translation>Поиск завершён. Найдено: {0}</translation>
     </message>
@@ -1694,50 +1847,50 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
 <context>
     <name>DropTreeView</name>
     <message>
-        <location filename="../ui/widgets.py" line="130"/>
-        <location filename="../ui/widgets.py" line="130"/>
+        <location filename="../ui/widgets.py" line="132"/>
+        <location filename="../ui/widgets.py" line="132"/>
         <source>Cross-Device Drop</source>
         <translation>Перенос между устройствами</translation>
     </message>
     <message>
-        <location filename="../ui/widgets.py" line="131"/>
-        <location filename="../ui/widgets.py" line="131"/>
+        <location filename="../ui/widgets.py" line="133"/>
+        <location filename="../ui/widgets.py" line="133"/>
         <source>Cross-device streaming not available from this view.</source>
         <translation>Перенос между устройствами недоступен из этого представления.</translation>
     </message>
     <message>
-        <location filename="../ui/widgets.py" line="149"/>
-        <location filename="../ui/widgets.py" line="149"/>
+        <location filename="../ui/widgets.py" line="151"/>
+        <location filename="../ui/widgets.py" line="151"/>
         <source>Drop accepted; Windows may continue copying in the background.</source>
         <translation>Перенос принят; Windows может продолжить копирование в фоне.</translation>
     </message>
     <message>
-        <location filename="../ui/widgets.py" line="155"/>
-        <location filename="../ui/widgets.py" line="155"/>
+        <location filename="../ui/widgets.py" line="157"/>
+        <location filename="../ui/widgets.py" line="157"/>
         <source>Native Windows drag source unavailable; using in-app drag.</source>
         <translation>Нативный drag-and-drop Windows недоступен; используется перетаскивание внутри приложения.</translation>
     </message>
     <message>
-        <location filename="../ui/widgets.py" line="158"/>
-        <location filename="../ui/widgets.py" line="158"/>
+        <location filename="../ui/widgets.py" line="160"/>
+        <location filename="../ui/widgets.py" line="160"/>
         <source>Drag Error</source>
         <translation>Ошибка перетаскивания</translation>
     </message>
     <message>
-        <location filename="../ui/widgets.py" line="160"/>
-        <location filename="../ui/widgets.py" line="160"/>
+        <location filename="../ui/widgets.py" line="162"/>
+        <location filename="../ui/widgets.py" line="162"/>
         <source>Native drag failed; using in-app drag.</source>
         <translation>Нативное перетаскивание не сработало; используется перетаскивание внутри приложения.</translation>
     </message>
     <message>
-        <location filename="../ui/widgets.py" line="183"/>
-        <location filename="../ui/widgets.py" line="183"/>
+        <location filename="../ui/widgets.py" line="193"/>
+        <location filename="../ui/widgets.py" line="193"/>
         <source>Move Error</source>
         <translation>Ошибка перемещения</translation>
     </message>
     <message>
-        <location filename="../ui/widgets.py" line="183"/>
-        <location filename="../ui/widgets.py" line="183"/>
+        <location filename="../ui/widgets.py" line="193"/>
+        <location filename="../ui/widgets.py" line="193"/>
         <source>Failed to move items.</source>
         <translation>Не удалось переместить элементы.</translation>
     </message>
@@ -1763,350 +1916,358 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
 <context>
     <name>MultiDeviceWindow</name>
     <message>
-        <location filename="../ui/multi_device_window.py" line="89"/>
-        <location filename="../ui/multi_device_window.py" line="89"/>
+        <location filename="../ui/multi_device_window.py" line="90"/>
+        <location filename="../ui/multi_device_window.py" line="90"/>
         <source>ADB Explorer</source>
         <translation>ADB Explorer</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="113"/>
-        <location filename="../ui/multi_device_window.py" line="113"/>
+        <location filename="../ui/multi_device_window.py" line="119"/>
+        <location filename="../ui/multi_device_window.py" line="119"/>
         <source>+ Add Panel</source>
         <translation>+ Панель</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="117"/>
-        <location filename="../ui/multi_device_window.py" line="117"/>
+        <location filename="../ui/multi_device_window.py" line="123"/>
+        <location filename="../ui/multi_device_window.py" line="123"/>
         <source>+ Add Tab</source>
         <translation>+ Вкладка</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="127"/>
-        <location filename="../ui/multi_device_window.py" line="127"/>
+        <location filename="../ui/multi_device_window.py" line="133"/>
+        <location filename="../ui/multi_device_window.py" line="133"/>
         <source>Search Device</source>
         <translation>Поиск</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="137"/>
-        <location filename="../ui/multi_device_window.py" line="137"/>
+        <location filename="../ui/multi_device_window.py" line="143"/>
+        <location filename="../ui/multi_device_window.py" line="143"/>
         <source>Detecting devices...</source>
         <translation>Поиск устройств...</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="141"/>
-        <location filename="../ui/multi_device_window.py" line="141"/>
+        <location filename="../ui/multi_device_window.py" line="147"/>
+        <location filename="../ui/multi_device_window.py" line="147"/>
         <source>Edit</source>
         <translation>Правка</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="142"/>
-        <location filename="../ui/multi_device_window.py" line="142"/>
+        <location filename="../ui/multi_device_window.py" line="148"/>
+        <location filename="../ui/multi_device_window.py" line="148"/>
         <source>Cut</source>
         <translation>Вырезать</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="143"/>
-        <location filename="../ui/multi_device_window.py" line="143"/>
+        <location filename="../ui/multi_device_window.py" line="149"/>
+        <location filename="../ui/multi_device_window.py" line="149"/>
         <source>Copy</source>
         <translation>Копировать</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="144"/>
-        <location filename="../ui/multi_device_window.py" line="144"/>
+        <location filename="../ui/multi_device_window.py" line="150"/>
+        <location filename="../ui/multi_device_window.py" line="150"/>
         <source>Paste</source>
         <translation>Вставить</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="146"/>
-        <location filename="../ui/multi_device_window.py" line="146"/>
+        <location filename="../ui/multi_device_window.py" line="152"/>
+        <location filename="../ui/multi_device_window.py" line="152"/>
         <source>Delete</source>
         <translation>Удалить</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="147"/>
-        <location filename="../ui/multi_device_window.py" line="147"/>
+        <location filename="../ui/multi_device_window.py" line="153"/>
+        <location filename="../ui/multi_device_window.py" line="153"/>
         <source>Rename</source>
         <translation>Переименовать</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="148"/>
-        <location filename="../ui/multi_device_window.py" line="148"/>
+        <location filename="../ui/multi_device_window.py" line="154"/>
+        <location filename="../ui/multi_device_window.py" line="154"/>
         <source>View</source>
         <translation>Вид</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="149"/>
-        <location filename="../ui/multi_device_window.py" line="149"/>
+        <location filename="../ui/multi_device_window.py" line="155"/>
+        <location filename="../ui/multi_device_window.py" line="155"/>
         <source>Dark Mode</source>
         <translation>Тёмная тема</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="153"/>
-        <location filename="../ui/multi_device_window.py" line="153"/>
+        <location filename="../ui/multi_device_window.py" line="159"/>
+        <location filename="../ui/multi_device_window.py" line="159"/>
         <source>Device Search Panel</source>
         <translation>Панель поиска</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="158"/>
-        <location filename="../ui/multi_device_window.py" line="158"/>
+        <location filename="../ui/multi_device_window.py" line="163"/>
+        <location filename="../ui/multi_device_window.py" line="163"/>
+        <source>Device Dashboard Panel</source>
+        <translation>Информация об устройстве</translation>
+    </message>
+    <message>
+        <location filename="../ui/multi_device_window.py" line="168"/>
+        <location filename="../ui/multi_device_window.py" line="168"/>
         <source>Tools</source>
         <translation>Инструменты</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="159"/>
-        <location filename="../ui/multi_device_window.py" line="159"/>
+        <location filename="../ui/multi_device_window.py" line="169"/>
+        <location filename="../ui/multi_device_window.py" line="169"/>
         <source>Install APK...</source>
         <translation>Установить APK...</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="160"/>
-        <location filename="../ui/multi_device_window.py" line="160"/>
+        <location filename="../ui/multi_device_window.py" line="170"/>
+        <location filename="../ui/multi_device_window.py" line="170"/>
         <source>Install XAPK...</source>
         <translation>Установить XAPK...</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="162"/>
-        <location filename="../ui/multi_device_window.py" line="162"/>
+        <location filename="../ui/multi_device_window.py" line="172"/>
+        <location filename="../ui/multi_device_window.py" line="172"/>
         <source>Search on Device...</source>
         <translation>Поиск на устройстве...</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="163"/>
-        <location filename="../ui/multi_device_window.py" line="163"/>
+        <location filename="../ui/multi_device_window.py" line="173"/>
+        <location filename="../ui/multi_device_window.py" line="173"/>
         <source>Device Dashboard...</source>
         <translation>Информация об устройстве...</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="165"/>
-        <location filename="../ui/multi_device_window.py" line="165"/>
+        <location filename="../ui/multi_device_window.py" line="175"/>
+        <location filename="../ui/multi_device_window.py" line="175"/>
         <source>Permission Lint...</source>
         <translation>Проверка разрешений...</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="168"/>
-        <location filename="../ui/multi_device_window.py" line="168"/>
+        <location filename="../ui/multi_device_window.py" line="178"/>
+        <location filename="../ui/multi_device_window.py" line="178"/>
         <source>Help</source>
         <translation>Справка</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="169"/>
-        <location filename="../ui/multi_device_window.py" line="169"/>
+        <location filename="../ui/multi_device_window.py" line="179"/>
+        <location filename="../ui/multi_device_window.py" line="179"/>
         <source>Check for Updates...</source>
         <translation>Проверить обновления...</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="175"/>
-        <location filename="../ui/multi_device_window.py" line="175"/>
+        <location filename="../ui/multi_device_window.py" line="185"/>
+        <location filename="../ui/multi_device_window.py" line="185"/>
         <source>Ready</source>
         <translation>Готов</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="180"/>
-        <location filename="../ui/multi_device_window.py" line="180"/>
+        <location filename="../ui/multi_device_window.py" line="190"/>
+        <location filename="../ui/multi_device_window.py" line="190"/>
         <source>Device Search</source>
         <translation>Поиск на устройстве</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="219"/>
-        <location filename="../ui/multi_device_window.py" line="219"/>
+        <location filename="../ui/multi_device_window.py" line="204"/>
+        <location filename="../ui/multi_device_window.py" line="204"/>
+        <source>Device Dashboard</source>
+        <translation>Информация об устройстве</translation>
+    </message>
+    <message>
+        <location filename="../ui/multi_device_window.py" line="245"/>
+        <location filename="../ui/multi_device_window.py" line="245"/>
         <source>No devices connected</source>
         <translation>Нет подключённых устройств</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="221"/>
-        <location filename="../ui/multi_device_window.py" line="221"/>
+        <location filename="../ui/multi_device_window.py" line="247"/>
+        <location filename="../ui/multi_device_window.py" line="247"/>
         <source>No ADB devices found. Connect a device and use + Add Panel.</source>
         <translation>Устройства ADB не найдены. Подключите устройство и используйте «+ Добавить панель».</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="225"/>
-        <location filename="../ui/multi_device_window.py" line="225"/>
+        <location filename="../ui/multi_device_window.py" line="251"/>
+        <location filename="../ui/multi_device_window.py" line="251"/>
         <source>{0} device(s) connected</source>
         <translation>Подключено устройств: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="249"/>
-        <location filename="../ui/multi_device_window.py" line="249"/>
+        <location filename="../ui/multi_device_window.py" line="279"/>
+        <location filename="../ui/multi_device_window.py" line="279"/>
         <source>Added panel {0}: {1} ({2})</source>
         <translation>Добавлена панель {0}: {1} ({2})</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="254"/>
-        <location filename="../ui/multi_device_window.py" line="254"/>
+        <location filename="../ui/multi_device_window.py" line="284"/>
+        <location filename="../ui/multi_device_window.py" line="284"/>
         <source>Failed to add panel: {0}</source>
         <translation>Не удалось добавить панель: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="618"/>
-        <location filename="../ui/multi_device_window.py" line="609"/>
-        <location filename="../ui/multi_device_window.py" line="262"/>
-        <location filename="../ui/multi_device_window.py" line="618"/>
-        <location filename="../ui/multi_device_window.py" line="609"/>
-        <location filename="../ui/multi_device_window.py" line="262"/>
+        <location filename="../ui/multi_device_window.py" line="663"/>
+        <location filename="../ui/multi_device_window.py" line="292"/>
+        <location filename="../ui/multi_device_window.py" line="663"/>
+        <location filename="../ui/multi_device_window.py" line="292"/>
         <source>No Devices</source>
         <translation>Нет устройств</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="262"/>
-        <location filename="../ui/multi_device_window.py" line="262"/>
+        <location filename="../ui/multi_device_window.py" line="292"/>
+        <location filename="../ui/multi_device_window.py" line="292"/>
         <source>No ADB devices connected.</source>
         <translation>Устройства ADB не подключены.</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="639"/>
-        <location filename="../ui/multi_device_window.py" line="268"/>
-        <location filename="../ui/multi_device_window.py" line="639"/>
-        <location filename="../ui/multi_device_window.py" line="268"/>
+        <location filename="../ui/multi_device_window.py" line="681"/>
+        <location filename="../ui/multi_device_window.py" line="298"/>
+        <location filename="../ui/multi_device_window.py" line="681"/>
+        <location filename="../ui/multi_device_window.py" line="298"/>
         <source>Unknown</source>
         <translation>Неизвестно</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="274"/>
-        <location filename="../ui/multi_device_window.py" line="274"/>
+        <location filename="../ui/multi_device_window.py" line="304"/>
+        <location filename="../ui/multi_device_window.py" line="304"/>
         <source>No Panel</source>
         <translation>Нет панели</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="274"/>
-        <location filename="../ui/multi_device_window.py" line="274"/>
+        <location filename="../ui/multi_device_window.py" line="304"/>
+        <location filename="../ui/multi_device_window.py" line="304"/>
         <source>Add a device panel before opening a tab.</source>
         <translation>Добавьте панель устройства перед открытием вкладки.</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="295"/>
-        <location filename="../ui/multi_device_window.py" line="295"/>
+        <location filename="../ui/multi_device_window.py" line="328"/>
+        <location filename="../ui/multi_device_window.py" line="328"/>
         <source>Panel closed</source>
         <translation>Панель закрыта</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="316"/>
-        <location filename="../ui/multi_device_window.py" line="316"/>
+        <location filename="../ui/multi_device_window.py" line="349"/>
+        <location filename="../ui/multi_device_window.py" line="349"/>
         <source>Source device panel not found</source>
         <translation>Исходная панель устройства не найдена</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="349"/>
-        <location filename="../ui/multi_device_window.py" line="349"/>
+        <location filename="../ui/multi_device_window.py" line="382"/>
+        <location filename="../ui/multi_device_window.py" line="382"/>
         <source>Stream complete</source>
         <translation>Передача завершена</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="352"/>
-        <location filename="../ui/multi_device_window.py" line="352"/>
+        <location filename="../ui/multi_device_window.py" line="385"/>
+        <location filename="../ui/multi_device_window.py" line="385"/>
         <source>Stream failed</source>
         <translation>Ошибка передачи</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="354"/>
-        <location filename="../ui/multi_device_window.py" line="354"/>
+        <location filename="../ui/multi_device_window.py" line="387"/>
+        <location filename="../ui/multi_device_window.py" line="387"/>
         <source>Stream to {0}</source>
         <translation>Передать на {0}</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="386"/>
-        <location filename="../ui/multi_device_window.py" line="365"/>
-        <location filename="../ui/multi_device_window.py" line="386"/>
-        <location filename="../ui/multi_device_window.py" line="365"/>
+        <location filename="../ui/multi_device_window.py" line="419"/>
+        <location filename="../ui/multi_device_window.py" line="398"/>
+        <location filename="../ui/multi_device_window.py" line="419"/>
+        <location filename="../ui/multi_device_window.py" line="398"/>
         <source>No Device</source>
         <translation>Нет устройства</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="386"/>
-        <location filename="../ui/multi_device_window.py" line="365"/>
-        <location filename="../ui/multi_device_window.py" line="386"/>
-        <location filename="../ui/multi_device_window.py" line="365"/>
+        <location filename="../ui/multi_device_window.py" line="419"/>
+        <location filename="../ui/multi_device_window.py" line="398"/>
+        <location filename="../ui/multi_device_window.py" line="419"/>
+        <location filename="../ui/multi_device_window.py" line="398"/>
         <source>No connected device panel to install to.</source>
         <translation>Нет подключённой панели устройства для установки.</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="368"/>
-        <location filename="../ui/multi_device_window.py" line="368"/>
+        <location filename="../ui/multi_device_window.py" line="401"/>
+        <location filename="../ui/multi_device_window.py" line="401"/>
         <source>Select APK</source>
         <translation>Выбрать APK</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="372"/>
-        <location filename="../ui/multi_device_window.py" line="372"/>
+        <location filename="../ui/multi_device_window.py" line="405"/>
+        <location filename="../ui/multi_device_window.py" line="405"/>
         <source>Install APK</source>
         <translation>Установить APK</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="376"/>
-        <location filename="../ui/multi_device_window.py" line="376"/>
+        <location filename="../ui/multi_device_window.py" line="409"/>
+        <location filename="../ui/multi_device_window.py" line="409"/>
         <source>APK installed successfully</source>
         <translation>APK успешно установлен</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="378"/>
-        <location filename="../ui/multi_device_window.py" line="378"/>
+        <location filename="../ui/multi_device_window.py" line="411"/>
+        <location filename="../ui/multi_device_window.py" line="411"/>
         <source>APK installation failed</source>
         <translation>Не удалось установить APK</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="389"/>
-        <location filename="../ui/multi_device_window.py" line="389"/>
+        <location filename="../ui/multi_device_window.py" line="422"/>
+        <location filename="../ui/multi_device_window.py" line="422"/>
         <source>Select XAPK</source>
         <translation>Выбрать XAPK</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="396"/>
-        <location filename="../ui/multi_device_window.py" line="396"/>
+        <location filename="../ui/multi_device_window.py" line="429"/>
+        <location filename="../ui/multi_device_window.py" line="429"/>
         <source>XAPK installed ({0} APK files)</source>
         <translation>XAPK установлен ({0} APK-файлов)</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="400"/>
-        <location filename="../ui/multi_device_window.py" line="400"/>
+        <location filename="../ui/multi_device_window.py" line="433"/>
+        <location filename="../ui/multi_device_window.py" line="433"/>
         <source>XAPK install failed</source>
         <translation>Не удалось установить XAPK</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="404"/>
-        <location filename="../ui/multi_device_window.py" line="404"/>
+        <location filename="../ui/multi_device_window.py" line="437"/>
+        <location filename="../ui/multi_device_window.py" line="437"/>
         <source>Install XAPK</source>
         <translation>Установить XAPK</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="476"/>
-        <location filename="../ui/multi_device_window.py" line="476"/>
+        <location filename="../ui/multi_device_window.py" line="511"/>
+        <location filename="../ui/multi_device_window.py" line="511"/>
         <source>Could not save theme settings: {0}</source>
         <translation>Не удалось сохранить настройки темы: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="487"/>
-        <location filename="../ui/multi_device_window.py" line="487"/>
+        <location filename="../ui/multi_device_window.py" line="522"/>
+        <location filename="../ui/multi_device_window.py" line="522"/>
         <source>Disconnected</source>
         <translation>Отключено</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="489"/>
-        <location filename="../ui/multi_device_window.py" line="489"/>
+        <location filename="../ui/multi_device_window.py" line="524"/>
+        <location filename="../ui/multi_device_window.py" line="524"/>
         <source>Reconnected</source>
         <translation>Переподключено</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="519"/>
-        <location filename="../ui/multi_device_window.py" line="519"/>
+        <location filename="../ui/multi_device_window.py" line="552"/>
+        <location filename="../ui/multi_device_window.py" line="552"/>
         <source>Background</source>
         <translation>Задачи</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="520"/>
-        <location filename="../ui/multi_device_window.py" line="520"/>
+        <location filename="../ui/multi_device_window.py" line="553"/>
+        <location filename="../ui/multi_device_window.py" line="553"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="573"/>
-        <location filename="../ui/multi_device_window.py" line="573"/>
+        <location filename="../ui/multi_device_window.py" line="578"/>
+        <location filename="../ui/multi_device_window.py" line="578"/>
         <source>{0} failed</source>
         <translation>Не удалось: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/multi_device_window.py" line="618"/>
-        <location filename="../ui/multi_device_window.py" line="609"/>
-        <location filename="../ui/multi_device_window.py" line="618"/>
-        <location filename="../ui/multi_device_window.py" line="609"/>
+        <location filename="../ui/multi_device_window.py" line="663"/>
+        <location filename="../ui/multi_device_window.py" line="663"/>
         <source>No device panel is open.</source>
         <translation>Ни одна панель информации об устройстве не открыта.</translation>
     </message>
@@ -2114,37 +2275,43 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
 <context>
     <name>PathBreadcrumbs</name>
     <message>
-        <location filename="../ui/device_panel.py" line="169"/>
-        <location filename="../ui/device_panel.py" line="168"/>
-        <location filename="../ui/device_panel.py" line="169"/>
-        <location filename="../ui/device_panel.py" line="168"/>
+        <location filename="../ui/device_panel.py" line="172"/>
+        <location filename="../ui/device_panel.py" line="171"/>
+        <location filename="../ui/device_panel.py" line="172"/>
+        <location filename="../ui/device_panel.py" line="171"/>
         <source>Edit path</source>
         <translation>Редактировать путь</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="209"/>
-        <location filename="../ui/device_panel.py" line="209"/>
+        <location filename="../ui/device_panel.py" line="215"/>
+        <location filename="../ui/device_panel.py" line="215"/>
         <source>Navigate to {0}</source>
         <translation>Перейти к {0}</translation>
+    </message>
+    <message>
+        <location filename="../ui/device_panel.py" line="254"/>
+        <location filename="../ui/device_panel.py" line="254"/>
+        <source>Add to favorites</source>
+        <translation>Добавить в избранное</translation>
     </message>
 </context>
 <context>
     <name>PathInput</name>
     <message>
-        <location filename="../ui/device_panel.py" line="278"/>
-        <location filename="../ui/device_panel.py" line="278"/>
+        <location filename="../ui/device_panel.py" line="335"/>
+        <location filename="../ui/device_panel.py" line="335"/>
         <source>Complete path {0}</source>
         <translation>Полный путь {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="292"/>
-        <location filename="../ui/device_panel.py" line="292"/>
+        <location filename="../ui/device_panel.py" line="349"/>
+        <location filename="../ui/device_panel.py" line="349"/>
         <source>Failed to load path suggestions for {0}</source>
         <translation>Не удалось загрузить подсказки пути для {0}</translation>
     </message>
     <message>
-        <location filename="../ui/device_panel.py" line="304"/>
-        <location filename="../ui/device_panel.py" line="304"/>
+        <location filename="../ui/device_panel.py" line="361"/>
+        <location filename="../ui/device_panel.py" line="361"/>
         <source>Path suggestions failed: {0}</source>
         <translation>Ошибка подсказок пути: {0}</translation>
     </message>
@@ -2236,14 +2403,14 @@ Overwrite replaces the existing content. Rename Destination keeps the existing f
         <translation>Остановка...</translation>
     </message>
     <message>
-        <location filename="../ui/permission_lint.py" line="240"/>
-        <location filename="../ui/permission_lint.py" line="240"/>
+        <location filename="../ui/permission_lint.py" line="241"/>
+        <location filename="../ui/permission_lint.py" line="241"/>
         <source>Scanning... Issues found: {0}</source>
         <translation>Сканирование... Найдено: {0}</translation>
     </message>
     <message>
-        <location filename="../ui/permission_lint.py" line="248"/>
-        <location filename="../ui/permission_lint.py" line="248"/>
+        <location filename="../ui/permission_lint.py" line="249"/>
+        <location filename="../ui/permission_lint.py" line="249"/>
         <source>Done. Issues found: {0}</source>
         <translation>Выполнено. Обнаружено: {0}</translation>
     </message>

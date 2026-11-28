@@ -15,6 +15,7 @@ def get_app_data_directory() -> Path:
 
 class BookmarkStore(QObject):
     bookmarks_changed = pyqtSignal(str)
+    common_bookmarks_changed = pyqtSignal()
 
     def __init__(self, path=None):
         super().__init__()
@@ -31,13 +32,48 @@ class BookmarkStore(QObject):
             self._validate_bookmark(item)
         return bookmarks
 
+    def load_common(self) -> list:
+        bookmarks = self._read().get("common", [])
+        if not isinstance(bookmarks, list):
+            raise ValueError("Common favorites must be a JSON array")
+        for item in bookmarks:
+            self._validate_bookmark(item)
+        return bookmarks
+
     def save(self, device_id: str, bookmarks: list) -> None:
         for item in bookmarks:
             self._validate_bookmark(item)
         data = self._read()
-        data["version"] = 2
+        data["version"] = 3
         key = self._device_key(device_id)
         data["devices"][key] = bookmarks
+        self._write(data)
+        self.bookmarks_changed.emit(key)
+
+    def save_common(self, bookmarks: list) -> None:
+        for item in bookmarks:
+            self._validate_bookmark(item)
+        data = self._read()
+        data["version"] = 3
+        data["common"] = bookmarks
+        self._write(data)
+        self.common_bookmarks_changed.emit()
+
+    def save_device_and_common(
+        self, device_id: str, device_bookmarks: list, common_bookmarks: list
+    ) -> None:
+        for item in (*device_bookmarks, *common_bookmarks):
+            self._validate_bookmark(item)
+        data = self._read()
+        data["version"] = 3
+        key = self._device_key(device_id)
+        data["devices"][key] = device_bookmarks
+        data["common"] = common_bookmarks
+        self._write(data)
+        self.bookmarks_changed.emit(key)
+        self.common_bookmarks_changed.emit()
+
+    def _write(self, data: dict) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
         tmp_path = None
@@ -59,8 +95,6 @@ class BookmarkStore(QObject):
         finally:
             if tmp_path is not None and tmp_path.exists():
                 tmp_path.unlink()
-
-        self.bookmarks_changed.emit(key)
 
     def _read(self) -> dict:
         if not self.path.exists():

@@ -40,7 +40,16 @@ class PermissionLintNavigationTests(unittest.TestCase):
             adb_handler=SimpleNamespace(root_mode=None),
             add_tab=Mock(return_value=view),
         )
-        window = SimpleNamespace(device_panels=[panel])
+
+        def focus_item(tab, _name):
+            tab.tree_view.setCurrentIndex(0)
+            tab.tree_view.scrollTo(0)
+
+        window = SimpleNamespace(
+            device_panels=[panel],
+            _get_or_create_device_panel=lambda _serial: panel,
+            _focus_item_in_tab=focus_item,
+        )
 
         with patch(
             "ui.multi_device_window.QTimer.singleShot",
@@ -64,6 +73,30 @@ class PermissionLintNavigationTests(unittest.TestCase):
 
         self.assertEqual(
             selected, [("device-1", "/storage/emulated/0/shared", False, True)]
+        )
+
+    def test_global_search_directory_result_uses_directory_navigation(self):
+        panel = SimpleNamespace(
+            device_serial="device-1",
+            adb_handler=SimpleNamespace(root_mode=None),
+            add_tab=Mock(return_value=SimpleNamespace(use_root=False)),
+        )
+        window = SimpleNamespace(
+            device_panels=[panel],
+            _get_or_create_device_panel=lambda _serial: panel,
+            _is_remote_directory=lambda _panel, _path, _use_root: True,
+        )
+
+        MultiDeviceWindow._navigate_to_search_result(
+            window,
+            "device-1",
+            "/storage/emulated/0/shared",
+            False,
+            None,
+        )
+
+        panel.add_tab.assert_called_once_with(
+            path="/storage/emulated/0/shared"
         )
 
 

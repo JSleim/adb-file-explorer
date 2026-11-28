@@ -173,6 +173,8 @@ class PathBreadcrumbs(QWidget):
         A._edit_button.setAutoRaise(True)
         A._edit_button.clicked.connect(B.focus_address_bar)
         A._layout.addWidget(A._edit_button)
+        A.installEventFilter(A)
+        A._edit_button.installEventFilter(A)
         A.setMinimumWidth(0)
         A.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         A.set_path(B.current_path)
@@ -281,10 +283,26 @@ class PathInput(QLineEdit):
         A._completer.setFilterMode(Qt.MatchFlag.MatchStartsWith)
         A._completer.activated.connect(A._accept_completion)
         A._completer.popup().setObjectName("path_completion_popup")
+        A._completer.popup().installEventFilter(A)
         A.setCompleter(A._completer)
         A.installEventFilter(A)
         A.textEdited.connect(A._show_completions)
         A.returnPressed.connect(A._navigate)
+
+    def focusOutEvent(A, event):
+        super().focusOutEvent(event)
+        QTimer.singleShot(0, A._restore_breadcrumbs_after_focus_out)
+
+    def _restore_breadcrumbs_after_focus_out(A):
+        popup = A._completer.popup()
+        focus_widget = QApplication.focusWidget()
+        if A.hasFocus() or (
+            popup.isVisible()
+            and focus_widget is not None
+            and (focus_widget is popup or popup.isAncestorOf(focus_widget))
+        ):
+            return
+        A._panel.show_breadcrumbs()
 
     def update_completions(A, items):
         B = A._panel.current_path.rstrip("/") or "/"
@@ -381,14 +399,20 @@ class PathInput(QLineEdit):
         C = watched
         A = event
         if (
-            C is B
+            C in (B, B._completer.popup())
             and A.type() == QEvent.Type.KeyPress
-            and A.key() in (Qt.Key.Key_Tab, Qt.Key.Key_Right)
-            and (A.key() == Qt.Key.Key_Tab or B.cursorPosition() == len(B.text()))
-            and B._try_accept_completion()
         ):
-            A.accept()
-            return True
+            if A.key() == Qt.Key.Key_Tab:
+                B._try_accept_completion()
+                A.accept()
+                return True
+            if (
+                A.key() == Qt.Key.Key_Right
+                and B.cursorPosition() == len(B.text())
+                and B._try_accept_completion()
+            ):
+                A.accept()
+                return True
         return super().eventFilter(C, A)
 
     def keyPressEvent(A, event):
@@ -399,11 +423,15 @@ class PathInput(QLineEdit):
             A._panel.show_breadcrumbs()
             B.accept()
             return
+        if C == Qt.Key.Key_Tab:
+            A._try_accept_completion()
+            B.accept()
+            return
         if (
-            C == Qt.Key.Key_Tab
-            or C == Qt.Key.Key_Right
+            C == Qt.Key.Key_Right
             and A.cursorPosition() == len(A.text())
-        ) and A._try_accept_completion():
+            and A._try_accept_completion()
+        ):
             B.accept()
             return
         super().keyPressEvent(B)
@@ -2027,7 +2055,7 @@ class NonOverlappingTabBar(QTabBar):
 
 
 class BookmarkDialog(QDialog):
-    def __init__(A, parent, bookmark, title):
+    def __init__(A, parent, bookmark, title, is_common=False):
         C = bookmark
         super().__init__(parent)
         A.setWindowTitle(title)
@@ -2040,6 +2068,9 @@ class BookmarkDialog(QDialog):
         B.addRow(A.tr("Name"), A.name_input)
         B.addRow(A.tr("Path"), A.path_input)
         B.addRow(A.tr("Note"), A.note_input)
+        A.share_across_devices = QCheckBox(A.tr("Share across devices"))
+        A.share_across_devices.setChecked(is_common)
+        B.addRow("", A.share_across_devices)
         E.addLayout(B)
         D = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save
@@ -2055,6 +2086,9 @@ class BookmarkDialog(QDialog):
             "path": A.path_input.text(),
             "note": A.note_input.text().strip(),
         }
+
+    def is_common(A):
+        return A.share_across_devices.isChecked()
 
 
 _DEVICE_FOLDER_SHORTCUTS = (
@@ -2101,12 +2135,21 @@ class DevicePanelGroup(QWidget):
         A._restore_navigation_pane_open = True
         A._bookmark_store = bookmark_store or BookmarkStore(bookmarks_path)
         A._bookmark_store.bookmarks_changed.connect(A._on_bookmarks_changed)
+        A._bookmark_store.common_bookmarks_changed.connect(
+            A._on_common_bookmarks_changed
+        )
         try:
             A._bookmarks = A._bookmark_store.load(A.device_serial)
             A._bookmark_load_error = None
         except (OSError, ValueError) as E:
             A._bookmarks = []
             A._bookmark_load_error = str(E)
+        try:
+            A._common_bookmarks = A._bookmark_store.load_common()
+            A._common_bookmark_load_error = None
+        except (OSError, ValueError) as E:
+            A._common_bookmarks = []
+            A._common_bookmark_load_error = str(E)
         C = QVBoxLayout(A)
         C.setContentsMargins(0, 0, 0, 0)
         C.setSpacing(2)
@@ -2172,6 +2215,12 @@ class DevicePanelGroup(QWidget):
             A._show_bookmark_error(
                 A.tr("Could not load favorites: {0}").format(A._bookmark_load_error)
             )
+        if A._common_bookmark_load_error:
+            A._show_bookmark_error(
+                A.tr("Could not load common favorites: {0}").format(
+                    A._common_bookmark_load_error
+                )
+            )
 
     def _create_favorites_pane(A):
         B = QWidget(A.content_splitter)
@@ -2222,7 +2271,7 @@ class DevicePanelGroup(QWidget):
         )
         A.navigation_tree.addTopLevelItem(C)
 
-        def add_favorites(parent, entries):
+        def add_favorites(parent, entries, is_common):
             for entry in entries:
                 if entry.get("kind") == "folder":
                     folder_item = QTreeWidgetItem([entry["name"]])
@@ -2230,10 +2279,14 @@ class DevicePanelGroup(QWidget):
                     folder_item.setData(
                         0,
                         Qt.ItemDataRole.UserRole,
-                        {"kind": "favorite_folder", "folder": entry},
+                        {
+                            "kind": "favorite_folder",
+                            "folder": entry,
+                            "is_common": is_common,
+                        },
                     )
                     parent.addChild(folder_item)
-                    add_favorites(folder_item, entry["children"])
+                    add_favorites(folder_item, entry["children"], is_common)
                     continue
                 bookmark_item = QTreeWidgetItem([entry["name"]])
                 bookmark_item.setIcon(0, F)
@@ -2244,6 +2297,7 @@ class DevicePanelGroup(QWidget):
                         "kind": "favorite",
                         "path": entry["path"],
                         "bookmark": entry,
+                        "is_common": is_common,
                     },
                 )
                 tooltip = entry["path"]
@@ -2253,12 +2307,24 @@ class DevicePanelGroup(QWidget):
                 parent.addChild(bookmark_item)
                 A._navigation_items.append((bookmark_item, entry["path"]))
 
-        add_favorites(C, A._bookmarks)
+        add_favorites(C, A._bookmarks, False)
         if not A._bookmarks:
             K = QTreeWidgetItem([A.tr("No favorites yet")])
             K.setFlags(Qt.ItemFlag.NoItemFlags)
             C.addChild(K)
         C.setExpanded(G.get("favorites", True))
+        if A._common_bookmarks:
+            common_root = QTreeWidgetItem([A.tr("Common Favorites")])
+            common_root.setFont(0, A._navigation_group_font())
+            common_root.setIcon(0, F)
+            common_root.setData(
+                0,
+                Qt.ItemDataRole.UserRole,
+                {"kind": "group", "section": "common", "is_common": True},
+            )
+            A.navigation_tree.addTopLevelItem(common_root)
+            add_favorites(common_root, A._common_bookmarks, True)
+            common_root.setExpanded(G.get("common", True))
         E = QTreeWidgetItem([A.tr("Internal storage")])
         E.setFont(0, A._navigation_group_font())
         E.setIcon(0, F)
@@ -2300,6 +2366,16 @@ class DevicePanelGroup(QWidget):
             return
         A._refresh_navigation_tree()
 
+    def _on_common_bookmarks_changed(A):
+        try:
+            A._common_bookmarks = A._bookmark_store.load_common()
+        except (OSError, ValueError) as B:
+            A._show_bookmark_error(
+                A.tr("Could not load common favorites: {0}").format(B)
+            )
+            return
+        A._refresh_navigation_tree()
+
     def _show_bookmark_error(C, message, view=None):
         A = message
         _logger.warning(A)
@@ -2316,6 +2392,33 @@ class DevicePanelGroup(QWidget):
             A._show_bookmark_error(A.tr("Could not save favorites: {0}").format(C))
             return False
         A._bookmarks = B
+        A._refresh_navigation_tree()
+        return True
+
+    def _save_common_bookmarks(A, bookmarks):
+        try:
+            A._bookmark_store.save_common(bookmarks)
+        except (OSError, ValueError) as B:
+            A._show_bookmark_error(
+                A.tr("Could not save common favorites: {0}").format(B)
+            )
+            return False
+        A._common_bookmarks = bookmarks
+        A._refresh_navigation_tree()
+        return True
+
+    def _save_bookmark_scopes(A, device_bookmarks, common_bookmarks):
+        try:
+            A._bookmark_store.save_device_and_common(
+                A.device_serial, device_bookmarks, common_bookmarks
+            )
+        except (OSError, ValueError) as B:
+            A._show_bookmark_error(
+                A.tr("Could not save favorites: {0}").format(B)
+            )
+            return False
+        A._bookmarks = device_bookmarks
+        A._common_bookmarks = common_bookmarks
         A._refresh_navigation_tree()
         return True
 
@@ -2349,6 +2452,20 @@ class DevicePanelGroup(QWidget):
         return None
 
     @staticmethod
+    def _folder_parent_list(bookmarks, folder_id):
+        for item in bookmarks:
+            if item.get("kind") != "folder":
+                continue
+            if item["id"] == folder_id:
+                return bookmarks
+            parent = DevicePanelGroup._folder_parent_list(
+                item["children"], folder_id
+            )
+            if parent is not None:
+                return parent
+        return None
+
+    @staticmethod
     def _favorite_path_exists(bookmarks, path):
         return any(
             DevicePanelGroup._favorite_path_exists(item["children"], path)
@@ -2357,8 +2474,23 @@ class DevicePanelGroup(QWidget):
             for item in bookmarks
         )
 
-    def _iter_favorite_folders(A, bookmarks=None, parent_name=""):
-        for item in A._bookmarks if bookmarks is None else bookmarks:
+    @staticmethod
+    def _favorite_paths(bookmarks):
+        for item in bookmarks:
+            if item.get("kind") == "folder":
+                yield from DevicePanelGroup._favorite_paths(item["children"])
+            else:
+                yield item["path"]
+
+    def _iter_favorite_folders(
+        A, is_common=False, bookmarks=None, parent_name=""
+    ):
+        entries = (
+            (A._common_bookmarks if is_common else A._bookmarks)
+            if bookmarks is None
+            else bookmarks
+        )
+        for item in entries:
             if item.get("kind") != "folder":
                 continue
             name = (
@@ -2367,22 +2499,29 @@ class DevicePanelGroup(QWidget):
                 else item["name"]
             )
             yield item, name
-            yield from A._iter_favorite_folders(item["children"], name)
+            yield from A._iter_favorite_folders(
+                is_common, item["children"], name
+            )
 
-    def add_bookmark(B, name, path, note="", parent_folder_id=None):
+    def add_bookmark(
+        B, name, path, note="", parent_folder_id=None, is_common=False
+    ):
         bookmark = {"name": name.strip(), "path": path, "note": note.strip()}
         if not bookmark["name"] or not bookmark["path"].startswith("/"):
             raise ValueError("A favorite needs a name and absolute device path")
-        if B._favorite_path_exists(B._bookmarks, bookmark["path"]):
+        entries = B._common_bookmarks if is_common else B._bookmarks
+        if B._favorite_path_exists(entries, bookmark["path"]):
             return False
-        bookmarks = deepcopy(B._bookmarks)
+        bookmarks = deepcopy(entries)
         destination = B._folder_children_for(bookmarks, parent_folder_id)
         if destination is None:
             raise ValueError("Favorites folder not found")
         destination.append(bookmark)
+        if is_common:
+            return B._save_common_bookmarks(bookmarks)
         return B._save_bookmarks(bookmarks)
 
-    def _create_bookmark_folder(A, parent_folder=None):
+    def _create_bookmark_folder(A, parent_folder=None, is_common=False):
         view = A.active_view
         if view is None:
             return
@@ -2393,7 +2532,8 @@ class DevicePanelGroup(QWidget):
             return
         name = name.strip()
         parent_id = parent_folder.get("id") if parent_folder else None
-        bookmarks = deepcopy(A._bookmarks)
+        entries = A._common_bookmarks if is_common else A._bookmarks
+        bookmarks = deepcopy(entries)
         destination = A._folder_children_for(bookmarks, parent_id)
         if destination is None:
             A._show_bookmark_error(
@@ -2416,42 +2556,75 @@ class DevicePanelGroup(QWidget):
                 "children": [],
             }
         )
-        if A._save_bookmarks(bookmarks):
+        saved = (
+            A._save_common_bookmarks(bookmarks)
+            if is_common
+            else A._save_bookmarks(bookmarks)
+        )
+        if saved:
             view.status_label.setText(view.tr("Created '{0}'").format(name))
 
-    def _edit_bookmark_dialog(A, bookmark, title):
-        C = bookmark
-        E = BookmarkDialog(A, C, title)
-        if E.exec() != QDialog.DialogCode.Accepted:
+    def _edit_bookmark_dialog(A, bookmark, title, is_common=False):
+        dialog = BookmarkDialog(A, bookmark, title, is_common)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
-        B = E.bookmark()
-        if not B["name"]:
+        updated = dialog.bookmark()
+        if not updated["name"]:
             A._show_bookmark_error(A.tr("Favorite name cannot be empty"))
             return
-        if C is not None:
-            if B["path"] != C["path"] and A._favorite_path_exists(
-                A._bookmarks, B["path"]
+        target_is_common = dialog.is_common()
+        if bookmark is None:
+            target_entries = (
+                A._common_bookmarks if target_is_common else A._bookmarks
+            )
+            if A._favorite_path_exists(target_entries, updated["path"]):
+                A._show_bookmark_error(A.tr("This folder is already in favorites"))
+                return
+            if target_is_common:
+                updated_common = deepcopy(A._common_bookmarks)
+                updated_common.append(updated)
+                A._save_common_bookmarks(updated_common)
+            else:
+                updated_device = deepcopy(A._bookmarks)
+                updated_device.append(updated)
+                A._save_bookmarks(updated_device)
+            return
+
+        updated_device = deepcopy(A._bookmarks)
+        updated_common = deepcopy(A._common_bookmarks)
+        updated_source = updated_common if is_common else updated_device
+        updated_target = (
+            updated_common if target_is_common else updated_device
+        )
+        parent = A._bookmark_parent_list(updated_source, bookmark["path"])
+        if parent is None:
+            A._show_bookmark_error(A.tr("Could not find favorite to edit"))
+            return
+        index = next(
+            index
+            for index, item in enumerate(parent)
+            if item.get("path") == bookmark["path"]
+        )
+        if is_common == target_is_common:
+            if (
+                updated["path"] != bookmark["path"]
+                and A._favorite_path_exists(updated_target, updated["path"])
             ):
                 A._show_bookmark_error(A.tr("This folder is already in favorites"))
                 return
-            D = deepcopy(A._bookmarks)
-            parent = A._bookmark_parent_list(D, C["path"])
-            if parent is None:
-                A._show_bookmark_error(A.tr("Could not find favorite to edit"))
-                return
-            index = next(
-                index
-                for index, item in enumerate(parent)
-                if item.get("path") == C["path"]
-            )
-            parent[index] = B
-        else:
-            if A._favorite_path_exists(A._bookmarks, B["path"]):
-                A._show_bookmark_error(A.tr("This folder is already in favorites"))
-                return
-            D = deepcopy(A._bookmarks)
-            D.append(B)
-        A._save_bookmarks(D)
+            parent[index] = updated
+            if is_common:
+                A._save_common_bookmarks(updated_common)
+            else:
+                A._save_bookmarks(updated_device)
+            return
+
+        if A._favorite_path_exists(updated_target, updated["path"]):
+            A._show_bookmark_error(A.tr("This folder is already in favorites"))
+            return
+        del parent[index]
+        updated_target.append(updated)
+        A._save_bookmark_scopes(updated_device, updated_common)
 
     def _selected_bookmark(C):
         B = C.navigation_tree.currentItem()
@@ -2460,24 +2633,32 @@ class DevicePanelGroup(QWidget):
             return A.get("bookmark")
 
     def _remove_bookmark(A):
-        bookmark = A._selected_bookmark()
-        if bookmark is None:
+        item = A.navigation_tree.currentItem()
+        data = item.data(0, Qt.ItemDataRole.UserRole) if item else None
+        if not data or data.get("kind") != "favorite":
             return
-        bookmarks = deepcopy(A._bookmarks)
+        bookmark = data["bookmark"]
+        is_common = data.get("is_common", False)
+        entries = A._common_bookmarks if is_common else A._bookmarks
+        bookmarks = deepcopy(entries)
         parent = A._bookmark_parent_list(bookmarks, bookmark["path"])
         if parent is None:
             A._show_bookmark_error(A.tr("Could not find favorite to remove"))
             return
         index = next(
             index
-            for index, item in enumerate(parent)
-            if item.get("path") == bookmark["path"]
+            for index, value in enumerate(parent)
+            if value.get("path") == bookmark["path"]
         )
         del parent[index]
-        A._save_bookmarks(bookmarks)
+        if is_common:
+            A._save_common_bookmarks(bookmarks)
+        else:
+            A._save_bookmarks(bookmarks)
 
-    def _move_bookmark_to_folder(A, bookmark, folder_id):
-        bookmarks = deepcopy(A._bookmarks)
+    def _move_bookmark_to_folder(A, bookmark, folder_id, is_common=False):
+        entries = A._common_bookmarks if is_common else A._bookmarks
+        bookmarks = deepcopy(entries)
         source = A._bookmark_parent_list(bookmarks, bookmark["path"])
         destination = A._folder_children_for(bookmarks, folder_id)
         if source is None or destination is None:
@@ -2491,22 +2672,62 @@ class DevicePanelGroup(QWidget):
             if item.get("path") == bookmark["path"]
         )
         destination.append(source.pop(index))
-        A._save_bookmarks(bookmarks)
+        if is_common:
+            A._save_common_bookmarks(bookmarks)
+        else:
+            A._save_bookmarks(bookmarks)
 
-    def _add_current_folder_to_favorites(A, parent_folder):
+    def _move_favorite_folder_to_scope(A, folder, is_common):
+        source_entries = A._common_bookmarks if is_common else A._bookmarks
+        target_entries = A._bookmarks if is_common else A._common_bookmarks
+        source = deepcopy(source_entries)
+        target = deepcopy(target_entries)
+        source_parent = A._folder_parent_list(source, folder["id"])
+        if source_parent is None:
+            A._show_bookmark_error(A.tr("Could not move favorite folder"))
+            return
+        source_index = next(
+            index
+            for index, item in enumerate(source_parent)
+            if item.get("kind") == "folder" and item["id"] == folder["id"]
+        )
+        moving_folder = source_parent[source_index]
+        target_paths = set(A._favorite_paths(target))
+        if any(
+            path in target_paths
+            for path in A._favorite_paths([moving_folder])
+        ):
+            A._show_bookmark_error(
+                A.tr(
+                    "One or more paths already exist in the destination favorites"
+                )
+            )
+            return
+        del source_parent[source_index]
+        target.append(moving_folder)
+        device_bookmarks = target if is_common else source
+        common_bookmarks = source if is_common else target
+        A._save_bookmark_scopes(device_bookmarks, common_bookmarks)
+
+    def _add_current_folder_to_favorites(A, parent_folder, is_common=False):
         view = A.active_view
         if view is None:
             return
         path = view.current_path
         name = path.rstrip("/").rsplit("/", 1)[-1] or "/"
         A._add_folder_to_favorites(
-            name, path, view, parent_folder.get("id")
+            name, path, view, parent_folder.get("id"), is_common
         )
 
     def _edit_selected_bookmark(A):
-        B = A._selected_bookmark()
-        if B is not None:
-            A._edit_bookmark_dialog(B, A.tr("Edit favorite"))
+        item = A.navigation_tree.currentItem()
+        data = item.data(0, Qt.ItemDataRole.UserRole) if item else None
+        if data and data.get("kind") == "favorite":
+            A._edit_bookmark_dialog(
+                data["bookmark"],
+                A.tr("Edit favorite"),
+                data.get("is_common", False),
+            )
 
     def _show_bookmark_context_menu(A, position):
         item = A.navigation_tree.itemAt(position)
@@ -2520,34 +2741,63 @@ class DevicePanelGroup(QWidget):
         menu = QMenu(A)
         if kind in {"group", "favorite_folder"}:
             parent_folder = data.get("folder")
+            is_common = data.get("is_common", data.get("section") == "common")
             view = A.active_view
             if view is None:
                 return
             menu.addAction(
                 view.tr("New Folder"),
-                lambda: A._create_bookmark_folder(parent_folder),
+                lambda: A._create_bookmark_folder(parent_folder, is_common),
+            )
+            menu.addAction(
+                view.tr("Add to favorites"),
+                lambda: A._add_current_folder_to_favorites(
+                    parent_folder or {}, is_common
+                ),
             )
             if parent_folder is not None:
-                menu.addAction(
-                    view.tr("Add to favorites"),
-                    lambda: A._add_current_folder_to_favorites(parent_folder),
-                )
+                if is_common:
+                    menu.addAction(
+                        A.tr("Move folder to Device Favorites"),
+                        lambda: A._move_favorite_folder_to_scope(
+                            parent_folder, True
+                        ),
+                    )
+                else:
+                    menu.addAction(
+                        A.tr("Move folder to Common Favorites"),
+                        lambda: A._move_favorite_folder_to_scope(
+                            parent_folder, False
+                        ),
+                    )
         else:
             menu.addAction(A.tr("Open"), lambda: A._activate_navigation_item(item))
             if kind == "favorite":
                 bookmark = data["bookmark"]
+                is_common = data.get("is_common", False)
                 menu.addAction(A.tr("Edit"), A._edit_selected_bookmark)
-                menu.addAction(A.tr("Remove from favorites"), A._remove_bookmark)
+                menu.addAction(
+                    A.tr(
+                        "Remove from Common Favorites"
+                        if is_common
+                        else "Remove from favorites"
+                    ),
+                    A._remove_bookmark,
+                )
                 move_menu = menu.addMenu(A.tr("Move to folder"))
                 move_menu.addAction(
-                    A.tr("Favorites"),
-                    lambda: A._move_bookmark_to_folder(bookmark, None),
+                    A.tr("Common Favorites" if is_common else "Favorites"),
+                    lambda: A._move_bookmark_to_folder(
+                        bookmark, None, is_common
+                    ),
                 )
-                for folder, label in A._iter_favorite_folders():
+                for folder, label in A._iter_favorite_folders(is_common):
                     move_menu.addAction(
                         label,
                         lambda _checked=False, folder_id=folder["id"]: (
-                            A._move_bookmark_to_folder(bookmark, folder_id)
+                            A._move_bookmark_to_folder(
+                                bookmark, folder_id, is_common
+                            )
                         ),
                     )
             else:
@@ -2562,13 +2812,17 @@ class DevicePanelGroup(QWidget):
         A._add_folder_to_favorites(item.text(0), B["path"], A.active_view)
 
     def _add_folder_to_favorites(
-        A, name, path, source_view=None, parent_folder_id=None
+        A, name, path, source_view=None, parent_folder_id=None, is_common=False
     ):
         B = source_view
-        if A._favorite_path_exists(A._bookmarks, path):
+        entries = A._common_bookmarks if is_common else A._bookmarks
+        if A._favorite_path_exists(entries, path):
             A._show_bookmark_error(A.tr("This folder is already in favorites"), B)
         elif A.add_bookmark(
-            name, path, parent_folder_id=parent_folder_id
+            name,
+            path,
+            parent_folder_id=parent_folder_id,
+            is_common=is_common,
         ) and B is not None:
             B.status_label.setText(A.tr("Added '{0}' to favorites").format(name))
 

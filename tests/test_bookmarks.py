@@ -333,6 +333,23 @@ class BookmarkTests(unittest.TestCase):
             panel.deleteLater()
             self.app.processEvents()
 
+    def test_bookmark_dialog_exposes_current_sharing_scope(self):
+        bookmark = {
+            "name": "Photos",
+            "path": "/storage/DCIM",
+            "note": "",
+        }
+        dialog = BookmarkDialog(
+            None, bookmark, "Edit favorite", is_common=True
+        )
+
+        self.assertTrue(dialog.is_common())
+
+        dialog.share_across_devices.setChecked(False)
+        self.assertFalse(dialog.is_common())
+
+        dialog.deleteLater()
+
     def test_file_context_menu_adds_the_right_clicked_folder_to_favorites(self):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, "bookmarks.json")

@@ -39,6 +39,7 @@ class DeviceSearchWorker(QThread):
     def __init__(self, adb_handler, root_path, name_query, content_query, use_root):
         super().__init__()
         self.adb_handler = adb_handler
+        self.device_serial = adb_handler.device_serial
         self.root_path = root_path
         self.name_query = name_query
         self.content_query = content_query
@@ -48,8 +49,6 @@ class DeviceSearchWorker(QThread):
 
     def cancel(self):
         self._cancelled = True
-        # Kills the search adb process immediately instead of waiting
-        # for the next line of find output.
         self._operation.cancel()
 
     def run(self):
@@ -78,8 +77,7 @@ class DeviceSearchWorker(QThread):
 
 
 class DeviceSearchPanel(QWidget):
-    # Передает (serial_устройства, полный_путь, use_root)
-    file_selected = pyqtSignal(str, str, bool)
+    file_selected = pyqtSignal(str, str, bool, bool)
 
     def __init__(self, main_window, parent=None):
         super().__init__(parent)
@@ -142,17 +140,19 @@ class DeviceSearchPanel(QWidget):
     # -- Thread lifecycle -------------------------------------------------
 
     def refresh_devices(self, preferred_serial=None):
-        # Only one scan at a time: the previous thread object must never be
-        # overwritten while its run() is still executing, otherwise Qt
-        # destroys a live QThread and aborts the whole process.
         self._preferred_serial = preferred_serial
         if self._scan_thread is not None and self._scan_thread.isRunning():
             return
         self._scan_thread = DeviceScanThread()
         self._scan_thread.devices_scanned.connect(self._on_devices_scanned)
+        self._scan_thread.finished.connect(self._scan_thread.deleteLater)
+        self._scan_thread.finished.connect(self._clear_scan_thread_ref)
         self.device_combo.setEnabled(False)
         self.status_label.setText(self.tr("Scanning devices..."))
         self._scan_thread.start()
+
+    def _clear_scan_thread_ref(self):
+        self._scan_thread = None
 
     def _on_devices_scanned(self, devices):
         self.device_combo.clear()
@@ -167,6 +167,9 @@ class DeviceSearchPanel(QWidget):
         self.device_combo.setEnabled(bool(devices) and not self._searching)
 
     def start_search(self):
+        if self._searching:
+            return
+
         serial = self.device_combo.currentData()
         if not serial:
             self.status_label.setText(self.tr("No device selected."))
@@ -183,14 +186,9 @@ class DeviceSearchPanel(QWidget):
         self._shutdown_worker()
         self.results_tree.clear()
         self._searching = True
-        self.search_btn.setEnabled(False)
-        self.stop_btn.setEnabled(True)
-        self.clear_btn.setEnabled(False)
-        self.device_combo.setEnabled(False)
+        self._set_inputs_enabled(False)
         self.status_label.setText(self.tr("Searching..."))
 
-        # Dedicated handler: the shared panel handler is never touched,
-        # so the panel keeps its own serial and root state.
         self.worker = DeviceSearchWorker(
             adb_handler=ADBHandler(device_serial=serial),
             root_path=root_path,
@@ -200,32 +198,48 @@ class DeviceSearchPanel(QWidget):
         )
         self.worker.item_found.connect(self.on_item_found)
         self.worker.search_finished.connect(self.on_finished)
+        self.worker.finished.connect(self._on_worker_thread_finished)
         self.worker.start()
+
+    def _set_inputs_enabled(self, enabled):
+        self.search_btn.setEnabled(enabled)
+        self.stop_btn.setEnabled(not enabled)
+        self.clear_btn.setEnabled(enabled and self.results_tree.topLevelItemCount() > 0)
+        self.device_combo.setEnabled(enabled and self.device_combo.count() > 0)
+        self.root_checkbox.setEnabled(enabled)
+        self.path_edit.setEnabled(enabled)
 
     def stop_search(self):
         if self.worker and self.worker.isRunning():
             self.worker.cancel()
             self.status_label.setText(self.tr("Stopping..."))
 
+    def _on_worker_thread_finished(self):
+        if self.worker is not None:
+            self.worker.deleteLater()
+            self.worker = None
+
     def _shutdown_worker(self):
         if self.worker is None:
             return
-        if self.worker.isRunning():
-            self.worker.cancel()
-            self.worker.wait(3000)
+        try:
             if self.worker.isRunning():
-                # Last resort: the process kill did not unblock the thread.
-                self.worker.terminate()
-                self.worker.wait(1000)
+                self.worker.cancel()
+                self.worker.wait(3000)
+                if self.worker.isRunning():
+                    self.worker.terminate()
+                    self.worker.wait(1000)
+                    clear_current_operation()
+        except RuntimeError:
+            pass
         self.worker = None
 
     def clear_results(self):
         self.results_tree.clear()
+        self.clear_btn.setEnabled(False)
         self.status_label.setText(self.tr("Ready"))
 
     def shutdown(self):
-        # Called from the main window closeEvent. Waits for both threads
-        # before the widgets go away, so nothing is destroyed while running.
         if self._scan_thread is not None and self._scan_thread.isRunning():
             try:
                 self._scan_thread.devices_scanned.disconnect()
@@ -243,10 +257,13 @@ class DeviceSearchPanel(QWidget):
         self.name_edit.setFocus()
 
     def on_item_found(self, item):
+        if not self.worker:
+            return
         row = QTreeWidgetItem([item["name"], item["path"]])
         row.setData(0, Qt.ItemDataRole.UserRole, item["path"])
-        row.setData(0, Qt.ItemDataRole.UserRole + 1, self.device_combo.currentData())
-        row.setData(0, Qt.ItemDataRole.UserRole + 2, self.root_checkbox.isChecked())
+        row.setData(0, Qt.ItemDataRole.UserRole + 1, self.worker.device_serial)
+        row.setData(0, Qt.ItemDataRole.UserRole + 2, self.worker.use_root)
+        row.setData(0, Qt.ItemDataRole.UserRole + 3, bool(item.get("is_directory", False)))
         self.results_tree.addTopLevelItem(row)
         self.status_label.setText(
             self.tr("Searching... Found: {0}").format(
@@ -256,19 +273,13 @@ class DeviceSearchPanel(QWidget):
 
     def on_finished(self, count):
         self._searching = False
-        self.search_btn.setEnabled(True)
-        self.stop_btn.setEnabled(False)
-        self.clear_btn.setEnabled(True)
-        self.device_combo.setEnabled(self.device_combo.count() > 0)
+        self._set_inputs_enabled(True)
         self.status_label.setText(self.tr("Done. Found: {0}").format(count))
 
     def on_double_click(self, item, column):
         path = item.data(0, Qt.ItemDataRole.UserRole)
         serial = item.data(0, Qt.ItemDataRole.UserRole + 1)
         use_root = bool(item.data(0, Qt.ItemDataRole.UserRole + 2))
+        is_dir = bool(item.data(0, Qt.ItemDataRole.UserRole + 3))
         if path and serial:
-            self.file_selected.emit(serial, path, use_root)
-
-
-# Legacy alias: main.py still imports DeviceSearchDialog
-DeviceSearchDialog = DeviceSearchPanel
+            self.file_selected.emit(serial, path, use_root, is_dir)
