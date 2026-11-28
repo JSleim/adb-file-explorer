@@ -1,15 +1,15 @@
 import logging
 import re
 
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import QT_TRANSLATE_NOOP, Qt, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
-    QDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QProgressBar,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -24,21 +24,21 @@ from operation_control import (
 _logger = logging.getLogger(__name__)
 
 BATTERY_STATUS = {
-    1: "Unknown",
-    2: "Charging",
-    3: "Discharging",
-    4: "Not charging",
-    5: "Full",
+    1: QT_TRANSLATE_NOOP("DeviceDashboardDialog", "Unknown"),
+    2: QT_TRANSLATE_NOOP("DeviceDashboardDialog", "Charging"),
+    3: QT_TRANSLATE_NOOP("DeviceDashboardDialog", "Discharging"),
+    4: QT_TRANSLATE_NOOP("DeviceDashboardDialog", "Not charging"),
+    5: QT_TRANSLATE_NOOP("DeviceDashboardDialog", "Full"),
 }
 
 BATTERY_HEALTH = {
-    1: "Unknown",
-    2: "Good",
-    3: "Overheat",
-    4: "Dead",
-    5: "Over voltage",
-    6: "Failure",
-    7: "Cold",
+    1: QT_TRANSLATE_NOOP("DeviceDashboardDialog", "Unknown"),
+    2: QT_TRANSLATE_NOOP("DeviceDashboardDialog", "Good"),
+    3: QT_TRANSLATE_NOOP("DeviceDashboardDialog", "Overheat"),
+    4: QT_TRANSLATE_NOOP("DeviceDashboardDialog", "Dead"),
+    5: QT_TRANSLATE_NOOP("DeviceDashboardDialog", "Over voltage"),
+    6: QT_TRANSLATE_NOOP("DeviceDashboardDialog", "Failure"),
+    7: QT_TRANSLATE_NOOP("DeviceDashboardDialog", "Cold"),
 }
 
 
@@ -185,35 +185,59 @@ class DeviceInfoWorker(QThread):
         }
 
 
-class DeviceDashboardDialog(QDialog):
-    def __init__(self, adb_handler, parent=None):
+class DeviceDashboardDialog(QWidget):
+    def __init__(self, adb_handler=None, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(self.tr("Device Dashboard"))
         self.setObjectName("device_dashboard")
-        self.resize(520, 520)
-        self.serial = adb_handler.device_serial
+        self.serial = adb_handler.device_serial if adb_handler else None
         self._worker = None
         self._build_ui()
-        # Covers accept/reject/Esc: closeEvent is not called for those.
-        self.finished.connect(self._shutdown_worker)
-        self.refresh()
+        if self.serial:
+            self.refresh()
+        else:
+            self.battery_label.setText(self.tr("No device selected."))
+
+    def set_device(self, adb_handler):
+        new_serial = adb_handler.device_serial if adb_handler else None
+        if new_serial == self.serial:
+            return
+        self._shutdown_worker()
+        self.serial = new_serial
+        self.refresh_btn.setEnabled(True)
+        if self.serial:
+            self.refresh()
+        else:
+            for lbl in self._labels.values():
+                lbl.setText("-")
+            self.battery_bar.setValue(0)
+            self.battery_label.setText(self.tr("No device selected."))
+            self._set_storage([])
+            self.memory_bar.setValue(0)
+            self.memory_label.setText("-")
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
 
         system_group = QGroupBox(self.tr("System"))
         system_form = QFormLayout(system_group)
+        system_form.setFieldGrowthPolicy(
+            QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow
+        )
         self._labels = {}
         for key, title in (
-            ("ro.product.model", "Model"),
-            ("ro.product.device", "Device"),
-            ("ro.serialno", "Serial"),
-            ("ro.build.version.release", "Android"),
-            ("ro.build.version.sdk", "API level"),
-            ("ro.product.cpu.abi", "ABI"),
-            ("ro.build.version.security_patch", "Security patch"),
+            ("ro.product.model", self.tr("Model")),
+            ("ro.product.device", self.tr("Device")),
+            ("ro.serialno", self.tr("Serial")),
+            ("ro.build.version.release", self.tr("Android")),
+            ("ro.build.version.sdk", self.tr("API level")),
+            ("ro.product.cpu.abi", self.tr("ABI")),
+            ("ro.build.version.security_patch", self.tr("Security patch")),
         ):
             value_label = QLabel("-")
+            value_label.setWordWrap(True)
+            value_label.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+            )
             value_label.setTextInteractionFlags(
                 Qt.TextInteractionFlag.TextSelectableByMouse
             )
@@ -241,6 +265,7 @@ class DeviceDashboardDialog(QDialog):
         self.memory_bar.setRange(0, 100)
         memory_layout.addWidget(self.memory_bar)
         self.memory_label = QLabel("-")
+        self.memory_label.setWordWrap(True)
         memory_layout.addWidget(self.memory_label)
         layout.addWidget(memory_group)
 
@@ -341,14 +366,12 @@ class DeviceDashboardDialog(QDialog):
         row_layout = QHBoxLayout(row)
         row_layout.setContentsMargins(0, 0, 0, 0)
         mount_label = QLabel(mount.get("mount", "-"))
-        mount_label.setMinimumWidth(190)
+        mount_label.setWordWrap(True)
         mount_label.setObjectName("storage_mount_name")
         bar = QProgressBar()
         bar.setRange(0, 100)
         bar.setTextVisible(False)
-        bar.setFixedWidth(120)
-        # _collect_storage отдаёт готовый int; на всякий случай
-        # поддерживаем и строку с процентом
+        bar.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         percent = mount.get("percent")
         if isinstance(percent, (int, float)):
             bar.setValue(max(0, min(100, int(percent))))
@@ -364,6 +387,7 @@ class DeviceDashboardDialog(QDialog):
                 mount.get("available", "-"),
             )
         )
+        detail_label.setWordWrap(True)
         detail_label.setObjectName("storage_detail")
         row_layout.addWidget(mount_label)
         row_layout.addWidget(bar)
