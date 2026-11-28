@@ -225,13 +225,13 @@ class DeviceDashboardDialog(QWidget):
         )
         self._labels = {}
         for key, title in (
-            ("ro.product.model", "Model"),
-            ("ro.product.device", "Device"),
-            ("ro.serialno", "Serial"),
-            ("ro.build.version.release", "Android"),
-            ("ro.build.version.sdk", "API level"),
-            ("ro.product.cpu.abi", "ABI"),
-            ("ro.build.version.security_patch", "Security patch"),
+            ("ro.product.model", self.tr("Model")),
+            ("ro.product.device", self.tr("Device")),
+            ("ro.serialno", self.tr("Serial")),
+            ("ro.build.version.release", self.tr("Android")),
+            ("ro.build.version.sdk", self.tr("API level")),
+            ("ro.product.cpu.abi", self.tr("ABI")),
+            ("ro.build.version.security_patch", self.tr("Security patch")),
         ):
             value_label = QLabel("-")
             value_label.setWordWrap(True)
